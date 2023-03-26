@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  django:
+    container_name: django
+    build: ./
+    environment:
+      - DJANGO_SUPERUSER_PASSWORD=123
+    command: bash -c "python /usr/src/django/manage.py makemigrations && python /usr/src/django/manage.py migrate --noinput && python /usr/src/django/manage.py runserver 0.0.0.0:8000"
+    restart: always
+    volumes:
+      - ./:/usr/src/django
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+
+  postgres:
+    container_name: postgres
+    image: postgres:15.2-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1771
+      - POSTGRES_DB=cartographers
+    restart: always
+    volumes:
+      - ./data/postgres/:/var/lib/postgresql/data
