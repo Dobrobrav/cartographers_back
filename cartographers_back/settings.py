@@ -127,5 +127,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 DEFAULT_FILE_STORAGE = 'selectel_storage.storage.SelectelStorage'
 SELECTEL_USERNAME = 'kalyakulin.semen@gmail.com'
-SELECTEL_PASSWORD = 'your_selectel_password'
+SELECTEL_PASSWORD = 'Gir1Hor1Pin0'
 SELECTEL_CONTAINER_NAME = 'your_selectel_container_name'
