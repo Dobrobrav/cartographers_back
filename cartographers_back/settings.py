@@ -36,6 +36,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'django_selectel_storage',
+
     'foo_app',
     'rooms',
     'games',
@@ -125,7 +127,12 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-DEFAULT_FILE_STORAGE = 'selectel_storage.storage.SelectelStorage'
-SELECTEL_USERNAME = 'kalyakulin.semen@gmail.com'
-SELECTEL_PASSWORD = 'Gir1Hor1Pin0'
-SELECTEL_CONTAINER_NAME = 'cartographers'
+DEFAULT_FILE_STORAGE = 'django_selectel_storage.storage.SelectelStorage'
+
+SELECTEL_STORAGES = {
+    'default': {
+        'USERNAME': '217742_cartographers',
+        'PASSWORD': '_^lsosL087',
+        'CONTAINER': 'cartographers',
+    }
+}
