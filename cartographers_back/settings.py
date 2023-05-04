@@ -40,7 +40,7 @@ INSTALLED_APPS = [
 
     'foo_app',
     'rooms',
-    'games',
+    'games.apps.GamesConfig',
 ]
 
 MIDDLEWARE = [

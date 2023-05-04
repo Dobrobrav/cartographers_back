@@ -1,7 +1,4 @@
 from django.db import models
-from django.contrib.postgres import fields
-
-from games.tools import OBJECTIVE_CARDS_ALGORITHMS
 
 
 class EDiscoveryCardTerrain(models.TextChoices):
@@ -18,12 +15,14 @@ class EFieldTerrain(models.TextChoices):
     VILLAGE = 'village'
     MONSTER = 'monster'
     MOUNTAIN = 'mountain'
+    RUINS = 'ruins'
     BLANK = 'blank'
 
 
 class EDiscoveryCardType(models.TextChoices):
-    MOUNTAIN = 'mountain'
+    # MOUNTAIN = 'mountain'
     REGULAR = 'regular'
+    RUINS = 'ruins'
 
 
 class EObjectiveCardName(models.TextChoices):
