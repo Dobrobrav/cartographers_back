@@ -20,7 +20,7 @@ def _save_card_to_redis(card: DiscoveryCard,
                         r: Redis,
                         ) -> None:
     redis_format_card = _convert_card(card)
-    r.hset(name=f"discovery-card:{card.id}",
+    r.hset(name=f"discovery_card:{card.id}",
            mapping=redis_format_card)
 
 
