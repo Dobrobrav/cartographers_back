@@ -8,7 +8,10 @@ from .model_transformers import ModelTransformer
 from .redis_models import RedisModel
 
 
-class DaoBase(ABC):
+class Dao(ABC):
+    _key_schema: KeySchema
+    _transformer: ModelTransformer
+
     @abstractmethod
     def insert(self, redis_model: RedisModel) -> None:
         pass
@@ -25,17 +28,3 @@ class DaoBase(ABC):
     def fetch_all(self) -> set[RedisModel]:
         pass
 
-
-class RedisDaoInit:
-    _redis: Redis
-    _key_schema: KeySchema
-    _transformer: ModelTransformer
-
-    def __init__(self,
-                 redis_client: Redis,
-                 key_schema: KeySchema,
-                 model_transformer: ModelTransformer,
-                 ) -> None:
-        self._redis = redis_client
-        self._key_schema = key_schema
-        self._transformer = model_transformer

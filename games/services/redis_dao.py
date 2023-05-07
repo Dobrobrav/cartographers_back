@@ -1,10 +1,22 @@
 from typing import Iterable
 
-from games.services.dao_base import DaoBase, RedisDaoInit
+from games.services.dao_base import Dao
+from games.services.key_schemas import MonsterCardKeySchema
+from games.services.model_transformers import MonsterCardTransformer
 from games.services.redis_models import MonsterCard
+from redis.client import Redis
 
 
-class MonsterCardDaoRedis(DaoBase, RedisDaoInit):
+class MonsterCardDaoRedis(Dao):
+    _redis: Redis
+    _key_schema = MonsterCardKeySchema()
+    _transformer = MonsterCardTransformer()
+
+    def __init__(self,
+                 redis_client: Redis,
+                 ) -> None:
+        self._redis = redis_client
+
     def insert(self,
                redis_model: MonsterCard,
                ) -> None:
@@ -29,4 +41,13 @@ class MonsterCardDaoRedis(DaoBase, RedisDaoInit):
         return self._transformer.load(model_hash)
 
     def fetch_all(self) -> set[MonsterCard]:
-        pass
+        ids_key = self._key_schema.get_ids_key()
+        monster_card_hashes = (
+            self._redis.hgetall(hash_key)
+            for hash_key in self._redis.smembers(ids_key)
+        )
+        monster_cards = {
+            self._transformer.load(card)
+            for card in monster_card_hashes
+        }
+        return monster_cards
