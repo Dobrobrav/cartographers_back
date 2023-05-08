@@ -2,11 +2,23 @@ from typing import Callable, Iterable
 
 from rest_framework.utils import json
 
-from games.models import DiscoveryCard
+from games.models import DiscoveryCard, MonsterCard
 from redis import Redis
 
+from games.services.redis_dao import MonsterCardDaoRedis
 
-def load_discovery_cards_to_redis(r: Redis,
+
+def save_monster_cards_to_redis(redis_client: Redis,
+                                ) -> None:
+    dao = MonsterCardDaoRedis(redis_client)
+    monster_card_hashes = (
+        MonsterCard.to_model_hash(card)
+        for card in MonsterCard.objects.all()
+    )
+    dao.insert_many(monster_card_hashes)
+
+
+def save_discovery_cards_to_redis(r: Redis,
                                   ) -> None:
     cards = DiscoveryCard.objects \
         .select_related('shape', 'additional_shape') \

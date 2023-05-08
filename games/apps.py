@@ -9,8 +9,8 @@ class GamesConfig(AppConfig):
     def ready(self) -> None:
         """ setup redis db """
         from .services import tools
-        r = redis.Redis(host='redis',
-                        port=6379,
-                        db=0)
-
-        tools.load_discovery_cards_to_redis(r=r)
+        redis_client = redis.Redis(host='redis',
+                                   port=6379,
+                                   db=0)
+        tools.save_monster_cards_to_redis(redis_client)
+        # tools.load_discovery_cards_to_redis(r=r)

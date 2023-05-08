@@ -22,11 +22,25 @@ class ModelTransformer(ABC):
 
 class MonsterCardTransformer(ModelTransformer):
     def dump(self,
-             model: RedisModel,
+             model: MonsterCard,
              ) -> ModelHash:
-        pass
+        monster_card_hash = {
+            'id': model.id,
+            'name': model.name,
+            'image_url': model.image_url,
+            'shape': model.shape,
+            'exchange_order': model.exchange_order,
+        }
+        return monster_card_hash
 
     def load(self,
-             redis_hash: ModelHash,
+             model_hash: ModelHash,
              ) -> MonsterCard:
-        pass
+        card = MonsterCard(
+            id=int(model_hash['id']),
+            name=model_hash['name'],
+            image_url=model_hash['image_url'],
+            shape=model_hash['shape'],
+            exchange_order=model_hash['exchange_order'],
+        )
+        return card
