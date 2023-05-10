@@ -1,31 +1,36 @@
-from typing import Callable, Iterable
-
+import redis
 from rest_framework.utils import json
 
-from games.models import DiscoveryCard, MonsterCard
+from games.models import DiscoveryCard, MonsterCardSQL
 from redis import Redis
 
-from games.services.redis_dao import MonsterCardDaoRedis
+from games.redis.dao import MonsterCardDaoRedis
 
 
-def save_monster_cards_to_redis(redis_client: Redis,
-                                ) -> None:
+def save_models_to_redis():
+    client = redis.Redis(host='redis',
+                         port=6379,
+                         db=0)
+    _save_discovery_cards(client)
+    _save_monster_cards_to_redis(client)
+
+
+def _save_monster_cards_to_redis(redis_client: Redis,
+                                 ) -> None:
     dao = MonsterCardDaoRedis(redis_client)
-    monster_card_hashes = (
-        MonsterCard.to_model_hash(card)
-        for card in MonsterCard.objects.all()
-    )
-    dao.insert_many(monster_card_hashes)
+    # TODO: add select_related!!
+    cards = MonsterCardSQL.objects.all()
+    dao.insert_sql_model_many(cards)
 
 
-def save_discovery_cards_to_redis(r: Redis,
-                                  ) -> None:
+def _save_discovery_cards(redis_client: Redis,
+                          ) -> None:
     cards = DiscoveryCard.objects \
         .select_related('shape', 'additional_shape') \
         .all()
 
     for card in cards:
-        _save_card_to_redis(card, r)
+        _save_card_to_redis(card, redis_client)
 
 
 def _save_card_to_redis(card: DiscoveryCard,

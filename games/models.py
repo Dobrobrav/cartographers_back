@@ -88,7 +88,7 @@ class ExchangeOrder(models.TextChoices):
     COUNTERCLOCKWISE = 'counterclockwise'
 
 
-class MonsterCard(models.Model):
+class MonsterCardSQL(models.Model):
     name = models.CharField(
         max_length=20, default=None, null=True,
     )
@@ -104,25 +104,6 @@ class MonsterCard(models.Model):
 
     def __str__(self) -> str:
         return str(self.name)
-
-    def to_model_hash(self):
-        #TODO: need to make a monster_card_hash out of the model
-        card = MonsterCard(
-            id=int(model_hash['id']),
-            name=model_hash['name'],
-            image_url=model_hash['image_url'],
-            shape=model_hash['shape'],
-            exchange_order=model_hash['exchange_order'],
-        )
-
-        monster_card_hash = {
-            'id': self.id,
-            'name': self.name,
-            'image_url': self.image.url,
-            'shape': self.shape.shape_str,
-            'exchange_order': self.exchange_order,
-        }
-        return monster_card_hash
 
 
 class Shape(models.Model):

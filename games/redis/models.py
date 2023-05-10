@@ -1,13 +1,9 @@
-from abc import ABC
 from dataclasses import dataclass
-
-
-class RedisModel(ABC):
-    id: int
+from services.redis_models_base import RedisModel
 
 
 @dataclass
-class MonsterCard(RedisModel):
+class MonsterCardRedis(RedisModel):
     id: int
     name: str
     image_url: str
