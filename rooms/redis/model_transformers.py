@@ -1,6 +1,6 @@
 from django.db.models import Model
 
-from rooms.redis.redis_models import RoomRedis
+from rooms.redis.models import RoomRedis
 from services.model_transformers_base import ITransformer, ModelHash
 
 

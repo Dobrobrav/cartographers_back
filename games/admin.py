@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import DiscoveryCard, MonsterCard, Shape, ObjectiveCard
+from .models import DiscoveryCardSQL, MonsterCardSQL, ShapeSQL, ObjectiveCardSQL
 
 # Enum (choices) models:
 # admin.site.register(EDiscoveryCardType)
@@ -9,7 +9,7 @@ from .models import DiscoveryCard, MonsterCard, Shape, ObjectiveCard
 # admin.site.register(EShapeValue)
 
 # Regular models:
-admin.site.register(DiscoveryCard)
-admin.site.register(MonsterCard)
-admin.site.register(Shape)
-admin.site.register(ObjectiveCard)
+admin.site.register(DiscoveryCardSQL)
+admin.site.register(MonsterCardSQL)
+admin.site.register(ShapeSQL)
+admin.site.register(ObjectiveCardSQL)

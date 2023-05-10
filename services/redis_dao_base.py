@@ -2,6 +2,7 @@ from typing import Iterable, Callable
 
 from django.db.models import Model
 from redis.client import Redis
+
 from .key_schemas_base import KeySchema
 from abc import ABC, abstractmethod
 
@@ -12,17 +13,18 @@ from .redis_models_base import RedisModel
 class Dao(ABC):
     _key_schema: KeySchema
     _transformer: ITransformer
+    _model: type[RedisModel]
 
     @abstractmethod
     def insert_redis_model_many(self,
                                 objects: Iterable[RedisModel],
-                                ) -> None:
+                                ) -> list[RedisModel]:
         pass
 
     @abstractmethod
     def insert_redis_model_single(self,
                                   obj: RedisModel,
-                                  ) -> None:
+                                  ) -> RedisModel:
         pass
 
     @abstractmethod
@@ -55,40 +57,53 @@ class DaoRedis(Dao):
         self._redis = redis_client
 
     def insert_redis_model_many(self,
-                                objects: Iterable[RedisModel],
-                                ) -> None:
-        for obj in objects:
+                                redis_models: Iterable[RedisModel],
+                                ) -> list[ModelHash]:
+        model_hashes = [
             self._insert_single(
                 obj, dumper=self._transformer.dump_redis_model)
+            for obj in redis_models
+        ]
+        return model_hashes
 
     def insert_redis_model_single(self,
-                                  obj: RedisModel,
-                                  ) -> None:
-        self._insert_single(
-            obj, dumper=self._transformer.dump_sql_model)
+                                  model: RedisModel,
+                                  ) -> ModelHash:
+        model_hash = self._insert_single(
+            model, dumper=self._transformer.dump_sql_model)
+
+        return model_hash
 
     def insert_sql_model_many(self,
-                              objects: Iterable[Model],
-                              ) -> None:
-        for obj in objects:
+                              models: Iterable[Model],
+                              ) -> list[ModelHash]:
+        model_hashes = [
             self._insert_single(
-                obj, dumper=self._transformer.dump_sql_model)
+                model, dumper=self._transformer.dump_sql_model)
+            for model in models
+        ]
+        return model_hashes
 
     def insert_sql_model_single(self,
-                                obj: Model,
-                                ) -> None:
-        self._insert_single(
-            obj, dumper=self._transformer.dump_sql_model)
+                                model: Model,
+                                ) -> ModelHash:
+        model_hash = self._insert_single(
+            model, dumper=self._transformer.dump_sql_model)
+
+        return model_hash
 
     def _insert_single(self,
-                       obj: Model | RedisModel,
+                       model: Model | RedisModel,
                        dumper: Callable[[Model | RedisModel], ModelHash],
-                       ) -> None:
-        hash_key = self._key_schema.get_hash_key(id=obj.id)
+                       ) -> ModelHash:
+        hash_key = self._key_schema.get_hash_key(id=model.id)
         ids_key = self._key_schema.get_ids_key()
         # these actually should be a transaction
-        self._redis.hset(hash_key, mapping=dumper(obj))
+        model_hash = dumper(model)
+        self._redis.hset(hash_key, mapping=model_hash)
         self._redis.sadd(ids_key, hash_key)
+
+        return model_hash
 
     def fetch_by_id(self,
                     model_id: int,
@@ -108,3 +123,22 @@ class DaoRedis(Dao):
             for card in monster_card_hashes
         }
         return monster_cards
+
+    def _gen_new_id(self) -> int:
+        ids = self._get_ids()
+        id = self._gen_id(ids)
+        return id
+
+    @staticmethod
+    def _gen_id(ids: set[int]) -> int:
+        new_id = 1  # start with the lowest possible ID value
+
+        while new_id in ids:
+            new_id += 1  # increment the ID until an available one is found
+
+        return new_id
+
+    def _get_ids(self) -> set[int]:
+        ids_key = self._key_schema.get_ids_key()
+        ids = {int(id) for id in self._redis.smembers(ids_key)}
+        return ids

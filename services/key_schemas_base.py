@@ -11,8 +11,3 @@ class KeySchema(ABC):
     @abstractmethod
     def get_ids_key() -> str:
         pass
-    
-    @staticmethod
-    @abstractmethod
-    def gen_id() -> int:
-        pass

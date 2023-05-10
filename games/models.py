@@ -30,7 +30,7 @@ class EObjectiveCardName(models.TextChoices):
 
 
 # Create your models here.
-class ObjectiveCard(models.Model):
+class ObjectiveCardSQL(models.Model):
     name = models.CharField(
         max_length=30, choices=EObjectiveCardName.choices,
     )
@@ -42,7 +42,7 @@ class ObjectiveCard(models.Model):
         return str(self.name)
 
 
-class DiscoveryCard(models.Model):
+class DiscoveryCardSQL(models.Model):
     name = models.CharField(
         max_length=20, default=None, null=True,
     )
@@ -53,12 +53,12 @@ class DiscoveryCard(models.Model):
         choices=EDiscoveryCardType.choices, max_length=20
     )
     shape = models.ForeignKey(
-        to='Shape', on_delete=models.CASCADE,
+        to='ShapeSQL', on_delete=models.CASCADE,
         related_name='main_shape_cards',
         blank=True, null=True,
     )
     additional_shape = models.ForeignKey(
-        to='Shape', on_delete=models.CASCADE,
+        to='ShapeSQL', on_delete=models.CASCADE,
         blank=True, null=True,
         related_name='additional_shape_cards',
     )  # blank True - value can be unsigned
@@ -77,13 +77,13 @@ class DiscoveryCard(models.Model):
         return str(self.name)
 
 
-class SeasonCard(models.Model):
+class SeasonCardSQL(models.Model):
     name = models.CharField(max_length=10)
     points_to_end = models.IntegerField()
     image = models.ImageField(upload_to='season_cards/')
 
 
-class ExchangeOrder(models.TextChoices):
+class EExchangeOrder(models.TextChoices):
     CLOCKWISE = 'clockwise'
     COUNTERCLOCKWISE = 'counterclockwise'
 
@@ -96,17 +96,17 @@ class MonsterCardSQL(models.Model):
         upload_to='monster_cards/', default=None, null=True,
     )
     shape = models.ForeignKey(
-        to='Shape', on_delete=models.CASCADE,
+        to='ShapeSQL', on_delete=models.CASCADE,
     )
     exchange_order = models.CharField(
-        choices=ExchangeOrder.choices, max_length=20
+        choices=EExchangeOrder.choices, max_length=20
     )
 
     def __str__(self) -> str:
         return str(self.name)
 
 
-class Shape(models.Model):
+class ShapeSQL(models.Model):
     DEFAULT_SHAPE = "000000 000000 000000 000000 000000 000000"
 
     shape_str = models.CharField(

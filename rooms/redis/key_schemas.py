@@ -9,7 +9,3 @@ class RoomKeySchema(KeySchema):
     @staticmethod
     def get_ids_key() -> str:
         return "rooms:ids"
-
-    @staticmethod
-    def gen_id() -> int:
-        pass

@@ -37,6 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'django_selectel_storage',
+    'djoser',
+    'rest_framework',
+    'rest_framework.authtoken',
 
     'foo_app',
     'rooms',
@@ -83,8 +86,9 @@ DATABASES = {
         'NAME': 'cartographers',
         'USER': 'postgres',
         'PASSWORD': '1771',
-        'HOST': 'postgres',
-        'PORT': 5432,
+        # 'HOST': 'postgres',
+        'HOST': 'localhost',
+        'PORT': 5433,
     }
 }
 

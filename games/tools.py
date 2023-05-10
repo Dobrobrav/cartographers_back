@@ -1,7 +1,7 @@
 import redis
 from rest_framework.utils import json
 
-from games.models import DiscoveryCard, MonsterCardSQL
+from games.models import DiscoveryCardSQL, MonsterCardSQL
 from redis import Redis
 
 from games.redis.dao import MonsterCardDaoRedis
@@ -25,7 +25,7 @@ def _save_monster_cards_to_redis(redis_client: Redis,
 
 def _save_discovery_cards(redis_client: Redis,
                           ) -> None:
-    cards = DiscoveryCard.objects \
+    cards = DiscoveryCardSQL.objects \
         .select_related('shape', 'additional_shape') \
         .all()
 
@@ -33,7 +33,7 @@ def _save_discovery_cards(redis_client: Redis,
         _save_card_to_redis(card, redis_client)
 
 
-def _save_card_to_redis(card: DiscoveryCard,
+def _save_card_to_redis(card: DiscoveryCardSQL,
                         r: Redis,
                         ) -> None:
     redis_format_card = _convert_card(card)
@@ -41,7 +41,7 @@ def _save_card_to_redis(card: DiscoveryCard,
            mapping=redis_format_card)
 
 
-def _convert_card(card: DiscoveryCard,
+def _convert_card(card: DiscoveryCardSQL,
                   ) -> dict[str, str]:
     if card.card_type == 'ruins':
         redis_card = {
