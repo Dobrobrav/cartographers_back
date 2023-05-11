@@ -17,6 +17,10 @@ class RoomTransformer(ITransformer):
             'password': model.password,
             'max_players': model.max_players,
             'admin_id': model.admin_id,
+            'user_ids': ' '.join(
+                str(user_id)
+                for user_id in model.user_ids
+            ),
         }
         return hash
 
@@ -28,5 +32,9 @@ class RoomTransformer(ITransformer):
             password=model_hash['password'],
             max_players=int(model_hash['max_players']),
             admin_id=int(model_hash['admin_id']),
+            user_ids=[
+                int(user_id)
+                for user_id in model_hash['user_ids'].split()
+            ],
         )
         return room

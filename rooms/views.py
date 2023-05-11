@@ -22,15 +22,15 @@ class RoomAPIView(APIView):
         token = request.headers['Auth-Token']
         print(token)
 
-        room_dao = RoomDaoRedis(redis_client.client)
-        admin_id = get_user_id_by_token(token)
+        room_dao = RoomDaoRedis(redis_client.redis_client)
+        creator_id = get_user_id_by_token(token)
 
         # TODO: allow to make a room without a password
         room = room_dao.create_room(
             name=data['name'],
             password=data['password'],
             max_players=int(data['max_players']),
-            admin_id=admin_id,
+            creator_id=creator_id,
         )
         room_hash = room_dao.insert_redis_model_single(room)
 

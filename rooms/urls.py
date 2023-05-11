@@ -1,6 +1,10 @@
 from django.urls import path
+
+from . import utils
 from .views import RoomAPIView, EnterDetails, Search, Delete, \
     KickUser, Ready, Leave, Display
+
+utils.save_models_to_redis()
 
 urlpatterns = [
     path('', Display.as_view()),

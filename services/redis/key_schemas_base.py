@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class KeySchema(ABC):
+class IKeySchema(ABC):
     @staticmethod
     @abstractmethod
     def get_hash_key(id: int) -> str:

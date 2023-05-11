@@ -16,7 +16,7 @@ class RoomDaoRedis(DaoRedis):
                     name: str,
                     password: str,
                     max_players: int,
-                    admin_id: int,
+                    creator_id: int,
                     ) -> RedisModel:
         id = self._gen_new_id()
         model = self._model(
@@ -24,6 +24,13 @@ class RoomDaoRedis(DaoRedis):
             name=name,
             password=make_password(password),
             max_players=max_players,
-            admin_id=admin_id,
+            admin_id=creator_id,
+            users=[creator_id],
         )
         return model
+
+    def add_user(self,
+                 user_id: int,
+                 ) -> None:
+        pass
+

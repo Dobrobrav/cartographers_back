@@ -6,3 +6,16 @@ def get_user_id_by_token(token: str) -> int:
     user_id = token_obj.user_id
 
     return user_id
+
+
+def ids_to_str(ids: list[int],
+               ) -> str:
+    string = ' '.join(str(id) for id in ids)
+    return string
+
+
+def str_to_ids(string: str,
+               ) -> list[int]:
+    ids = [int(id) for id in string.split()]
+    return ids
+

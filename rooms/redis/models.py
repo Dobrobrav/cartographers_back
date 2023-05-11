@@ -10,3 +10,4 @@ class RoomRedis(RedisModel):
     password: str
     max_players: int
     admin_id: int
+    user_ids: list[int]
