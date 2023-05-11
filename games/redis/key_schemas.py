@@ -1,4 +1,4 @@
-from services.key_schemas_base import KeySchema
+from services.redis.key_schemas_base import KeySchema
 
 
 class MonsterCardKeySchema(KeySchema):

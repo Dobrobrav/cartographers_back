@@ -1,11 +1,11 @@
-from django.shortcuts import render
+from rest_framework.authtoken.models import Token
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from rooms.redis.dao import RoomDaoRedis
-from rooms.redis.models import RoomRedis
-from services.redis_client import client
+from services.redis import redis_client
+from services.utils import get_user_id_by_token
 
 
 # Create your views here.
@@ -17,15 +17,20 @@ class RoomAPIView(APIView):
     def post(self,
              request: Request,
              ) -> Response:
+        """ Endpoint for creating a room """
         data = request.data
-        headers = request.headers
+        token = request.headers['Auth-Token']
+        print(token)
 
-        room_dao = RoomDaoRedis(redis_client=client)
+        room_dao = RoomDaoRedis(redis_client.client)
+        admin_id = get_user_id_by_token(token)
+
+        # TODO: allow to make a room without a password
         room = room_dao.create_room(
             name=data['name'],
-            password=request['password'],
-            max_players=int(request['max_players']),
-            token=headers['token'],  # TODO: make sure there is token in headers.
+            password=data['password'],
+            max_players=int(data['max_players']),
+            admin_id=admin_id,
         )
         room_hash = room_dao.insert_redis_model_single(room)
 

@@ -1,7 +1,7 @@
 from django.db.models import Model
 
 from rooms.redis.models import RoomRedis
-from services.model_transformers_base import ITransformer, ModelHash
+from services.redis.model_transformers_base import ITransformer, ModelHash
 
 
 class RoomTransformer(ITransformer):

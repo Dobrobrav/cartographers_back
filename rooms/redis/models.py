@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from services.redis_models_base import RedisModel
+from services.redis.redis_models_base import RedisModel
 
 
 @dataclass

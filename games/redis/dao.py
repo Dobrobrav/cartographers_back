@@ -1,4 +1,4 @@
-from services.redis_dao_base import DaoRedis
+from services.redis.redis_dao_base import DaoRedis
 from .key_schemas import MonsterCardKeySchema
 from .model_transformers import MonsterCardTransformer
 
