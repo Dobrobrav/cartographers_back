@@ -5,7 +5,7 @@ from django.db.models import Model
 
 from services.redis.redis_models_base import RedisModel
 
-ModelHash: TypeAlias = dict[str, str]
+ModelHash: TypeAlias = dict[str, str | int]
 
 
 class ITransformer(ABC):

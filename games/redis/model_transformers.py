@@ -1,6 +1,97 @@
+from django.db.models import Model
+
 from games.models import MonsterCardSQL
-from games.redis.models import MonsterCardRedis
+from games.redis.models import MonsterCardRedis, GameTableRedis
+from services import utils
 from services.redis.model_transformers_base import ITransformer, ModelHash
+from services.redis.redis_models_base import RedisModel
+
+
+class GameTableTransformer(ITransformer):
+    @staticmethod
+    def dump_redis_model(model: GameTableRedis,
+                         ) -> ModelHash:
+        game_table_hash = {
+            'id': model.id,
+            'lobby_id': model.lobby_id,
+            'monster_card_for_game_ids': utils.ids_to_str(
+                model.monster_card_for_game_ids
+            ),
+            'discovery_card_for_game_ids': utils.ids_to_str(
+                model.discovery_card_for_game_ids
+            ),
+            'season_for_game_ids': utils.ids_to_str(
+                model.season_for_game_ids
+            ),
+            'current_move_id': model.current_move_id,
+        }
+        return game_table_hash
+
+    @staticmethod
+    def dump_sql_model(model: Model,
+                       ) -> ModelHash:
+        raise NotImplementedError
+
+    @staticmethod
+    def load_redis_model(redis_hash: ModelHash,
+                         ) -> GameTableRedis:
+        table = GameTableRedis(
+            id=int(redis_hash['id']),
+            lobby_id=int(redis_hash['lobby_id']),
+            monster_card_for_game_ids=utils.str_to_ids(
+                redis_hash['monster_card_for_game_ids']
+            ),
+            discovery_card_for_game_ids=utils.str_to_ids(
+                redis_hash['discovery_card_for_game_ids']
+            ),
+            season_for_game_ids=utils.str_to_ids(
+                redis_hash['season_for_game_ids']
+            ),
+            current_move_id=redis_hash['current_move_id'],
+        )
+        return table
+
+
+class SeasonTransformer(ITransformer):
+    @staticmethod
+    def dump_sql_model(model: Model) -> ModelHash:
+        pass
+
+    @staticmethod
+    def dump_redis_model(model: RedisModel) -> ModelHash:
+        pass
+
+    @staticmethod
+    def load_redis_model(redis_hash: ModelHash) -> RedisModel:
+        pass
+
+
+class MoveTransformer(ITransformer):
+    @staticmethod
+    def dump_sql_model(model: Model) -> ModelHash:
+        pass
+
+    @staticmethod
+    def dump_redis_model(model: RedisModel) -> ModelHash:
+        pass
+
+    @staticmethod
+    def load_redis_model(redis_hash: ModelHash) -> RedisModel:
+        pass
+
+
+class PlayerTransformer(ITransformer):
+    @staticmethod
+    def dump_sql_model(model: Model) -> ModelHash:
+        pass
+
+    @staticmethod
+    def dump_redis_model(model: RedisModel) -> ModelHash:
+        pass
+
+    @staticmethod
+    def load_redis_model(redis_hash: ModelHash) -> RedisModel:
+        pass
 
 
 class MonsterCardTransformer(ITransformer):

@@ -7,6 +7,5 @@ class GamesConfig(AppConfig):
 
     def ready(self) -> None:
         """ setup redis db """
-        from . import tools
-        # tools.save_models_to_redis()
-        # tools.load_discovery_cards_to_redis(r=r)
+        from . import utils
+        utils.save_models_to_redis()

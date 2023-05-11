@@ -1,7 +1,7 @@
-from services.redis.key_schemas_base import KeySchema
+from services.redis.key_schemas_base import IKeySchema
 
 
-class RoomKeySchema(KeySchema):
+class RoomKeySchema(IKeySchema):
     @staticmethod
     def get_hash_key(id: int) -> str:
         return f"rooms:{id}"

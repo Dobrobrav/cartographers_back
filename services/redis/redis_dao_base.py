@@ -3,7 +3,7 @@ from typing import Iterable, Callable
 from django.db.models import Model
 from redis.client import Redis
 
-from services.redis.key_schemas_base import KeySchema
+from services.redis.key_schemas_base import IKeySchema
 from abc import ABC, abstractmethod
 
 from .model_transformers_base import ITransformer, ModelHash
@@ -11,7 +11,7 @@ from .redis_models_base import RedisModel
 
 
 class Dao(ABC):
-    _key_schema: KeySchema
+    _key_schema: IKeySchema
     _transformer: ITransformer
     _model: type[RedisModel]
 
@@ -70,7 +70,7 @@ class DaoRedis(Dao):
                                   model: RedisModel,
                                   ) -> ModelHash:
         model_hash = self._insert_single(
-            model, dumper=self._transformer.dump_sql_model)
+            model, dumper=self._transformer.dump_redis_model)
 
         return model_hash
 
@@ -101,7 +101,7 @@ class DaoRedis(Dao):
         # these actually should be a transaction
         model_hash = dumper(model)
         self._redis.hset(hash_key, mapping=model_hash)
-        self._redis.sadd(ids_key, hash_key)
+        self._redis.sadd(ids_key, model.id)
 
         return model_hash
 
