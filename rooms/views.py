@@ -25,7 +25,7 @@ class RoomAPIView(APIView):
             name=data['name'],
             password=request['password'],
             max_players=int(request['max_players']),
-            token=headers['token'],  # TODO: make sure there is one in headers.
+            token=headers['token'],  # TODO: make sure there is token in headers.
         )
         room_hash = room_dao.insert_redis_model_single(room)
 

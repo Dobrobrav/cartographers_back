@@ -86,9 +86,10 @@ DATABASES = {
         'NAME': 'cartographers',
         'USER': 'postgres',
         'PASSWORD': '1771',
-        # 'HOST': 'postgres',
-        'HOST': 'localhost',
-        'PORT': 5433,
+        'HOST': 'postgres',
+        # 'HOST': 'localhost',
+        'PORT': 5432,
+        # 'PORT': 5433,
     }
 }
 
@@ -139,4 +140,10 @@ SELECTEL_STORAGES = {
         'PASSWORD': '_^lsosL087',
         'CONTAINER': 'cartographers',
     }
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+    )
 }
