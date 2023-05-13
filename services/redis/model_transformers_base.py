@@ -1,29 +1,32 @@
 from abc import ABC, abstractmethod
-from typing import TypeAlias
+from typing import TypeAlias, Iterable
 
 from django.db.models import Model
 
 from services.redis.redis_models_base import RedisModel
 
-ModelHash: TypeAlias = dict[str, str | int]
+ModelDict: TypeAlias = dict[str, str | int]
+ModelHash: TypeAlias = dict[bytes, bytes]
 
 
-class ITransformer(ABC):
+class ITransformer(ABC):  # Нужен ли этот интерфейс вообще?
     @staticmethod
     @abstractmethod
-    def dump_sql_model(model: Model) -> ModelHash:
+    def sql_model_to_dict(model: Model) -> ModelDict:
         pass
 
     @staticmethod
     @abstractmethod
-    def dump_redis_model(model: RedisModel) -> ModelHash:
+    def redis_model_to_dict(model: RedisModel) -> ModelDict:
         pass
 
     @staticmethod
     @abstractmethod
-    def load_redis_model(redis_hash: ModelHash) -> RedisModel:
+    def hash_to_model(hash: ModelHash) -> RedisModel:
         pass
 
-
-
-
+    @staticmethod
+    @abstractmethod
+    def hashes_to_models(hashes: Iterable[ModelHash],
+                         ) -> list[RedisModel]:
+        pass
