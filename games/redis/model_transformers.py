@@ -10,6 +10,11 @@ from services.redis.redis_models_base import RedisModel
 
 
 class GameTableTransformer(ITransformer):
+    @staticmethod
+    def hashes_to_models(hashes: Iterable[ModelHash],
+                         ) -> list[RedisModel]:
+        pass
+
     def bytes_to_redis_model_many(self,
                                   hashes: Iterable[ModelHash],
                                   ) -> list[GameTableRedis]:
@@ -22,9 +27,10 @@ class GameTableTransformer(ITransformer):
     @staticmethod
     def bytes_to_redis_model(hash: ModelHash,
                              ) -> GameTableRedis:
-        game_table = GameTableRedis(
-
-        )
+        # game_table = GameTableRedis(
+        #
+        # )
+        pass
 
     @staticmethod
     def redis_model_to_dict(model: GameTableRedis,
@@ -72,6 +78,10 @@ class GameTableTransformer(ITransformer):
 
 class SeasonTransformer(ITransformer):
     @staticmethod
+    def hashes_to_models(hashes: Iterable[ModelHash]) -> list[RedisModel]:
+        pass
+
+    @staticmethod
     def sql_model_to_dict(model: Model) -> ModelDict:
         pass
 
@@ -85,6 +95,10 @@ class SeasonTransformer(ITransformer):
 
 
 class MoveTransformer(ITransformer):
+    @staticmethod
+    def hashes_to_models(hashes: Iterable[ModelHash]) -> list[RedisModel]:
+        pass
+
     @staticmethod
     def sql_model_to_dict(model: Model) -> ModelDict:
         pass
@@ -100,6 +114,10 @@ class MoveTransformer(ITransformer):
 
 class PlayerTransformer(ITransformer):
     @staticmethod
+    def hashes_to_models(hashes: Iterable[ModelHash]) -> list[RedisModel]:
+        pass
+
+    @staticmethod
     def sql_model_to_dict(model: Model) -> ModelDict:
         pass
 
@@ -112,52 +130,11 @@ class PlayerTransformer(ITransformer):
         pass
 
 
-class GameTableTransformer(ITransformer):
-    @staticmethod
-    def redis_model_to_dict(model: GameTableRedis,
-                            ) -> ModelDict:
-        game_table_hash = {
-            'id': model.id,
-            'lobby_id': model.lobby_id,
-            'monster_card_for_game_ids': utils.ids_to_str(
-                model.monster_card_for_game_ids
-            ),
-            'discovery_card_for_game_ids': utils.ids_to_str(
-                model.discovery_card_for_game_ids
-            ),
-            'season_for_game_ids': utils.ids_to_str(
-                model.season_for_game_ids
-            ),
-            'current_move_id': model.current_move_id,
-        }
-        return game_table_hash
-
-    @staticmethod
-    def sql_model_to_dict(model: Model,
-                          ) -> ModelDict:
-        raise NotImplementedError
-
-    @staticmethod
-    def hash_to_model(hash: ModelDict,
-                      ) -> GameTableRedis:
-        table = GameTableRedis(
-            id=int(hash['id']),
-            lobby_id=int(hash['lobby_id']),
-            monster_card_for_game_ids=utils.str_to_ids(
-                hash['monster_card_for_game_ids']
-            ),
-            discovery_card_for_game_ids=utils.str_to_ids(
-                hash['discovery_card_for_game_ids']
-            ),
-            season_for_game_ids=utils.str_to_ids(
-                hash['season_for_game_ids']
-            ),
-            current_move_id=hash['current_move_id'],
-        )
-        return table
-
-
 class MonsterCardTransformer(ITransformer):
+    @staticmethod
+    def hashes_to_models(hashes: Iterable[ModelHash]) -> list[RedisModel]:
+        pass
+
     @staticmethod
     def redis_model_to_dict(model: MonsterCardRedis,
                             ) -> ModelDict:

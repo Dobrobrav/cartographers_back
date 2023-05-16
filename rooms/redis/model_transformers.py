@@ -1,10 +1,17 @@
+from typing import Iterable
+
 from django.db.models import Model
 
 from rooms.redis.models import RoomRedis
 from services.redis.model_transformers_base import ITransformer, ModelDict, ModelHash
+from services.redis.redis_models_base import RedisModel
 
 
 class RoomTransformer(ITransformer):
+    @staticmethod
+    def hashes_to_models(hashes: Iterable[ModelHash]) -> list[RedisModel]:
+        pass
+
     @staticmethod
     def sql_model_to_dict(model: Model) -> ModelDict:
         pass

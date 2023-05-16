@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
+import redis
 
 from pathlib import Path
 
@@ -81,15 +82,23 @@ WSGI_APPLICATION = 'cartographers_back.wsgi.application'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
 DATABASES = {
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
+    #     'NAME': 'cartographers',
+    #     'USER': 'postgres',
+    #     'PASSWORD': '1771',
+    #     # 'HOST': 'postgres',
+    #     'HOST': 'localhost',
+    #     # 'PORT': 5432,
+    #     'PORT': 5433,
+    # },
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'cartographers',
-        'USER': 'postgres',
-        'PASSWORD': '1771',
-        'HOST': 'postgres',
-        # 'HOST': 'localhost',
-        'PORT': 5432,
-        # 'PORT': 5433,
+        'USER': 'user',
+        'PASSWORD': 'ukfvSVC8RC73GY1Nhhp52WVjUGMr26u3',
+        'HOST': 'postgres.render.com',
+        'PORT': '5432',
     }
 }
 
@@ -149,3 +158,20 @@ REST_FRAMEWORK = {
 }
 
 AUTHTOKEN_TOKEN_LIFETIME = 24 * 60 * 60  # token lifespan is 24 hours
+
+# REDIS = redis.Redis(
+#     host='redis',
+#     # host='localhost',
+#     port=6379,
+#     # port=6380,
+#     db=0,
+# )
+
+REDIS = redis.Redis(
+    host='frankfurt-redis.render.com',
+    port=6379,
+    username='red-chfrs92k728sd6hi5of0',
+    password='ooE6l229yKzpXFtorxwYhQqt44fFzqPt',
+    ssl=True,
+    ssl_cert_reqs=None,
+)

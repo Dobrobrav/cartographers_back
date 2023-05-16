@@ -1,6 +1,7 @@
 import redis
 from rest_framework.utils import json
 
+from cartographers_back.settings import REDIS
 from games.models import DiscoveryCardSQL, MonsterCardSQL
 from redis import Redis
 
@@ -8,18 +9,15 @@ from games.redis.dao import MonsterCardDaoRedis
 
 
 def save_models_to_redis():
-    client = redis.Redis(host='redis',
-                         port=6379,
-                         db=0)
-    _upload_discovery_cards(client)
-    _upload_monster_cards_to_redis(client)
+    _upload_discovery_cards(REDIS)
+    _upload_monster_cards_to_redis(REDIS)
 
 
 def _upload_monster_cards_to_redis(redis_client: Redis,
                                    ) -> None:
     dao = MonsterCardDaoRedis(redis_client)
     cards = MonsterCardSQL.objects.select_related('shape').all()
-    dao.insert_sql_model_many(cards)
+    dao.insert_sql_models(cards)
 
 
 def _upload_discovery_cards(redis_client: Redis,

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from rooms.redis.dao import RoomDaoRedis
-from services.redis.redis_client import redis_client
+from cartographers_back.settings import REDIS
 from services.utils import get_user_id_by_token
 
 
@@ -22,8 +22,8 @@ class Display(APIView):
         page = int(params['page'])
         limit = int(params['limit'])
 
-        room_hashes = RoomDaoRedis(redis_client).get_page(page=page, limit=limit)
-        print(room_hashes)
+        room_hashes = RoomDaoRedis(REDIS)\
+            .get_page(page=page, limit=limit)
 
         return Response(room_hashes)
 
@@ -36,7 +36,7 @@ class RoomAPIView(APIView):
         token = request.headers['Auth-Token']
         data = request.data
 
-        room_dao = RoomDaoRedis(redis_client)
+        room_dao = RoomDaoRedis(REDIS)
         creator_id = get_user_id_by_token(token)
 
         # TODO: allow to make a room without a password
@@ -47,6 +47,7 @@ class RoomAPIView(APIView):
             creator_id=creator_id,
         )
         room_dao.insert_redis_model(room)
+        # TODO: create a function that forms json with actual fields, not ids
 
         return Response()
 
