@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
+import dj_database_url
 import redis
 
 from pathlib import Path
@@ -81,6 +82,7 @@ WSGI_APPLICATION = 'cartographers_back.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+EXTERNAL_POSTGRES_URL = 'postgres://user:ukfvSVC8RC73GY1Nhhp52WVjUGMr26u3@dpg-chfrl9jhp8u065ri1lig-a.oregon-postgres.render.com/cartographers'
 DATABASES = {
     # 'default': {
     #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -92,14 +94,17 @@ DATABASES = {
     #     # 'PORT': 5432,
     #     'PORT': 5433,
     # },
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'cartographers',
-        'USER': 'user',
-        'PASSWORD': 'ukfvSVC8RC73GY1Nhhp52WVjUGMr26u3',
-        'HOST': 'postgres.render.com',
-        'PORT': '5432',
-    }
+
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
+    #     'NAME': 'cartographers',
+    #     'USER': 'user',
+    #     'PASSWORD': 'ukfvSVC8RC73GY1Nhhp52WVjUGMr26u3',
+    #     'HOST': 'postgres.render.com',
+    #     'PORT': '5432',
+    # }
+    'default': dj_database_url.config(default=EXTERNAL_POSTGRES_URL)
+
 }
 
 # Password validation
@@ -167,11 +172,16 @@ AUTHTOKEN_TOKEN_LIFETIME = 24 * 60 * 60  # token lifespan is 24 hours
 #     db=0,
 # )
 
-REDIS = redis.Redis(
-    host='frankfurt-redis.render.com',
-    port=6379,
-    username='red-chfrs92k728sd6hi5of0',
-    password='ooE6l229yKzpXFtorxwYhQqt44fFzqPt',
-    ssl=True,
-    ssl_cert_reqs=None,
+
+# REDIS = redis.Redis(
+#     host='frankfurt-redis.render.com',
+#     port=6379,
+#     username='red-chfrs92k728sd6hi5of0',
+#     password='ooE6l229yKzpXFtorxwYhQqt44fFzqPt',
+#     ssl=True,
+#     ssl_cert_reqs=None,
+# )
+
+REDIS = redis.from_url(
+    url='rediss://red-chfrs92k728sd6hi5of0:ooE6l229yKzpXFtorxwYhQqt44fFzqPt@frankfurt-redis.render.com:6379'
 )
