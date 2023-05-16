@@ -172,16 +172,7 @@ AUTHTOKEN_TOKEN_LIFETIME = 24 * 60 * 60  # token lifespan is 24 hours
 #     db=0,
 # )
 
-
-# REDIS = redis.Redis(
-#     host='frankfurt-redis.render.com',
-#     port=6379,
-#     username='red-chfrs92k728sd6hi5of0',
-#     password='ooE6l229yKzpXFtorxwYhQqt44fFzqPt',
-#     ssl=True,
-#     ssl_cert_reqs=None,
-# )
-
+REDIS_EXTERNAL_URL = ''
 REDIS = redis.from_url(
-    url='rediss://red-chfrs92k728sd6hi5of0:ooE6l229yKzpXFtorxwYhQqt44fFzqPt@frankfurt-redis.render.com:6379'
+    url='rediss://red-chhjm4l269v0od74i080:wORNIkK67CkWvDdU25n6BC0C5wYRE6N1@oregon-redis.render.com:6379'
 )
