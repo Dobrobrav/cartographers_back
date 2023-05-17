@@ -164,5 +164,5 @@ REST_FRAMEWORK = {
 
 AUTHTOKEN_TOKEN_LIFETIME = 24 * 60 * 60  # token lifespan is 24 hours
 
-REDIS_INTERNAL_URL = 'redis://red-chhjm4l269v0od74i080:6379'
-REDIS = redis.from_url(REDIS_INTERNAL_URL)
+# REDIS_INTERNAL_URL = 'redis://red-chhjm4l269v0od74i080:6379'
+# REDIS = redis.from_url(REDIS_INTERNAL_URL)

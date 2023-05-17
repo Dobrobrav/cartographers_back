@@ -5,9 +5,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from rooms.redis.dao import RoomDaoRedis
-from cartographers_back.settings import REDIS
+# from cartographers_back.settings import REDIS
 from services.utils import get_user_id_by_token
 
+REDIS = None
 
 # Create your views here.
 
