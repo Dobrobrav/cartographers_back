@@ -12,3 +12,10 @@ class RoomRedis(RedisModel):
     admin_id: int
     user_ids: list[int]
     current_users: int = 0
+
+
+@dataclass
+class UserRedis(RedisModel):
+    id: int
+    name: str
+    is_ready: bool

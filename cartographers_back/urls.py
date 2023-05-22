@@ -15,7 +15,6 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include, re_path
-from services.redis.redis_client import redis_client
 
 # Обнуляем базу данных
 # redis_client.flushall()
@@ -24,7 +23,6 @@ urlpatterns = [
     re_path(r'^auth/', include('djoser.urls')),
     re_path(r'^auth/', include('djoser.urls.authtoken')),
     path('admin/', admin.site.urls),
-    path('foo_app/', include('foo_app.urls')),
     path('rooms/', include('rooms.urls')),
     path('games/', include('games.urls'))
 ]

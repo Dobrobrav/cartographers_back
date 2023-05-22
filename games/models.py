@@ -20,7 +20,6 @@ class EFieldTerrain(models.TextChoices):
 
 
 class EDiscoveryCardType(models.TextChoices):
-    # MOUNTAIN = 'mountain'
     REGULAR = 'regular'
     RUINS = 'ruins'
 

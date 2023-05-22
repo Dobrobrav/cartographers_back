@@ -1,7 +1,7 @@
 from services.redis.key_schemas_base import IKeySchema
 
 
-class GameTableKeySchema(IKeySchema):
+class GameKeySchema(IKeySchema):
     @staticmethod
     def get_hash_key(id: int) -> str:
         return f"game-tables:{id}"

@@ -1,3 +1,4 @@
+from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.request import Request
@@ -6,6 +7,7 @@ from rest_framework.views import APIView
 
 from rooms.redis.dao import RoomDaoRedis
 from cartographers_back.settings import REDIS
+from rooms.utils import get_room_id_by_token
 from services.utils import get_user_id_by_token
 
 
@@ -22,8 +24,8 @@ class Display(APIView):
         page = int(params['page'])
         limit = int(params['limit'])
 
-        room_hashes = RoomDaoRedis(REDIS)\
-            .get_page(page=page, limit=limit)
+        room_hashes = RoomDaoRedis(REDIS) \
+            .get_page(page, limit)
 
         return Response(room_hashes)
 
@@ -32,7 +34,7 @@ class RoomAPIView(APIView):
     def post(self,
              request: Request,
              ) -> Response:
-        """ Endpoint for creating a room """
+        """ create a room and put the user in it """
         token = request.headers['Auth-Token']
         data = request.data
 
@@ -47,9 +49,21 @@ class RoomAPIView(APIView):
             creator_id=creator_id,
         )
         room_dao.insert_redis_model(room)
-        # TODO: create a function that forms json with actual fields, not ids
 
-        return Response()
+        return Response(status=status.HTTP_201_CREATED)
+
+    def get(self,
+            request: Request,
+            ) -> Response:
+        """ get room data the user is in """
+        token = request.headers['Auth-Token']
+        user_id = get_user_id_by_token(token)
+
+        room_dao = RoomDaoRedis(REDIS)
+        room_id = room_dao.get_room_id_by_user_id(user_id)
+        room = room_dao.get_complete_room(room_id)
+
+        return Response(room, status=status.HTTP_200_OK)
 
 
 class EnterDetails(APIView):
@@ -57,20 +71,70 @@ class EnterDetails(APIView):
 
 
 class Search(APIView):
-    pass
+    def get(self,
+            request: Request,
+            ) -> Response:
+        """ get rooms by search_value (id or room_name), smart search """
 
 
 class Delete(APIView):
-    pass
+    def delete(self,
+               request: Request,
+               ) -> Response:
+        """ delete room by token """
+        token = request.headers['Auth-Token']
+        user_id = get_user_id_by_token(token)
+
+        RoomDaoRedis(REDIS).delete_by_user_id(user_id)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class KickUser(APIView):
-    pass
+    def delete(self,
+               request: Request,
+               ) -> Response:
+        """ kick user (only for admin).
+         for now, stick to room option """
+        token = request.headers['Auth-Token']
+        data = request.data
+
+        kicker_id = get_user_id_by_token(token)
+        kick_user_id = data['kick_user_id']
+
+        room_dao = RoomDaoRedis(REDIS)
+        user = room_dao.kick_user(
+            admin_id=kicker_id, kick_user_id=kick_user_id
+        )
+
+        return Response(user, status=status.HTTP_200_OK)
 
 
 class Ready(APIView):
-    pass
+    def put(self,
+            request: Request,
+            ) -> Response:
+        """ change readiness (in room) state """
+        token = request.headers['Auth-Token']
+        room_dao = RoomDaoRedis(REDIS)
+
+        user_id = get_user_id_by_token(token)
+        room_id = room_dao.get_room_id_by_user_id(user_id)
+
+        room_dao.change_user_readiness(user_id)
+        room = room_dao.get_complete_room(room_id)
+
+        return Response(room, status=status.HTTP_200_OK)
 
 
 class Leave(APIView):
-    pass
+    def delete(self,
+               request: Request,
+               ) -> Response:
+        """ leave room """
+        token = request.headers['Auth-Token']
+        user_id = get_user_id_by_token(token)
+
+        RoomDaoRedis(REDIS).leave_room(user_id)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

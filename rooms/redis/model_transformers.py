@@ -3,22 +3,26 @@ from typing import Iterable
 from django.db.models import Model
 
 from rooms.redis.models import RoomRedis
-from services.redis.model_transformers_base import ITransformer, ModelDict, ModelHash
+from services.redis.model_transformers_base import BaseModelTransformer, DictModel, HashModel
 from services.redis.redis_models_base import RedisModel
 
 
-class RoomTransformer(ITransformer):
+class RoomTransformer(BaseModelTransformer):
     @staticmethod
-    def hashes_to_models(hashes: Iterable[ModelHash]) -> list[RedisModel]:
+    def sql_models_to_dict_models(models: Iterable[Model]) -> list[DictModel]:
         pass
 
     @staticmethod
-    def sql_model_to_dict(model: Model) -> ModelDict:
+    def sql_model_to_dict_model(model: Model) -> DictModel:
         pass
 
     @staticmethod
-    def redis_model_to_dict(model: RoomRedis) -> ModelDict:
-        hash = {
+    def redis_models_to_dict_models(models: Iterable[RedisModel]) -> list[DictModel]:
+        pass
+
+    @staticmethod
+    def redis_model_to_dict_model(model: RoomRedis) -> DictModel:
+        model_dict = {
             'id': model.id,
             'name': model.name,
             'password': model.password,
@@ -29,10 +33,14 @@ class RoomTransformer(ITransformer):
                 for user_id in model.user_ids
             ),
         }
-        return hash
+        return model_dict
 
     @staticmethod
-    def hash_to_model(model_hash: ModelDict) -> RoomRedis:
+    def hash_models_to_redis_models(models: Iterable[HashModel]) -> list[RedisModel]:
+        pass
+
+    @staticmethod
+    def hash_model_to_redis_model(model_hash: DictModel) -> RoomRedis:
         room = RoomRedis(
             id=int(model_hash['id']),
             name=model_hash['name'],
@@ -47,8 +55,8 @@ class RoomTransformer(ITransformer):
         return room
 
     @staticmethod
-    def bytes_to_redis_model(hash: ModelHash,
-                             ) -> ModelDict:
+    def bytes_to_redis_model(hash: HashModel,
+                             ) -> DictModel:
         room_hash = {
             'id': int(hash[b'id']),
             'name': hash[b'name'],

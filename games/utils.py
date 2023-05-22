@@ -1,4 +1,3 @@
-import redis
 from rest_framework.utils import json
 
 from cartographers_back.settings import REDIS
@@ -13,21 +12,21 @@ def save_models_to_redis():
     _upload_monster_cards_to_redis(REDIS)
 
 
-def _upload_monster_cards_to_redis(redis_client: Redis,
+def _upload_monster_cards_to_redis(redis: Redis,
                                    ) -> None:
-    dao = MonsterCardDaoRedis(redis_client)
+    dao = MonsterCardDaoRedis(redis)
     cards = MonsterCardSQL.objects.select_related('shape').all()
     dao.insert_sql_models(cards)
 
 
-def _upload_discovery_cards(redis_client: Redis,
+def _upload_discovery_cards(redis: Redis,
                             ) -> None:
     cards = DiscoveryCardSQL.objects \
         .select_related('shape', 'additional_shape') \
         .all()
 
     for card in cards:
-        _save_card_to_redis(card, redis_client)
+        _save_card_to_redis(card, redis)
 
 
 def _save_card_to_redis(card: DiscoveryCardSQL,

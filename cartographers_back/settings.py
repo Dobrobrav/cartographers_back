@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-qi)bm+ds$@qc%a-287gg09xm#27w3z(wki-5xzfb&=yma7^132
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -84,16 +84,16 @@ WSGI_APPLICATION = 'cartographers_back.wsgi.application'
 
 EXTERNAL_POSTGRES_URL = 'postgres://user:ukfvSVC8RC73GY1Nhhp52WVjUGMr26u3@dpg-chfrl9jhp8u065ri1lig-a.oregon-postgres.render.com/cartographers'
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
-    #     'NAME': 'cartographers',
-    #     'USER': 'postgres',
-    #     'PASSWORD': '1771',
-    #     # 'HOST': 'postgres',
-    #     'HOST': 'localhost',
-    #     # 'PORT': 5432,
-    #     'PORT': 5433,
-    # },
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'cartographers',
+        'USER': 'postgres',
+        'PASSWORD': '1771',
+        'HOST': 'postgres',
+        # 'HOST': 'localhost',
+        'PORT': 5432,
+        # 'PORT': 5433,
+    },
 
     # 'default': {
     #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -103,7 +103,8 @@ DATABASES = {
     #     'HOST': 'postgres.render.com',
     #     'PORT': '5432',
     # }
-    'default': dj_database_url.config(default=EXTERNAL_POSTGRES_URL)
+
+    # 'default': dj_database_url.config(default=EXTERNAL_POSTGRES_URL)
 
 }
 
@@ -162,17 +163,18 @@ REST_FRAMEWORK = {
     )
 }
 
-AUTHTOKEN_TOKEN_LIFETIME = 24 * 60 * 60  # token lifespan is 24 hours
+# AUTHTOKEN_TOKEN_LIFETIME = 24 * 60 * 60  # token lifespan is 24 hours
 
-# REDIS = redis.Redis(
-#     host='redis',
-#     # host='localhost',
-#     port=6379,
-#     # port=6380,
-#     db=0,
-# )
-
-REDIS_EXTERNAL_URL = ''
-REDIS = redis.from_url(
-    url='rediss://red-chhjm4l269v0od74i080:wORNIkK67CkWvDdU25n6BC0C5wYRE6N1@oregon-redis.render.com:6379'
+REDIS = redis.Redis(
+    host='redis',
+    # host='localhost',
+    port=6379,
+    # port=6380,
+    db=0,
 )
+
+# поправить константу ниже
+# REDIS_EXTERNAL_URL = ''
+# REDIS = redis.from_url(
+#     url='rediss://red-chhjm4l269v0od74i080:wORNIkK67CkWvDdU25n6BC0C5wYRE6N1@oregon-redis.render.com:6379'
+# )

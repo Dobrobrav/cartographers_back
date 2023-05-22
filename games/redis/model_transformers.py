@@ -5,18 +5,18 @@ from django.db.models import Model
 from games.models import MonsterCardSQL
 from games.redis.models import MonsterCardRedis, GameTableRedis
 from services import utils
-from services.redis.model_transformers_base import ITransformer, ModelDict, ModelHash
+from services.redis.model_transformers_base import BaseModelTransformer, DictModel, HashModel
 from services.redis.redis_models_base import RedisModel
 
 
-class GameTableTransformer(ITransformer):
+class GameTransformer(BaseModelTransformer):
     @staticmethod
-    def hashes_to_models(hashes: Iterable[ModelHash],
+    def hashes_to_models(hashes: Iterable[HashModel],
                          ) -> list[RedisModel]:
         pass
 
     def bytes_to_redis_model_many(self,
-                                  hashes: Iterable[ModelHash],
+                                  hashes: Iterable[HashModel],
                                   ) -> list[GameTableRedis]:
         game_tables = [
             self.bytes_to_redis_model(hash)
@@ -25,7 +25,7 @@ class GameTableTransformer(ITransformer):
         return game_tables
 
     @staticmethod
-    def bytes_to_redis_model(hash: ModelHash,
+    def bytes_to_redis_model(hash: HashModel,
                              ) -> GameTableRedis:
         # game_table = GameTableRedis(
         #
@@ -33,8 +33,8 @@ class GameTableTransformer(ITransformer):
         pass
 
     @staticmethod
-    def redis_model_to_dict(model: GameTableRedis,
-                            ) -> ModelDict:
+    def redis_model_to_dict_model(model: GameTableRedis,
+                                  ) -> DictModel:
         game_table_hash = {
             'id': model.id,
             'lobby_id': model.lobby_id,
@@ -52,13 +52,13 @@ class GameTableTransformer(ITransformer):
         return game_table_hash
 
     @staticmethod
-    def sql_model_to_dict(model: Model,
-                          ) -> ModelDict:
+    def sql_model_to_dict_model(model: Model,
+                                ) -> DictModel:
         raise NotImplementedError
 
     @staticmethod
-    def hash_to_model(hash: ModelDict,
-                      ) -> GameTableRedis:
+    def hash_model_to_redis_model(hash: DictModel,
+                                  ) -> GameTableRedis:
         table = GameTableRedis(
             id=int(hash['id']),
             lobby_id=int(hash['lobby_id']),
@@ -76,68 +76,68 @@ class GameTableTransformer(ITransformer):
         return table
 
 
-class SeasonTransformer(ITransformer):
+class SeasonTransformer(BaseModelTransformer):
     @staticmethod
-    def hashes_to_models(hashes: Iterable[ModelHash]) -> list[RedisModel]:
+    def hashes_to_models(hashes: Iterable[HashModel]) -> list[RedisModel]:
         pass
 
     @staticmethod
-    def sql_model_to_dict(model: Model) -> ModelDict:
+    def sql_model_to_dict_model(model: Model) -> DictModel:
         pass
 
     @staticmethod
-    def redis_model_to_dict(model: RedisModel) -> ModelDict:
+    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
         pass
 
     @staticmethod
-    def hash_to_model(hash: ModelDict) -> RedisModel:
+    def hash_model_to_redis_model(hash: DictModel) -> RedisModel:
         pass
 
 
-class MoveTransformer(ITransformer):
+class MoveTransformer(BaseModelTransformer):
     @staticmethod
-    def hashes_to_models(hashes: Iterable[ModelHash]) -> list[RedisModel]:
+    def hashes_to_models(hashes: Iterable[HashModel]) -> list[RedisModel]:
         pass
 
     @staticmethod
-    def sql_model_to_dict(model: Model) -> ModelDict:
+    def sql_model_to_dict_model(model: Model) -> DictModel:
         pass
 
     @staticmethod
-    def redis_model_to_dict(model: RedisModel) -> ModelDict:
+    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
         pass
 
     @staticmethod
-    def hash_to_model(hash: ModelDict) -> RedisModel:
+    def hash_model_to_redis_model(hash: DictModel) -> RedisModel:
         pass
 
 
-class PlayerTransformer(ITransformer):
+class PlayerTransformer(BaseModelTransformer):
     @staticmethod
-    def hashes_to_models(hashes: Iterable[ModelHash]) -> list[RedisModel]:
+    def hashes_to_models(hashes: Iterable[HashModel]) -> list[RedisModel]:
         pass
 
     @staticmethod
-    def sql_model_to_dict(model: Model) -> ModelDict:
+    def sql_model_to_dict_model(model: Model) -> DictModel:
         pass
 
     @staticmethod
-    def redis_model_to_dict(model: RedisModel) -> ModelDict:
+    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
         pass
 
     @staticmethod
-    def hash_to_model(hash: ModelDict) -> RedisModel:
+    def hash_model_to_redis_model(hash: DictModel) -> RedisModel:
         pass
 
 
-class MonsterCardTransformer(ITransformer):
+class MonsterCardTransformer(BaseModelTransformer):
     @staticmethod
-    def hashes_to_models(hashes: Iterable[ModelHash]) -> list[RedisModel]:
+    def hashes_to_models(hashes: Iterable[HashModel]) -> list[RedisModel]:
         pass
 
     @staticmethod
-    def redis_model_to_dict(model: MonsterCardRedis,
-                            ) -> ModelDict:
+    def redis_model_to_dict_model(model: MonsterCardRedis,
+                                  ) -> DictModel:
         monster_card_hash = {
             'id': model.id,
             'name': model.name,
@@ -148,8 +148,8 @@ class MonsterCardTransformer(ITransformer):
         return monster_card_hash
 
     @staticmethod
-    def sql_model_to_dict(model: MonsterCardSQL,
-                          ) -> ModelDict:
+    def sql_model_to_dict_model(model: MonsterCardSQL,
+                                ) -> DictModel:
         monster_card_hash = {
             'id': model.pk,
             'name': model.name,
@@ -160,8 +160,8 @@ class MonsterCardTransformer(ITransformer):
         return monster_card_hash
 
     @staticmethod
-    def hash_to_model(model_hash: ModelDict,
-                      ) -> MonsterCardRedis:
+    def hash_model_to_redis_model(model_hash: DictModel,
+                                  ) -> MonsterCardRedis:
         card = MonsterCardRedis(
             id=int(model_hash['id']),
             name=model_hash['name'],

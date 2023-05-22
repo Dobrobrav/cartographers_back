@@ -1,12 +1,12 @@
 from services.redis.redis_dao_base import DaoRedisRedis, DaoRedisSQL
-from .key_schemas import MonsterCardKeySchema, GameTableKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema
-from .model_transformers import MonsterCardTransformer, GameTableTransformer, SeasonTransformer, MoveTransformer, \
+from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema
+from .model_transformers import MonsterCardTransformer, GameTransformer, SeasonTransformer, MoveTransformer, \
     PlayerTransformer
 
 
-class GameTableDaoRedis(DaoRedisRedis):
-    _key_schema = GameTableKeySchema()
-    _transformer = GameTableTransformer()
+class GameDaoRedis(DaoRedisRedis):
+    _key_schema = GameKeySchema()
+    _transformer = GameTransformer()
 
 
 class SeasonDaoRedis(DaoRedisRedis):
