@@ -1,19 +1,15 @@
 from rest_framework import status
-from rest_framework.authtoken.models import Token
-from rest_framework.pagination import PageNumberPagination
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from rooms.redis.dao import RoomDaoRedis
 from cartographers_back.settings import REDIS
-from rooms.utils import get_room_id_by_token
 from services.utils import get_user_id_by_token
 
 
 # Create your views here.
-
-
 class Display(APIView):
     def get(self,
             request: Request,
@@ -31,32 +27,37 @@ class Display(APIView):
 
 
 class RoomAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+
     def post(self,
              request: Request,
              ) -> Response:
         """ create a room and put the user in it """
-        token = request.headers['Auth-Token']
+        token = request.auth
         data = request.data
 
         room_dao = RoomDaoRedis(REDIS)
         creator_id = get_user_id_by_token(token)
 
         # TODO: allow to make a room without a password
-        room = room_dao.create_room(
+        redis_room = room_dao.create_room(
             name=data['name'],
-            password=data['password'],
+            password=str(data['password']),
             max_users=int(data['max_players']),
             creator_id=creator_id,
         )
-        room_dao.insert_redis_model(room)
+        dict_room = room_dao.insert_redis_model(redis_room)
+        # print(f"{dict_room=}")
+        room_id = dict_room['id']
+        json_ready_room = room_dao.get_complete_room(room_id=room_id)
 
-        return Response(status=status.HTTP_201_CREATED)
+        return Response(data=json_ready_room, status=status.HTTP_201_CREATED)
 
     def get(self,
             request: Request,
             ) -> Response:
         """ get room data the user is in """
-        token = request.headers['Auth-Token']
+        token = request.headers['Auth-Token']  # TODO: fix this
         user_id = get_user_id_by_token(token)
 
         room_dao = RoomDaoRedis(REDIS)

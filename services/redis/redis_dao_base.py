@@ -74,11 +74,11 @@ class DaoRedis:
     def delete_by_id(self,
                      id: int,
                      ) -> None:
-        ids_key = self._key_schema.get_ids_key()
+        ids_key = self._key_schema.ids_key
         self._redis.srem(ids_key, id)
 
     def _get_all_ids(self) -> set[int]:
-        all_ids_hash = self._key_schema.get_ids_key()
+        all_ids_hash = self._key_schema.ids_key
         all_ids = {int(id) for id in self._redis.smembers(all_ids_hash)}
         return all_ids
 
@@ -109,7 +109,7 @@ class DaoRedis:
                        dumper: Callable[[Model | RedisModel], DictModel],
                        ) -> DictModel:
         hash_key = self._key_schema.get_hash_key(id=model.id)
-        ids_key = self._key_schema.get_ids_key()
+        ids_key = self._key_schema.ids_key
         # these actually should be a transaction
         hash_model = dumper(model)
         self._redis.hset(hash_key, mapping=hash_model)
@@ -122,7 +122,7 @@ class DaoRedis:
         return id
 
     def _get_ids(self) -> set[int]:
-        ids_key = self._key_schema.get_ids_key()
+        ids_key = self._key_schema.ids_key
         ids = {int(id) for id in self._redis.smembers(ids_key)}
         return ids
 
@@ -141,19 +141,24 @@ class DaoRedisRedis(DaoRedis):
     def insert_redis_models(self,
                             models: Iterable[RedisModel],
                             ) -> list[DictModel]:
-        model_hashes = [
+        dict_models = [
             self.insert_redis_model(model)
             for model in models
         ]
-        return model_hashes
+        return dict_models
 
     def insert_redis_model(self,
                            model: RedisModel,
                            ) -> DictModel:
-        model_hash = self._insert_single(
+        dict_model = self._insert_single(
             model, dumper=self._transformer.redis_model_to_dict_model
         )
-        return model_hash
+        return dict_model
+
+# class DaoRedisDict(DaoRedis):
+#     def insert_dict_models(self,
+#                            models: Iterable[DictModel],
+#                            ) -> list[]:
 
 
 class DaoRedisSQL(DaoRedis):

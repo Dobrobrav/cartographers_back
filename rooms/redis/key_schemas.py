@@ -6,13 +6,17 @@ class RoomKeySchema(IKeySchema):
     def get_hash_key(id: int) -> str:
         return f"rooms:{id}"
 
-    @staticmethod
-    def get_ids_key() -> str:
+    @property
+    def ids_key(self) -> str:
         return "rooms:ids"
 
-    @staticmethod
-    def get_user_id_room_id_index_key() -> str:
-        return "room-id-user-id-index"
+    @property
+    def room_id_by_user_id_index_key(self):
+        return "room-id-by-user-id-index"
+
+    @property
+    def model_id_by_model_name_index_key(self):
+        return "room-id-by-room-name-index"
 
     @staticmethod
     def get_user_readiness_key(room_id: int,

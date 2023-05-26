@@ -5,13 +5,14 @@ from services.redis.redis_models_base import RedisModel
 
 
 @dataclass
-class GameTableRedis(RedisModel):
+class GameRedis(RedisModel):
     id: int
     lobby_id: int
     monster_card_for_game_ids: list[int]
     discovery_card_for_game_ids: list[int]
     season_for_game_ids: list[int]
     current_move_id: int
+    admin_id: int
 
 
 @dataclass

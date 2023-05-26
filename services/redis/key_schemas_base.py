@@ -7,7 +7,7 @@ class IKeySchema(ABC):
     def get_hash_key(id: int) -> str:
         pass
 
-    @staticmethod
+    @property
     @abstractmethod
-    def get_ids_key() -> str:
+    def ids_key(self) -> str:
         pass

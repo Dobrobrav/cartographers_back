@@ -19,3 +19,7 @@ def str_to_ids(string: str,
     ids = [int(id) for id in string.split()]
     return ids
 
+
+def check_user_is_admin(user_id: int,
+                        ) -> None:
+    pass

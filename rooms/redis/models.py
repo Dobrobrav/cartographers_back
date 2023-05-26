@@ -18,4 +18,3 @@ class RoomRedis(RedisModel):
 class UserRedis(RedisModel):
     id: int
     name: str
-    is_ready: bool

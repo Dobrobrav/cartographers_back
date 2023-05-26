@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
 
+    'coverage',
+
     'foo_app',
     'rooms',
     'games.apps.GamesConfig',
@@ -89,10 +91,10 @@ DATABASES = {
         'NAME': 'cartographers',
         'USER': 'postgres',
         'PASSWORD': '1771',
-        'HOST': 'postgres',
-        # 'HOST': 'localhost',
-        'PORT': 5432,
-        # 'PORT': 5433,
+        # 'HOST': 'postgres',
+        'HOST': 'localhost',
+        # 'PORT': 5432,
+        'PORT': 5433,
     },
 
     # 'default': {
@@ -160,16 +162,17 @@ SELECTEL_STORAGES = {
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
-    )
+    ),
+    'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
 
 # AUTHTOKEN_TOKEN_LIFETIME = 24 * 60 * 60  # token lifespan is 24 hours
 
 REDIS = redis.Redis(
-    host='redis',
-    # host='localhost',
-    port=6379,
-    # port=6380,
+    # host='redis',
+    host='localhost',
+    # port=6379,
+    port=6380,
     db=0,
 )
 

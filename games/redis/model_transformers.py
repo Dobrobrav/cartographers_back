@@ -3,7 +3,7 @@ from typing import Iterable
 from django.db.models import Model
 
 from games.models import MonsterCardSQL
-from games.redis.models import MonsterCardRedis, GameTableRedis
+from games.redis.models import MonsterCardRedis, GameRedis
 from services import utils
 from services.redis.model_transformers_base import BaseModelTransformer, DictModel, HashModel
 from services.redis.redis_models_base import RedisModel
@@ -17,7 +17,7 @@ class GameTransformer(BaseModelTransformer):
 
     def bytes_to_redis_model_many(self,
                                   hashes: Iterable[HashModel],
-                                  ) -> list[GameTableRedis]:
+                                  ) -> list[GameRedis]:
         game_tables = [
             self.bytes_to_redis_model(hash)
             for hash in hashes
@@ -26,14 +26,14 @@ class GameTransformer(BaseModelTransformer):
 
     @staticmethod
     def bytes_to_redis_model(hash: HashModel,
-                             ) -> GameTableRedis:
+                             ) -> GameRedis:
         # game_table = GameTableRedis(
         #
         # )
         pass
 
     @staticmethod
-    def redis_model_to_dict_model(model: GameTableRedis,
+    def redis_model_to_dict_model(model: GameRedis,
                                   ) -> DictModel:
         game_table_hash = {
             'id': model.id,
@@ -58,8 +58,8 @@ class GameTransformer(BaseModelTransformer):
 
     @staticmethod
     def hash_model_to_redis_model(hash: DictModel,
-                                  ) -> GameTableRedis:
-        table = GameTableRedis(
+                                  ) -> GameRedis:
+        table = GameRedis(
             id=int(hash['id']),
             lobby_id=int(hash['lobby_id']),
             monster_card_for_game_ids=utils.str_to_ids(

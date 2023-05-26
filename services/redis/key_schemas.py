@@ -8,5 +8,5 @@ class UserKeySchema(IKeySchema):
         pass
 
     @staticmethod
-    def get_ids_key() -> str:
+    def ids_key() -> str:
         pass

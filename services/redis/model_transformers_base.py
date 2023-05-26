@@ -9,12 +9,15 @@ DictModel: TypeAlias = dict[str, Any]
 HashModel: TypeAlias = dict[bytes, bytes]
 
 
-class BaseModelTransformer(ABC):  # Нужен ли этот интерфейс вообще?
-    # @staticmethod
-    # @abstractmethod
-    # def sql_models_to_dict_models(models: Iterable[Model],
-    #                               ) -> list[DictModel]:
-    #     pass
+class BaseModelTransformer(ABC):
+    def sql_models_to_dict_models(self,
+                                  models: Iterable[Model],
+                                  ) -> list[DictModel]:
+        dict_models = [
+            self.sql_model_to_dict_model(model)
+            for model in models
+        ]
+        return dict_models
 
     @staticmethod
     @abstractmethod
@@ -28,6 +31,15 @@ class BaseModelTransformer(ABC):  # Нужен ли этот интерфейс 
     #                                 ) -> list[DictModel]:
     #     pass
 
+    def redis_models_to_dict_models(self,
+                                    models: Iterable[RedisModel],
+                                    ) -> list[DictModel]:
+        dict_models = [
+            self.redis_model_to_dict_model(model)
+            for model in models
+        ]
+        return dict_models
+
     @staticmethod
     @abstractmethod
     def redis_model_to_dict_model(model: RedisModel,
@@ -39,6 +51,15 @@ class BaseModelTransformer(ABC):  # Нужен ли этот интерфейс 
     # def hash_models_to_redis_models(models: Iterable[HashModel],
     #                                 ) -> list[RedisModel]:
     #     pass
+
+    def hash_models_to_redis_models(self,
+                                    models: Iterable[HashModel],
+                                    ) -> list[RedisModel]:
+        redis_models = [
+            self.hash_model_to_redis_model(model)
+            for model in models
+        ]
+        return redis_models
 
     @staticmethod
     @abstractmethod

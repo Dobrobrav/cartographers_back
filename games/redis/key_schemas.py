@@ -6,8 +6,8 @@ class GameKeySchema(IKeySchema):
     def get_hash_key(id: int) -> str:
         return f"game-tables:{id}"
 
-    @staticmethod
-    def get_ids_key() -> str:
+    @property
+    def ids_key(self) -> str:
         return "game-tables:ids"
 
 
@@ -16,8 +16,8 @@ class SeasonKeySchema(IKeySchema):
     def get_hash_key(id: int) -> str:
         return f"seasons:{id}"
 
-    @staticmethod
-    def get_ids_key() -> str:
+    @property
+    def ids_key(self) -> str:
         return "seasons:ids"
 
 
@@ -26,8 +26,8 @@ class MoveKeySchema(IKeySchema):
     def get_hash_key(id: int) -> str:
         return f"moves:{id}"
 
-    @staticmethod
-    def get_ids_key() -> str:
+    @property
+    def ids_key(self) -> str:
         return "moves:ids"
 
 
@@ -36,8 +36,8 @@ class PlayerKeySchema(IKeySchema):
     def get_hash_key(id: int) -> str:
         return f"players:{id}"
 
-    @staticmethod
-    def get_ids_key() -> str:
+    @property
+    def ids_key(self) -> str:
         return "players:ids"
 
 
@@ -46,6 +46,6 @@ class MonsterCardKeySchema(IKeySchema):
     def get_hash_key(id: int) -> str:
         return f"monster-cards:{id}"
 
-    @staticmethod
-    def get_ids_key() -> str:
+    @property
+    def ids_key(self) -> str:
         return "monster-cards:ids"
