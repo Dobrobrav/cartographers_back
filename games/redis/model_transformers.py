@@ -39,13 +39,13 @@ class GameTransformer(BaseModelTransformer):
             'id': model.id,
             'lobby_id': model.lobby_id,
             'monster_card_for_game_ids': utils.ids_to_str(
-                model.monster_card_for_game_ids
+                model.monster_card_ids_pull
             ),
             'discovery_card_for_game_ids': utils.ids_to_str(
-                model.discovery_card_for_game_ids
+                model.terrain_card_ids_pull
             ),
             'season_for_game_ids': utils.ids_to_str(
-                model.season_for_game_ids
+                model.season_ids_pull
             ),
             'current_move_id': model.current_move_id,
         }
@@ -62,13 +62,13 @@ class GameTransformer(BaseModelTransformer):
         table = GameRedis(
             id=int(hash['id']),
             lobby_id=int(hash['lobby_id']),
-            monster_card_for_game_ids=utils.str_to_ids(
+            monster_card_ids_pull=utils.str_to_ids(
                 hash['monster_card_for_game_ids']
             ),
-            discovery_card_for_game_ids=utils.str_to_ids(
+            terrain_card_ids_pull=utils.str_to_ids(
                 hash['discovery_card_for_game_ids']
             ),
-            season_for_game_ids=utils.str_to_ids(
+            season_ids_pull=utils.str_to_ids(
                 hash['season_for_game_ids']
             ),
             current_move_id=hash['current_move_id'],
@@ -170,3 +170,32 @@ class MonsterCardTransformer(BaseModelTransformer):
             exchange_order=model_hash['exchange_order'],
         )
         return card
+
+
+class ObjectiveCardTransformer(BaseModelTransformer):
+
+    @staticmethod
+    def sql_model_to_dict_model(model: Model) -> DictModel:
+        pass
+
+    @staticmethod
+    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
+        pass
+
+    @staticmethod
+    def hash_model_to_redis_model(hash: HashModel) -> RedisModel:
+        pass
+
+
+class TerrainCardTransformer(BaseModelTransformer):
+    @staticmethod
+    def sql_model_to_dict_model(model: Model) -> DictModel:
+        pass
+
+    @staticmethod
+    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
+        pass
+
+    @staticmethod
+    def hash_model_to_redis_model(hash: HashModel) -> RedisModel:
+        pass

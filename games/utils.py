@@ -1,7 +1,7 @@
 from rest_framework.utils import json
 
 from cartographers_back.settings import REDIS
-from games.models import DiscoveryCardSQL, MonsterCardSQL
+from games.models import TerrainCardSQL, MonsterCardSQL
 from redis import Redis
 
 from games.redis.dao import MonsterCardDaoRedis
@@ -21,7 +21,7 @@ def _upload_monster_cards_to_redis(redis: Redis,
 
 def _upload_discovery_cards(redis: Redis,
                             ) -> None:
-    cards = DiscoveryCardSQL.objects \
+    cards = TerrainCardSQL.objects \
         .select_related('shape', 'additional_shape') \
         .all()
 
@@ -29,7 +29,7 @@ def _upload_discovery_cards(redis: Redis,
         _save_card_to_redis(card, redis)
 
 
-def _save_card_to_redis(card: DiscoveryCardSQL,
+def _save_card_to_redis(card: TerrainCardSQL,
                         r: Redis,
                         ) -> None:
     redis_format_card = _convert_card(card)
@@ -37,7 +37,7 @@ def _save_card_to_redis(card: DiscoveryCardSQL,
            mapping=redis_format_card)
 
 
-def _convert_card(card: DiscoveryCardSQL,
+def _convert_card(card: TerrainCardSQL,
                   ) -> dict[str, str]:
     if card.card_type == 'ruins':
         redis_card = {

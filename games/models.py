@@ -1,14 +1,14 @@
 from django.db import models
 
 
-class EDiscoveryCardTerrain(models.TextChoices):
+class ECardTerrainType(models.TextChoices):
     WATER = 'water'
     FIELD = 'field'
     FOREST = 'forest'
     VILLAGE = 'village'
 
 
-class EFieldTerrain(models.TextChoices):
+class EFieldTerrainType(models.TextChoices):
     WATER = 'water'
     FIELD = 'field'
     FOREST = 'forest'
@@ -19,9 +19,10 @@ class EFieldTerrain(models.TextChoices):
     BLANK = 'blank'
 
 
-class EDiscoveryCardType(models.TextChoices):
+class ETerrainCardType(models.TextChoices):
     REGULAR = 'regular'
     RUINS = 'ruins'
+    ANOMALY = 'anomaly'
 
 
 class EObjectiveCardName(models.TextChoices):
@@ -41,7 +42,7 @@ class ObjectiveCardSQL(models.Model):
         return str(self.name)
 
 
-class DiscoveryCardSQL(models.Model):
+class TerrainCardSQL(models.Model):
     name = models.CharField(
         max_length=20, default=None, null=True,
     )
@@ -49,7 +50,7 @@ class DiscoveryCardSQL(models.Model):
         upload_to='discovery_cards/',
     )
     card_type = models.CharField(
-        choices=EDiscoveryCardType.choices, max_length=20
+        choices=ETerrainCardType.choices, max_length=20
     )
     shape = models.ForeignKey(
         to='ShapeSQL', on_delete=models.CASCADE,
@@ -63,11 +64,11 @@ class DiscoveryCardSQL(models.Model):
     )  # blank True - value can be unsigned
     # null is False - value can't be null, it must be meaningful
     terrain = models.CharField(
-        choices=EDiscoveryCardTerrain.choices, max_length=20,
+        choices=ECardTerrainType.choices, max_length=20,
         blank=True, null=True,
     )
     additional_terrain = models.CharField(
-        choices=EDiscoveryCardTerrain.choices, max_length=20,
+        choices=ECardTerrainType.choices, max_length=20,
         blank=True, null=True,
     )
     season_points = models.IntegerField(default=3)
