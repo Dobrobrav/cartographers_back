@@ -21,6 +21,14 @@ class RoomDaoRedis(DaoRedisRedis):
                    ) -> None:
         ...
 
+    def get_player_ids(self,
+                       user_id: int,
+                       ) -> list[int]:
+        room_id = self.get_room_id_by_user_id(user_id)
+        room = self.fetch_redis_model(room_id=room_id)
+        player_ids = room.user_ids
+        return player_ids
+
     def get_page(self,
                  page: int,
                  limit: int,
@@ -40,13 +48,13 @@ class RoomDaoRedis(DaoRedisRedis):
         self.delete_by_id(room_id)
 
     def fetch_redis_model(self,
-                          model_id: int | None = None,
-                          model_name: str | None = None,
+                          room_id: int | None = None,
+                          room_name: str | None = None,
                           ) -> RedisModel:
-        if model_id is not None:
-            redis_model = super().fetch_redis_model(model_id)
-        elif model_name is not None:
-            redis_model = self._fetch_redis_model_by_name(model_name)
+        if room_id is not None:
+            redis_model = super().fetch_redis_model(room_id)
+        elif room_name is not None:
+            redis_model = self._fetch_redis_model_by_name(room_name)
         else:
             raise ValueError()
 
@@ -158,7 +166,7 @@ class RoomDaoRedis(DaoRedisRedis):
     def _get_complete_room_by_room_id(self,
                                       room_id: int,
                                       ) -> dict[str, Any]:
-        redis_room: RoomRedis = self.fetch_redis_model(model_id=room_id)
+        redis_room: RoomRedis = self.fetch_redis_model(room_id=room_id)
         user_ids = redis_room.user_ids
 
         sql_users = list(get_user_model().objects.filter(id__in=user_ids))

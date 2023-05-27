@@ -11,6 +11,16 @@ class GameKeySchema(IKeySchema):
         return "game-tables:ids"
 
 
+class DiscoveryCardKeySchema(IKeySchema):
+    @staticmethod
+    def get_hash_key(id: int) -> str:
+        pass
+
+    @property
+    def ids_key(self) -> str:
+        pass
+
+
 class SeasonKeySchema(IKeySchema):
     @staticmethod
     def get_hash_key(id: int) -> str:

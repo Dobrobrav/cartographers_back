@@ -170,3 +170,17 @@ class MonsterCardTransformer(BaseModelTransformer):
             exchange_order=model_hash['exchange_order'],
         )
         return card
+
+
+class DiscoveryCardTransformer(BaseModelTransformer):
+    @staticmethod
+    def sql_model_to_dict_model(model: Model) -> DictModel:
+        pass
+
+    @staticmethod
+    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
+        pass
+
+    @staticmethod
+    def hash_model_to_redis_model(hash: HashModel) -> RedisModel:
+        pass

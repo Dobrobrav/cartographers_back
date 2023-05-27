@@ -1,16 +1,20 @@
+import random
 from typing import Iterable
 
 from cartographers_back.settings import REDIS
 from rooms.redis.dao import RoomDaoRedis
 from services.redis.model_transformers_base import DictModel
 from services.redis.redis_dao_base import DaoRedisRedis, DaoRedisSQL
-from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema
+from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema, \
+    DiscoveryCardKeySchema
 from .model_transformers import MonsterCardTransformer, GameTransformer, SeasonTransformer, MoveTransformer, \
-    PlayerTransformer
+    PlayerTransformer, DiscoveryCardTransformer
 from .models import SeasonRedis, GameRedis
 
 
 class GameDaoRedis(DaoRedisRedis):
+    MONSTER_CARDS_AMOUNT = 4
+
     _key_schema = GameKeySchema()
     _transformer = GameTransformer()
 
@@ -20,22 +24,33 @@ class GameDaoRedis(DaoRedisRedis):
     def start_game(self,
                    admin_id: int,
                    ) -> DictModel:
-        discovery_card_ids_pull = self._pick_discovery_cards()
-        monster_card_ids_pull = self._pick_monster_cards()
+        discovery_card_ids_pull = DiscoveryCardDaoRedis(REDIS). \
+            pick_discovery_cards()
+        monster_card_ids_pull = MonsterCardDaoRedis(REDIS). \
+            pick_monster_cards()
         season_card_ids_pull = self._prepare_season_cards()
-        players = self._collect_players(admin_id)
-        lobby_id = RoomDaoRedis(REDIS).get_room_id_by_user_id(admin_id)
+
+        room_dao = RoomDaoRedis(REDIS)
+        player_ids = room_dao.get_player_ids(admin_id)
+        lobby_id = room_dao.get_room_id_by_user_id(admin_id)
+
+        first_move_id = self.start_new_move()
 
         game = self._build_game_model(
             discovery_card_ids_pull,
             monster_card_ids_pull,
             season_card_ids_pull,
-            players,
+            player_ids,
             lobby_id,
+            admin_id
         )
         dict_game = self.insert_redis_model(game)
 
         return dict_game
+
+    def start_new_move(self,
+                       game_id):
+        ...
 
     def _build_game_model(self,
                           discovery_cards: Iterable[int],
@@ -43,15 +58,38 @@ class GameDaoRedis(DaoRedisRedis):
                           season_cards: Iterable[int],
                           players: Iterable[int],
                           lobby_id: int,
+                          admin_id: int,
                           ) -> GameRedis:
-        pass
+        game = GameRedis(
+            id=self._gen_new_id(),
+            lobby_id=lobby_id,
+            monster_card_for_game_ids=monster_cards,
+            season_for_game_ids=season_cards,
+            discovery_card_for_game_ids=discovery_cards,
+            player_ids=players,
+            admin_id=admin_id,
+        )
 
     def _prepare_season_cards(self,
                               ) -> list[int]:
         """ create season_cards, insert them into redis
          and return their ids """
-        objective_card_ids_pull = self._pick_objective_cards()
-        pass
+        ...
+
+
+class DiscoveryCardDaoRedis(DaoRedisRedis, DaoRedisSQL):
+    DISCOVERY_CARD_QUANTITY = 20
+
+    _key_schema = DiscoveryCardKeySchema()
+    _transformer = DiscoveryCardTransformer()
+
+    def pick_discovery_cards(self):  # TODO: move this method into DiscoveryCardDaoRedis!
+        card_ids_key = self._key_schema.ids_key
+        card_ids = self._redis.smembers(card_ids_key)
+
+        picked_card_ids = random.sample(card_ids,
+                                        self.DISCOVERY_CARD_QUANTITY)
+        return picked_card_ids
 
 
 class SeasonDaoRedis(DaoRedisRedis):
@@ -72,3 +110,7 @@ class PlayerDaoRedis(DaoRedisRedis):
 class MonsterCardDaoRedis(DaoRedisRedis, DaoRedisSQL):
     _key_schema = MonsterCardKeySchema()
     _transformer = MonsterCardTransformer()
+
+    def pick_monster_cards(self,
+                           ) -> list[int]:
+        pass

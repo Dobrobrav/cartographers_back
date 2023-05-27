@@ -13,6 +13,7 @@ class GameRedis(RedisModel):
     season_for_game_ids: list[int]
     current_move_id: int
     admin_id: int
+    player_ids: list[int]
 
 
 @dataclass
