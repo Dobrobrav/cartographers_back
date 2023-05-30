@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
-from services.redis.redis_models_base import RedisModel
+from services.redis.redis_models_base import DataClassModel
 
 
 @dataclass
-class RoomRedis(RedisModel):
+class RoomDC(DataClassModel):
     id: int
     name: str
     password: str
@@ -15,6 +15,6 @@ class RoomRedis(RedisModel):
 
 
 @dataclass
-class UserRedis(RedisModel):
+class UserDC(DataClassModel):
     id: int
     name: str

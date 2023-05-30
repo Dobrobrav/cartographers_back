@@ -2,200 +2,240 @@ from typing import Iterable
 
 from django.db.models import Model
 
-from games.models import MonsterCardSQL
-from games.redis.models import MonsterCardRedis, GameRedis
+from games.models import MonsterCardSQL, DiscoveryCardSQL, ETerrainCardType, ETerrainTypeLimited, ObjectiveCardSQL, \
+    EExchangeOrder
+from games.redis.models import MonsterCardDC, GameData, TerrainCardDC, ObjectiveCardDC, MoveDC, PlayerDC
 from services import utils
-from services.redis.model_transformers_base import BaseModelTransformer, DictModel, HashModel
-from services.redis.redis_models_base import RedisModel
+from services.redis.model_transformers_base import BaseRedisTransformer, DictModel, HashModel, BaseSQLTransformer
+from services.redis.redis_models_base import DataClassModel
 
 
-class GameTransformer(BaseModelTransformer):
-    @staticmethod
-    def hashes_to_models(hashes: Iterable[HashModel],
-                         ) -> list[RedisModel]:
-        pass
-
-    def bytes_to_redis_model_many(self,
-                                  hashes: Iterable[HashModel],
-                                  ) -> list[GameRedis]:
-        game_tables = [
-            self.bytes_to_redis_model(hash)
-            for hash in hashes
-        ]
-        return game_tables
+class GameTransformer(BaseRedisTransformer):
 
     @staticmethod
-    def bytes_to_redis_model(hash: HashModel,
-                             ) -> GameRedis:
-        # game_table = GameTableRedis(
-        #
-        # )
-        pass
-
-    @staticmethod
-    def redis_model_to_dict_model(model: GameRedis,
-                                  ) -> DictModel:
-        game_table_hash = {
-            'id': model.id,
-            'lobby_id': model.lobby_id,
-            'monster_card_for_game_ids': utils.ids_to_str(
-                model.monster_card_ids_pull
+    def dc_model_to_dict_model(dc_model: GameData,
+                               ) -> DictModel:
+        dict_model = {
+            'id': dc_model.id,
+            'room_id': dc_model.room_id,
+            'admin_id': dc_model.admin_id,
+            'player_ids': utils.ids_to_str(dc_model.player_ids),
+            'monster_card_ids': utils.ids_to_str(
+                dc_model.monster_card_ids
             ),
-            'discovery_card_for_game_ids': utils.ids_to_str(
-                model.terrain_card_ids_pull
+            'terrain_card_ids': utils.ids_to_str(
+                dc_model.terrain_card_ids
             ),
-            'season_for_game_ids': utils.ids_to_str(
-                model.season_ids_pull
-            ),
-            'current_move_id': model.current_move_id,
+            'season_ids': utils.ids_to_str(dc_model.season_ids),
+            'current_season_id': dc_model.current_season_id,
         }
-        return game_table_hash
+        return dict_model
 
     @staticmethod
-    def sql_model_to_dict_model(model: Model,
-                                ) -> DictModel:
-        raise NotImplementedError
-
-    @staticmethod
-    def hash_model_to_redis_model(hash: DictModel,
-                                  ) -> GameRedis:
-        table = GameRedis(
-            id=int(hash['id']),
-            lobby_id=int(hash['lobby_id']),
-            monster_card_ids_pull=utils.str_to_ids(
-                hash['monster_card_for_game_ids']
+    def hash_model_to_dc_model(hash_model: HashModel,
+                               ) -> GameData:
+        table = GameData(
+            id=int(hash_model[b'id']),
+            room_id=int(hash_model[b'lobby_id']),
+            player_ids=utils.str_to_ids(
+                hash_model[b'player_ids'].decode('utf-8')
             ),
-            terrain_card_ids_pull=utils.str_to_ids(
-                hash['discovery_card_for_game_ids']
+            admin_id=int(hash_model[b'admin_id']),
+            monster_card_ids=utils.str_to_ids(
+                hash_model[b'monster_card_for_game_ids'].decode('utf-8')
             ),
-            season_ids_pull=utils.str_to_ids(
-                hash['season_for_game_ids']
+            terrain_card_ids=utils.str_to_ids(
+                hash_model[b'discovery_card_for_game_ids'].decode('utf-8')
             ),
-            current_move_id=hash['current_move_id'],
+            season_ids=utils.str_to_ids(
+                hash_model[b'season_for_game_ids'].decode('utf-8')
+            ),
+            current_season_id=int(hash_model[b'current_season_id']),
         )
         return table
 
 
-class SeasonTransformer(BaseModelTransformer):
+class SeasonTransformer(BaseRedisTransformer):
+    """ transformer for seasons but not season_cards """
+
     @staticmethod
-    def hashes_to_models(hashes: Iterable[HashModel]) -> list[RedisModel]:
+    def dc_model_to_dict_model(dc_model: DataClassModel,
+                               ) -> DictModel:
         pass
 
     @staticmethod
-    def sql_model_to_dict_model(model: Model) -> DictModel:
-        pass
-
-    @staticmethod
-    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
-        pass
-
-    @staticmethod
-    def hash_model_to_redis_model(hash: DictModel) -> RedisModel:
+    def hash_model_to_dc_model(hash_model: DictModel,
+                               ) -> DataClassModel:
         pass
 
 
-class MoveTransformer(BaseModelTransformer):
-    @staticmethod
-    def hashes_to_models(hashes: Iterable[HashModel]) -> list[RedisModel]:
-        pass
+class SeasonCardTransformer(BaseSQLTransformer):
 
     @staticmethod
-    def sql_model_to_dict_model(model: Model) -> DictModel:
-        pass
+    def sql_model_to_dc_model(sql_model: Model) -> DictModel:
+        ...
+
+
+class MoveTransformer(BaseRedisTransformer):
 
     @staticmethod
-    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
-        pass
-
-    @staticmethod
-    def hash_model_to_redis_model(hash: DictModel) -> RedisModel:
-        pass
-
-
-class PlayerTransformer(BaseModelTransformer):
-    @staticmethod
-    def hashes_to_models(hashes: Iterable[HashModel]) -> list[RedisModel]:
-        pass
-
-    @staticmethod
-    def sql_model_to_dict_model(model: Model) -> DictModel:
-        pass
-
-    @staticmethod
-    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
-        pass
-
-    @staticmethod
-    def hash_model_to_redis_model(hash: DictModel) -> RedisModel:
-        pass
-
-
-class MonsterCardTransformer(BaseModelTransformer):
-    @staticmethod
-    def hashes_to_models(hashes: Iterable[HashModel]) -> list[RedisModel]:
-        pass
-
-    @staticmethod
-    def redis_model_to_dict_model(model: MonsterCardRedis,
-                                  ) -> DictModel:
-        monster_card_hash = {
-            'id': model.id,
-            'name': model.name,
-            'image_url': model.image_url,
-            'shape': model.shape,
-            'exchange_order': model.exchange_order,
-        }
-        return monster_card_hash
-
-    @staticmethod
-    def sql_model_to_dict_model(model: MonsterCardSQL,
+    def sql_model_to_dict_model(sql_model: Model,
                                 ) -> DictModel:
+        pass
+
+    @staticmethod
+    def dc_model_to_dict_model(dc_model: DataClassModel,
+                               ) -> DictModel:
+        pass
+
+    @staticmethod
+    def hash_model_to_dc_model(hash_model: DictModel,
+                               ) -> MoveDC:
+        pass
+
+
+class PlayerTransformer(BaseRedisTransformer):
+
+    @staticmethod
+    def dc_model_to_dict_model(dc_model: DataClassModel,
+                               ) -> DictModel:
+        pass
+
+    @staticmethod
+    def hash_model_to_dc_model(hash_model: DictModel,
+                               ) -> PlayerDC:
+        pass
+
+
+class MonsterCardTransformer(BaseRedisTransformer, BaseSQLTransformer):
+
+    @staticmethod
+    def dc_model_to_dict_model(dc_model: MonsterCardDC,
+                               ) -> DictModel:
         monster_card_hash = {
-            'id': model.pk,
-            'name': model.name,
-            'image_url': model.image.url,
-            'shape': model.shape.shape_str,
-            'exchange_order': model.exchange_order,
+            'id': dc_model.id,
+            'name': dc_model.name,
+            'image_url': dc_model.image_url,
+            'shape': dc_model.shape_id,
+            'exchange_order': dc_model.exchange_order,
         }
         return monster_card_hash
 
     @staticmethod
-    def hash_model_to_redis_model(model_hash: DictModel,
-                                  ) -> MonsterCardRedis:
-        card = MonsterCardRedis(
-            id=int(model_hash['id']),
-            name=model_hash['name'],
-            image_url=model_hash['image_url'],
-            shape=model_hash['shape'],
-            exchange_order=model_hash['exchange_order'],
+    def sql_model_to_dc_model(sql_model: MonsterCardSQL,
+                              ) -> DictModel:
+        monster_card_hash = {
+            'id': sql_model.pk,
+            'name': sql_model.name,
+            'image_url': sql_model.image.url,
+            'shape': sql_model.shape.shape_str,
+            'exchange_order': sql_model.exchange_order,
+        }
+        return monster_card_hash
+
+    @staticmethod  # TODO: fix this
+    def hash_model_to_dc_model(hash_model: HashModel,
+                               ) -> MonsterCardDC:
+        card = MonsterCardDC(
+            id=int(hash_model[b'id']),
+            name=hash_model[b'name'].decode('utf-8'),
+            image_url=hash_model[b'image_url'].decode('utf-8'),
+            shape_id=int(hash_model[b'shape']),
+            exchange_order=EExchangeOrder.get_enum_by_value(
+                hash_model[b'exchange_order'].decode('utf-8')
+            ),
         )
         return card
 
 
-class ObjectiveCardTransformer(BaseModelTransformer):
+class ObjectiveCardTransformer(BaseRedisTransformer, BaseSQLTransformer):
 
     @staticmethod
-    def sql_model_to_dict_model(model: Model) -> DictModel:
-        pass
+    def sql_model_to_dc_model(sql_model: ObjectiveCardSQL,
+                              ) -> DictModel:
+        dict_model = {
+            'id': sql_model.pk,
+            'name': sql_model.name,
+            'image_url': sql_model.image.url,
+        }
+        return dict_model
 
     @staticmethod
-    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
-        pass
+    def dc_model_to_dict_model(dc_model: ObjectiveCardDC,
+                               ) -> DictModel:
+        dict_model = {
+            'id': dc_model.id,
+            'name': dc_model.name,
+            'image_url': dc_model.image_url,
+        }
+        return dict_model
 
     @staticmethod
-    def hash_model_to_redis_model(hash: HashModel) -> RedisModel:
-        pass
+    def hash_model_to_dc_model(hash_model: HashModel,
+                               ) -> ObjectiveCardDC:
+        redis_model = ObjectiveCardDC(
+            id=int(hash_model[b'id']),
+            name=hash_model[b'name'].decode('utf-8'),
+            image_url=hash_model[b'image_url'].decode('utf-8'),
+        )
+        return redis_model
 
 
-class TerrainCardTransformer(BaseModelTransformer):
+class TerrainCardTransformer(BaseRedisTransformer, BaseSQLTransformer):
     @staticmethod
-    def sql_model_to_dict_model(model: Model) -> DictModel:
-        pass
+    def sql_model_to_dc_model(sql_model: DiscoveryCardSQL,
+                              ) -> DictModel:
+        dict_model = {
+            'id': sql_model.pk,
+            'name': sql_model.name,
+            'image_url': sql_model.image.url,
+            'card_type': sql_model.card_type,
+            'shape_id': sql_model.shape.id,
+            'terrain': sql_model.terrain,
+            'season_points': sql_model.season_points,
+            'additional_shape_id': sql_model.additional_shape.id,
+            'additional_terrain': sql_model.additional_terrain,
+        }
+        return dict_model
 
     @staticmethod
-    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
-        pass
+    def dc_model_to_dict_model(dc_model: TerrainCardDC,
+                               ) -> DictModel:
+        dict_model = {
+            'id': dc_model.id,
+            'name': dc_model.name,
+            'image_url': dc_model.image_url,
+            'card_type': dc_model.card_type.value,
+            'shape_id': dc_model.shape_id,
+            'terrain': dc_model.terrain,
+            'season_points': dc_model.season_points,
+            'additional_shape_id': dc_model.additional_shape_id,
+            'additional_terrain': dc_model.additional_terrain,
+        }
+        return dict_model
 
     @staticmethod
-    def hash_model_to_redis_model(hash: HashModel) -> RedisModel:
-        pass
+    def hash_model_to_dc_model(hash_model: HashModel,
+                               ) -> TerrainCardDC:
+        redis_model = TerrainCardDC(
+            id=int(hash_model[b'id'].decode('utf-8')),
+            name=hash_model[b'name'].decode('utf-8'),
+            image_url=hash_model[b'image_url'].decode('utf-8'),
+            card_type=ETerrainCardType.get_enum_by_value(
+                hash_model[b'card_type'].decode('utf-8')
+            ),
+            shape_id=int(hash_model[b'shape_id'].decode('utf-8')),
+            terrain=ETerrainTypeLimited.get_enum_by_value(
+                hash_model[b'terrain'].decode('utf-8')
+            ),
+            season_points=int(
+                hash_model[b'season_points'].decode('utf-8')
+            ),
+            additional_shape_id=int(
+                hash_model[b'additional_shape_id'].decode('utf-8')
+            ),
+            additional_terrain=ETerrainTypeLimited.get_enum_by_value(
+                hash_model[b'additional_terrain'].decode('utf-8')
+            ),
+        )
+        return redis_model

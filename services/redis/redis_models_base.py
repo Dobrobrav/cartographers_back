@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class RedisModel(ABC):
+class DataClassModel(ABC):
     id: int
 
 

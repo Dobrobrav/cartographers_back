@@ -5,71 +5,52 @@ from redis.client import Redis
 
 from services.redis.key_schemas_base import IKeySchema
 
-from .model_transformers_base import BaseModelTransformer, DictModel, HashModel
-from .redis_models_base import RedisModel
+from .model_transformers_base import BaseRedisTransformer, DictModel, HashModel
+from .redis_models_base import DataClassModel
 
 
-class DaoRedis:
+class BaseDao:
     _key_schema: IKeySchema
-    _transformer: BaseModelTransformer
     _redis: Redis
-    _model_id: int
+    _model_class: DataClassModel
 
     def __init__(self,
                  redis_client: Redis,
                  ) -> None:
         self._redis = redis_client
 
-    def fetch_hash_models(self,
-                          ids: Iterable[int],
-                          ) -> list[HashModel]:
+    def _fetch_hash_models(self,
+                           ids: Iterable[int],
+                           ) -> list[HashModel]:
         hash_models = [
-            self.fetch_hash_model(id)
+            self._fetch_hash_model(id)
             for id in ids
         ]
         return hash_models
 
-    def fetch_hash_model(self,
-                         model_id: int,
-                         ) -> HashModel:
+    def _fetch_hash_model(self,
+                          model_id: int,
+                          ) -> HashModel:
         hash_key = self._key_schema.get_hash_key(model_id)
         hash_model = self._redis.hgetall(hash_key)
         return hash_model
 
-    def fetch_redis_models(self,
-                           model_ids: Iterable[int],
-                           ) -> list[RedisModel]:
+    def fetch_dc_models(self,
+                        model_ids: Iterable[int],
+                        ) -> list[DataClassModel]:
         redis_models = [
-            self.fetch_redis_model(id)
+            self.fetch_dc_model(id)
             for id in model_ids
         ]
         return redis_models
 
-    def fetch_redis_model(self,
-                          model_id: int,
-                          ) -> RedisModel:
-        hash_model = self.fetch_hash_model(model_id)
+    def fetch_dc_model(self,
+                       model_id: int,
+                       ) -> DataClassModel:
+        hash_model = self._fetch_hash_model(model_id)
         redis_model = self._transformer. \
-            hash_model_to_redis_model(hash_model)
+            hash_model_to_dc_model(hash_model)
         return redis_model
-
-    def fetch_dict_models(self,
-                          model_ids: Iterable[int],
-                          ) -> list[DictModel]:
-        dict_models = [
-            self.fetch_dict_model(model_id)
-            for model_id in model_ids
-        ]
-        return dict_models
-
-    def fetch_dict_model(self,
-                         model_id: int,
-                         ) -> DictModel:
-        hash_model = self.fetch_hash_model(model_id)
-        dict_model = self._transformer. \
-            hash_model_to_dict_model(hash_model)
-
-        return dict_model
 
     def delete_by_id(self,
                      id: int,
@@ -82,8 +63,6 @@ class DaoRedis:
         all_ids = {int(id) for id in self._redis.smembers(all_ids_hash)}
         return all_ids
 
-    # TODO: implement this
-
     @staticmethod
     def _get_ids_for_page(all_ids: Iterable[int],
                           page: int,
@@ -95,8 +74,8 @@ class DaoRedis:
         return ids
 
     def _insert_many(self,
-                     models: Iterable[Model | RedisModel],
-                     dumper: Callable[[Model | RedisModel], DictModel],
+                     models: Iterable[Model | DataClassModel],
+                     dumper: Callable[[Model | DataClassModel], DictModel],
                      ) -> list[DictModel]:
         hash_models = [
             self._insert_single(model, dumper)
@@ -105,8 +84,8 @@ class DaoRedis:
         return hash_models
 
     def _insert_single(self,
-                       model: Model | RedisModel,
-                       dumper: Callable[[Model | RedisModel], DictModel],
+                       model: Model | DataClassModel,
+                       dumper: Callable[[Model | DataClassModel], DictModel],
                        ) -> DictModel:
         hash_key = self._key_schema.get_hash_key(id=model.id)
         ids_key = self._key_schema.ids_key
@@ -136,32 +115,27 @@ class DaoRedis:
         return new_id
 
 
-class DaoRedisRedis(DaoRedis):
+class DaoRedis(BaseDao):
 
-    def insert_redis_models(self,
-                            models: Iterable[RedisModel],
-                            ) -> list[DictModel]:
+    def insert_dc_models(self,
+                         models: Iterable[DataClassModel],
+                         ) -> list[DictModel]:
         dict_models = [
-            self.insert_redis_model(model)
+            self.insert_dc_model(model)
             for model in models
         ]
         return dict_models
 
-    def insert_redis_model(self,
-                           model: RedisModel,
-                           ) -> DictModel:
+    def insert_dc_model(self,
+                        model: DataClassModel,
+                        ) -> DictModel:
         dict_model = self._insert_single(
-            model, dumper=self._transformer.redis_model_to_dict_model
+            model, dumper=self._transformer.dc_model_to_dict_model
         )
         return dict_model
 
-# class DaoRedisDict(DaoRedis):
-#     def insert_dict_models(self,
-#                            models: Iterable[DictModel],
-#                            ) -> list[]:
 
-
-class DaoRedisSQL(DaoRedis):
+class DaoSQL(BaseDao):
     def insert_sql_models(self,
                           models: Iterable[Model],
                           ) -> list[DictModel]:

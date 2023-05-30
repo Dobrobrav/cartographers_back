@@ -16,15 +16,12 @@ class GameAPIView(APIView):
              ) -> Response:
         """ start game (sends admin) """
         token = request.auth
-        data = request.data
         user_id = get_user_id_by_token(token)
 
-        check_user_is_admin(user_id)
+        check_user_is_admin(user_id)  # should be in room_dao
+        game = GameDaoRedis(REDIS).start_new_game(user_id)
 
-        game_dao = GameDaoRedis(REDIS)
-        game = game_dao.start_game(user_id)
-
-        return Response(game, status=HTTP_201_CREATED)
+        return Response(status=HTTP_201_CREATED)
 
     def get(self,
             request: Request,

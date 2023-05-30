@@ -25,11 +25,11 @@ class ObjectiveCardKeySchema(IKeySchema):
 
     @staticmethod
     def get_hash_key(id: int) -> str:
-        pass
+        return f"objective-cards:{id}"
 
     @property
     def ids_key(self) -> str:
-        pass
+        return "objective-cards:ids"
 
 
 class SeasonKeySchema(IKeySchema):

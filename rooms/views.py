@@ -46,7 +46,7 @@ class RoomAPIView(APIView):
             max_users=int(data['max_players']),
             creator_id=creator_id,
         )
-        dict_room = room_dao.insert_redis_model(redis_room)
+        dict_room = room_dao.insert_dc_model(redis_room)
         # print(f"{dict_room=}")
         room_id = dict_room['id']
         json_ready_room = room_dao.get_complete_room(room_id=room_id)

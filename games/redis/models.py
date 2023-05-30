@@ -1,37 +1,49 @@
 from dataclasses import dataclass, field
+from enum import Enum
+from typing import MutableSequence
 
-from games.models import EFieldTerrainType, ECardTerrainType, ETerrainCardType
-from games.redis.dao import EDiscoveryCardType, ESeasonName
-from services.redis.redis_models_base import RedisModel
+from games.models import ETerrainType, ETerrainTypeLimited, ETerrainCardType, EExchangeOrder
+from services.redis.redis_models_base import DataClassModel
+
+
+class EDiscoveryCardType(Enum):
+    TERRAIN = 'terrain'
+    MONSTER = 'monster'
+
+
+class ESeasonName(Enum):
+    SPRING = 'spring'
+    SUMMER = 'summer'
+    FALL = 'fall'
+    WINTER = 'winter'
 
 
 @dataclass
-class GameRedis(RedisModel):
+class GameData(DataClassModel):
     id: int
-    lobby_id: int
-    monster_card_ids_pull: set[int]
-    terrain_card_ids_pull: set[int]
-    season_ids_pull: set[int]
-    current_move_id: int | None
+    room_id: int
     admin_id: int
-    player_ids: list[int]
+    player_ids: MutableSequence[int]
+    monster_card_ids: MutableSequence[int]
+    terrain_card_ids: MutableSequence[int]
+    season_ids: MutableSequence[int]
+    current_season_id: int | None
 
 
 @dataclass
-class SeasonRedis(RedisModel):
+class SeasonDC(DataClassModel):
     id: int
     name: ESeasonName
     ending_points: int
-    objective_card_ids: set[int]
-    terrain_card_ids: set[int]  # make sure it's a copy of set
-    monster_card_ids: set[int]  # same as above
+    objective_card_ids: MutableSequence[int]
+    terrain_card_ids: MutableSequence[int]  # make sure it's a copy of set
+    monster_card_ids: MutableSequence[int]  # same as above
     current_move_id: int | None
 
 
 @dataclass
-class MoveRedis(RedisModel):
+class MoveDC(DataClassModel):
     id: int
-    season_card_id: int
     is_prev_card_ruins: bool
     discovery_card_type: EDiscoveryCardType
     discovery_card_id: int
@@ -39,32 +51,39 @@ class MoveRedis(RedisModel):
 
 
 @dataclass
-class TerrainCardRedis(RedisModel):
+class TerrainCardDC(DataClassModel):
     id: int
     name: str
     image_url: str
     card_type: ETerrainCardType
-    shape: str
-    terrain: ECardTerrainType
+    shape_id: int
+    terrain: ETerrainTypeLimited
     season_points: int
-    additional_shape: str | None = None
-    additional_terrain: ECardTerrainType | None = None
+    additional_shape_id: int | None = None
+    additional_terrain: ETerrainTypeLimited | None = None
 
 
 @dataclass
-class PlayerRedis(RedisModel):
+class ObjectiveCardDC(DataClassModel):
+    id: int
+    name: str
+    image_url: str
+
+
+@dataclass
+class PlayerDC(DataClassModel):
     id: int
     user_id: int
-    field: list[list[EFieldTerrainType]]
+    field: MutableSequence[MutableSequence[ETerrainType]]
     left_player_id: int
     right_player_id: int
     score: int
 
 
 @dataclass
-class MonsterCardRedis(RedisModel):
+class MonsterCardDC(DataClassModel):
     id: int
     name: str
     image_url: str
-    shape: str
-    exchange_order: str
+    shape_id: int
+    exchange_order: EExchangeOrder

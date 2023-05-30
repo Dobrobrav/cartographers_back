@@ -3,11 +3,11 @@ from typing import Iterable
 from django.contrib.auth.models import User
 from django.db.models import Model
 
-from services.redis.model_transformers_base import BaseModelTransformer, HashModel, DictModel
-from services.redis.redis_models_base import RedisModel
+from services.redis.model_transformers_base import BaseRedisTransformer, HashModel, DictModel
+from services.redis.redis_models_base import DataClassModel
 
 
-class UserTransformer(BaseModelTransformer):
+class UserTransformer(BaseRedisTransformer):
     def sql_models_to_dict_models(self,
                                   models: Iterable[User],
                                   ) -> list[DictModel]:
@@ -18,29 +18,29 @@ class UserTransformer(BaseModelTransformer):
         return dict_users
 
     @staticmethod
-    def redis_models_to_dict_models(models: Iterable[RedisModel]) -> list[DictModel]:
+    def dc_models_to_dict_models(dc_model: Iterable[DataClassModel]) -> list[DictModel]:
         pass
 
     @staticmethod
-    def hash_models_to_redis_models(models: Iterable[HashModel]) -> list[RedisModel]:
+    def hash_models_to_dc_models(hash_models: Iterable[HashModel]) -> list[DataClassModel]:
         pass
 
     @staticmethod
-    def sql_model_to_dict_model(model: User) -> DictModel:
+    def sql_model_to_dict_model(sql_model: User) -> DictModel:
         dict_user = {
-            "id": model.id,
-            'name': model.username,
+            "id": sql_model.id,
+            'name': sql_model.username,
         }
         return dict_user
 
     @staticmethod
-    def redis_model_to_dict_model(model: RedisModel) -> DictModel:
+    def dc_model_to_dict_model(dc_model: DataClassModel) -> DictModel:
         pass
 
     @staticmethod
-    def hash_model_to_redis_model(hash: HashModel) -> RedisModel:
+    def hash_model_to_dc_model(hash_model: HashModel) -> DataClassModel:
         pass
 
     @staticmethod
-    def hashes_to_models(hashes: Iterable[HashModel]) -> list[RedisModel]:
+    def hashes_to_models(hashes: Iterable[HashModel]) -> list[DataClassModel]:
         pass

@@ -2,35 +2,35 @@ from typing import Iterable
 
 from django.db.models import Model
 
-from rooms.redis.models import RoomRedis
-from services.redis.model_transformers_base import BaseModelTransformer, DictModel, HashModel
-from services.redis.redis_models_base import RedisModel
+from rooms.redis.models import RoomDC
+from services.redis.model_transformers_base import BaseRedisTransformer, DictModel, HashModel
+from services.redis.redis_models_base import DataClassModel
 
 
-class RoomTransformer(BaseModelTransformer):
+class RoomTransformer(BaseRedisTransformer):
     @staticmethod
-    def sql_model_to_dict_model(model: Model) -> DictModel:
+    def sql_model_to_dict_model(sql_model: Model) -> DictModel:
         pass
 
     @staticmethod
-    def redis_model_to_dict_model(model: RoomRedis,
-                                  ) -> DictModel:
+    def dc_model_to_dict_model(dc_model: RoomDC,
+                               ) -> DictModel:
         model_dict = {
-            'id': model.id,
-            'name': model.name,
-            'password': model.password,
-            'max_players': model.max_users,
-            'admin_id': model.admin_id,
+            'id': dc_model.id,
+            'name': dc_model.name,
+            'password': dc_model.password,
+            'max_players': dc_model.max_users,
+            'admin_id': dc_model.admin_id,
             'user_ids': ' '.join(
                 str(user_id)
-                for user_id in model.user_ids
+                for user_id in dc_model.user_ids
             ),
         }
         return model_dict
 
     @staticmethod
-    def hash_model_to_redis_model(hash_model: HashModel) -> RoomRedis:
-        redis_model = RoomRedis(
+    def hash_model_to_dc_model(hash_model: HashModel) -> RoomDC:
+        redis_model = RoomDC(
             id=int(hash_model[b'id']),
             name=hash_model[b'name'].decode('utf-8'),
             password=hash_model[b'password'].decode('utf-8'),

@@ -1,14 +1,31 @@
+from typing import Self
+
 from django.db import models
 
 
-class ECardTerrainType(models.TextChoices):
+class HelperMixin:
+    @classmethod
+    def get_enum_by_value(cls,
+                          value: str,
+                          ) -> Self:
+        type_ = cls.__new__(cls, value)
+        return type_
+
+
+class ETerrainTypeLimited(models.TextChoices, HelperMixin):
     WATER = 'water'
     FIELD = 'field'
     FOREST = 'forest'
     VILLAGE = 'village'
 
 
-class EFieldTerrainType(models.TextChoices):
+class ETerrainCardType(models.TextChoices, HelperMixin):
+    REGULAR = 'regular'
+    RUINS = 'ruins'
+    ANOMALY = 'anomaly'
+
+
+class ETerrainType(models.TextChoices):
     WATER = 'water'
     FIELD = 'field'
     FOREST = 'forest'
@@ -17,12 +34,6 @@ class EFieldTerrainType(models.TextChoices):
     MOUNTAIN = 'mountain'
     RUINS = 'ruins'
     BLANK = 'blank'
-
-
-class ETerrainCardType(models.TextChoices):
-    REGULAR = 'regular'
-    RUINS = 'ruins'
-    ANOMALY = 'anomaly'
 
 
 class EObjectiveCardName(models.TextChoices):
@@ -42,7 +53,7 @@ class ObjectiveCardSQL(models.Model):
         return str(self.name)
 
 
-class TerrainCardSQL(models.Model):
+class DiscoveryCardSQL(models.Model):
     name = models.CharField(
         max_length=20, default=None, null=True,
     )
@@ -64,11 +75,11 @@ class TerrainCardSQL(models.Model):
     )  # blank True - value can be unsigned
     # null is False - value can't be null, it must be meaningful
     terrain = models.CharField(
-        choices=ECardTerrainType.choices, max_length=20,
+        choices=ETerrainTypeLimited.choices, max_length=20,
         blank=True, null=True,
     )
     additional_terrain = models.CharField(
-        choices=ECardTerrainType.choices, max_length=20,
+        choices=ETerrainTypeLimited.choices, max_length=20,
         blank=True, null=True,
     )
     season_points = models.IntegerField(default=3)
@@ -83,7 +94,7 @@ class SeasonCardSQL(models.Model):
     image = models.ImageField(upload_to='season_cards/')
 
 
-class EExchangeOrder(models.TextChoices):
+class EExchangeOrder(models.TextChoices, HelperMixin):
     CLOCKWISE = 'clockwise'
     COUNTERCLOCKWISE = 'counterclockwise'
 
