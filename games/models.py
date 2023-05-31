@@ -1,9 +1,13 @@
-from typing import Self
-
 from django.db import models
+from typing_extensions import Self
 
 
-class HelperMixin:
+class ETerrainTypeLimited(models.TextChoices):
+    WATER = 'water'
+    FIELD = 'field'
+    FOREST = 'forest'
+    VILLAGE = 'village'
+
     @classmethod
     def get_enum_by_value(cls,
                           value: str,
@@ -12,17 +16,17 @@ class HelperMixin:
         return type_
 
 
-class ETerrainTypeLimited(models.TextChoices, HelperMixin):
-    WATER = 'water'
-    FIELD = 'field'
-    FOREST = 'forest'
-    VILLAGE = 'village'
-
-
-class ETerrainCardType(models.TextChoices, HelperMixin):
+class ETerrainCardType(models.TextChoices):
     REGULAR = 'regular'
     RUINS = 'ruins'
     ANOMALY = 'anomaly'
+
+    @classmethod
+    def get_enum_by_value(cls,
+                          value: str,
+                          ) -> Self:
+        type_ = cls.__new__(cls, value)
+        return type_
 
 
 class ETerrainType(models.TextChoices):
@@ -94,9 +98,16 @@ class SeasonCardSQL(models.Model):
     image = models.ImageField(upload_to='season_cards/')
 
 
-class EExchangeOrder(models.TextChoices, HelperMixin):
+class EExchangeOrder(models.TextChoices):
     CLOCKWISE = 'clockwise'
     COUNTERCLOCKWISE = 'counterclockwise'
+
+    @classmethod
+    def get_enum_by_value(cls,
+                          value: str,
+                          ) -> Self:
+        type_ = cls.__new__(cls, value)
+        return type_
 
 
 class MonsterCardSQL(models.Model):

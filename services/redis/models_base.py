@@ -9,7 +9,6 @@ class DataClassModel(ABC):
 
 
 class DictModel(TypedDict):
-    id: int
-
+    pass
 
 

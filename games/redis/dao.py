@@ -10,7 +10,7 @@ from services.redis.redis_dao_base import DaoRedis, DaoFull, DaoBase
 from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema, \
     TerrainCardKeySchema, ObjectiveCardKeySchema
 from .transformers import MonsterCardTransformer, GameTransformer, SeasonTransformer, MoveTransformer, \
-    PlayerTransformer, TerrainCardTransformer, ObjectiveCardTransformer
+    TerrainCardTransformer, ObjectiveCardTransformer, PlayerTransformer
 from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
     ObjectiveCardDC
 

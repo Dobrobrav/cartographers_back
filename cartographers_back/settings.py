@@ -43,8 +43,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
 
-    'coverage',
-
     'foo_app',
     'rooms',
     'games.apps.GamesConfig',

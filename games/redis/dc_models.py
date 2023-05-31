@@ -1,17 +1,17 @@
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import Enum
 from typing import MutableSequence
 
-from games.models import ETerrainType, ETerrainTypeLimited, ETerrainCardType, EExchangeOrder, HelperMixin
+from games.models import ETerrainType, ETerrainTypeLimited, ETerrainCardType, EExchangeOrder
 from services.redis.models_base import DataClassModel
 
 
-class EDiscoveryCardType(StrEnum):
+class EDiscoveryCardType(str, Enum):
     TERRAIN = 'terrain'
     MONSTER = 'monster'
 
 
-class ESeasonName(StrEnum, HelperMixin):
+class ESeasonName(str, Enum):
     SPRING = 'spring'
     SUMMER = 'summer'
     FALL = 'fall'
@@ -82,7 +82,6 @@ class PlayerDC(DataClassModel):
 
 @dataclass
 class MonsterCardDC(DataClassModel):
-    id: int
     name: str
     image_url: str
     shape_id: int

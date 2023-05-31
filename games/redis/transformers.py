@@ -66,7 +66,7 @@ class SeasonTransformer(BaseRedisTransformer):
                                ) -> SeasonDict:
         season_dict = SeasonDict(
             id=dc_model.id,
-            name=dc_model.name.value(),
+            name=dc_model.name.value,
             ending_points=dc_model.ending_points,
             objective_card_ids=utils.ids_to_str(
                 dc_model.objective_card_ids
@@ -129,48 +129,59 @@ class MoveTransformer(BaseRedisTransformer):
         pass
 
 
+class PlayerTransformer(BaseRedisTransformer):
+
+    @staticmethod
+    def dc_model_to_dict_model(dc_model: DataClassModel) -> DictModel:
+        pass
+
+    @staticmethod
+    def hash_model_to_dc_model(hash_model: HashModel) -> DataClassModel:
+        pass
+
+
 class MonsterCardTransformer(BaseFullTransformer):
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: MonsterCardDC,
                                ) -> MonsterCardDict:
+        print(type(dc_model))
         monster_card_dict = MonsterCardDict(
             id=dc_model.id,
             name=dc_model.name,
             image_url=dc_model.image_url,
             shape_id=dc_model.shape_id,
             exchange_order=dc_model.exchange_order,
-
         )
         return monster_card_dict
 
+    @staticmethod
+    def sql_model_to_dc_model(sql_model: MonsterCardSQL,
+                              ) -> MonsterCardDC:
+        monster_card_dc = MonsterCardDC(
+            id=sql_model.pk,
+            name=sql_model.name,
+            image_url=sql_model.image.url,
+            shape_id=sql_model.shape_id,
+            exchange_order=EExchangeOrder.get_enum_by_value(
+                sql_model.exchange_order
+            ),
+        )
+        return monster_card_dc
 
-@staticmethod
-def sql_model_to_dc_model(sql_model: MonsterCardSQL,
-                          ) -> DictModel:
-    monster_card_hash = {
-        'id': sql_model.pk,
-        'name': sql_model.name,
-        'image_url': sql_model.image.url,
-        'shape': sql_model.shape.shape_str,
-        'exchange_order': sql_model.exchange_order,
-    }
-    return monster_card_hash
-
-
-@staticmethod  # TODO: fix this
-def hash_model_to_dc_model(hash_model: HashModel,
-                           ) -> MonsterCardDC:
-    card = MonsterCardDC(
-        id=int(hash_model[b'id']),
-        name=hash_model[b'name'].decode('utf-8'),
-        image_url=hash_model[b'image_url'].decode('utf-8'),
-        shape_id=int(hash_model[b'shape']),
-        exchange_order=EExchangeOrder.get_enum_by_value(
-            hash_model[b'exchange_order'].decode('utf-8')
-        ),
-    )
-    return card
+    @staticmethod  # TODO: fix this
+    def hash_model_to_dc_model(hash_model: HashModel,
+                               ) -> MonsterCardDC:
+        card = MonsterCardDC(
+            id=int(hash_model[b'id']),
+            name=hash_model[b'name'].decode('utf-8'),
+            image_url=hash_model[b'image_url'].decode('utf-8'),
+            shape_id=int(hash_model[b'shape']),
+            exchange_order=EExchangeOrder.get_enum_by_value(
+                hash_model[b'exchange_order'].decode('utf-8')
+            ),
+        )
+        return card
 
 
 class ObjectiveCardTransformer(BaseFullTransformer):
@@ -209,19 +220,23 @@ class ObjectiveCardTransformer(BaseFullTransformer):
 class TerrainCardTransformer(BaseFullTransformer):
     @staticmethod
     def sql_model_to_dc_model(sql_model: DiscoveryCardSQL,
-                              ) -> TerrainCardDict:
-        terrain_card_dict = TerrainCardDict(
+                              ) -> TerrainCardDC:
+        terrain_card_dict = TerrainCardDC(
             id=sql_model.pk,
             name=sql_model.name,
             image_url=sql_model.image.url,
-            card_type=sql_model.card_type,
+            card_type=ETerrainCardType.get_enum_by_value(
+                sql_model.card_type
+            ),
             shape_id=sql_model.shape.id,
             terrain=ETerrainTypeLimited.get_enum_by_value(
                 sql_model.terrain
             ),
             season_points=sql_model.season_points,
             additional_shape_id=sql_model.additional_shape.id,
-            additional_terrain=sql_model.additional_terrain,
+            additional_terrain=ETerrainTypeLimited.get_enum_by_value(
+                sql_model.additional_terrain
+            ),
         )
         return terrain_card_dict
 
@@ -234,7 +249,7 @@ class TerrainCardTransformer(BaseFullTransformer):
             'image_url': dc_model.image_url,
             'card_type': dc_model.card_type.value,
             'shape_id': dc_model.shape_id,
-            'terrain': dc_model.terrain,
+            'terrain': dc_model.terrain.value,
             'season_points': dc_model.season_points,
             'additional_shape_id': dc_model.additional_shape_id,
             'additional_terrain': dc_model.additional_terrain,

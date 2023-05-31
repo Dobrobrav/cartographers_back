@@ -58,7 +58,7 @@ class BaseSQLTransformer(ABC):
         return dc_models
 
 
-class BaseFullTransformer(ABC, BaseRedisTransformer, BaseSQLTransformer):
+class BaseFullTransformer(BaseRedisTransformer, BaseSQLTransformer, ABC):
 
     def sql_models_to_dict_models(self,
                                   sql_models: Iterable[Model],
