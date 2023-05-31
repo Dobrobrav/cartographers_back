@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from services.redis.redis_models_base import DataClassModel
+from services.redis.models_base import DataClassModel
 
 
 @dataclass

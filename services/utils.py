@@ -16,9 +16,9 @@ def ids_to_str(ids: MutableSequence[int],
     return string
 
 
-def str_to_ids(string: str,
-               ) -> list[int]:
-    ids = [int(id) for id in string.split()]
+def bytes_to_list(bts: bytes,
+                  ) -> list[int]:
+    ids = [int(id) for id in bts.decode('utf-8').split()]
     return ids
 
 

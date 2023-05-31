@@ -3,14 +3,13 @@ from typing import TypeAlias, Iterable, Any
 
 from django.db.models import Model
 
-from services.redis.redis_models_base import DataClassModel
+from services.redis.models_base import DataClassModel, DictModel
 
-DictModel: TypeAlias = dict[str, int | str | None]
 HashModel: TypeAlias = dict[bytes, bytes]
 
 
+# TODO: add TypeAlias SQLModel for Model
 class BaseRedisTransformer(ABC):
-
     def dc_models_to_dict_models(self,
                                  dc_model: Iterable[DataClassModel],
                                  ) -> list[DictModel]:

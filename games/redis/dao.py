@@ -5,13 +5,13 @@ from typing import Iterable, MutableSequence, Sequence, NamedTuple
 
 from cartographers_back.settings import REDIS
 from rooms.redis.dao import RoomDaoRedis
-from services.redis.model_transformers_base import DictModel
-from services.redis.redis_dao_base import DaoRedis, DaoSQL
+from services.redis.transformers_base import DictModel
+from services.redis.redis_dao_base import DaoRedis, DaoFull, DaoBase
 from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema, \
     TerrainCardKeySchema, ObjectiveCardKeySchema
-from .model_transformers import MonsterCardTransformer, GameTransformer, SeasonTransformer, MoveTransformer, \
+from .transformers import MonsterCardTransformer, GameTransformer, SeasonTransformer, MoveTransformer, \
     PlayerTransformer, TerrainCardTransformer, ObjectiveCardTransformer
-from .models import SeasonDC, GameData, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
+from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
     ObjectiveCardDC
 
 
@@ -55,7 +55,9 @@ class GameDaoRedis(DaoRedis):
 
     # TODO: need to store id redis if a user have finished his move
 
-    def _get_initial_cards(self):
+    @staticmethod
+    @staticmethod
+    def _get_initial_cards():
         terrain_card_ids_pull = TerrainCardDaoRedis(REDIS). \
             pick_terrain_cards()
 
@@ -77,11 +79,11 @@ class GameDaoRedis(DaoRedis):
                            players: list[int],
                            room_id: int,
                            admin_id: int,
-                           ) -> GameData:
+                           ) -> GameDC:
         monster_cards = initial_cards.monster_card_ids_pull
         terrain_cards = initial_cards.terrain_card_ids_pull
 
-        game = GameData(
+        game = GameDC(
             id=self._gen_new_id(),
             room_id=room_id,
             monster_card_ids=monster_cards,
@@ -95,8 +97,8 @@ class GameDaoRedis(DaoRedis):
 
         return game
 
-    def _get_room_and_players(self,
-                              admin_id: int,
+    @staticmethod
+    def _get_room_and_players(admin_id: int,
                               ) -> tuple[int, list[int]]:
         room_dao = RoomDaoRedis(REDIS)
         player_ids = room_dao.get_player_ids(admin_id)
@@ -121,7 +123,7 @@ class ObjectiveCardDaoRedis(DaoRedis):
         return picked_card_ids
 
 
-class TerrainCardDaoRedis(DaoRedis, DaoSQL):
+class TerrainCardDaoRedis(DaoFull):
     TERRAIN_CARD_QUANTITY = 2
 
     _key_schema = TerrainCardKeySchema()
@@ -137,7 +139,7 @@ class TerrainCardDaoRedis(DaoRedis, DaoSQL):
         return picked_card_ids
 
 
-class SeasonDaoRedis(DaoRedis):
+class SeasonDaoRedis(DaoBase):
     _key_schema = SeasonKeySchema()
     _transformer = SeasonTransformer()
     _model_class = SeasonDC
@@ -224,8 +226,8 @@ class SeasonDaoRedis(DaoRedis):
         self.insert_dc_model(season)
         return season.id
 
-    def _pick_season(self,
-                     season_ids_pull: list[int],
+    @staticmethod
+    def _pick_season(season_ids_pull: list[int],
                      ) -> int:
         season_id = random.choice(season_ids_pull)
         season_ids_pull.remove(season_id)
@@ -274,8 +276,8 @@ class MoveDaoRedis(DaoRedis):
         self.insert_dc_model(move)
         return move.id
 
-    def _pick_discovery_card(self,
-                             terrain_card_ids: MutableSequence[int],
+    @staticmethod
+    def _pick_discovery_card(terrain_card_ids: MutableSequence[int],
                              monster_card_ids: MutableSequence[int],
                              ) -> tuple[int, EDiscoveryCardType]:
         terrain_cards_quantity = len(terrain_card_ids)
@@ -307,7 +309,7 @@ class PlayerDaoRedis(DaoRedis):
     _transformer = PlayerTransformer()
 
 
-class MonsterCardDaoRedis(DaoRedis, DaoSQL):
+class MonsterCardDaoRedis(DaoFull):
     _key_schema = MonsterCardKeySchema()
     _transformer = MonsterCardTransformer()
 

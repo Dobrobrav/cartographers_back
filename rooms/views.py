@@ -11,8 +11,8 @@ from services.utils import get_user_id_by_token
 
 # Create your views here.
 class Display(APIView):
-    def get(self,
-            request: Request,
+    @staticmethod
+    def get(request: Request,
             ) -> Response:
         """ Endpoint for displaying a page of rooms """
         params = request.query_params
@@ -29,8 +29,8 @@ class Display(APIView):
 class RoomAPIView(APIView):
     authentication_classes = [TokenAuthentication]
 
-    def post(self,
-             request: Request,
+    @staticmethod
+    def post(request: Request,
              ) -> Response:
         """ create a room and put the user in it """
         token = request.auth
@@ -53,8 +53,8 @@ class RoomAPIView(APIView):
 
         return Response(data=json_ready_room, status=status.HTTP_201_CREATED)
 
-    def get(self,
-            request: Request,
+    @staticmethod
+    def get(request: Request,
             ) -> Response:
         """ get room data the user is in """
         token = request.headers['Auth-Token']  # TODO: fix this
@@ -79,8 +79,8 @@ class Search(APIView):
 
 
 class Delete(APIView):
-    def delete(self,
-               request: Request,
+    @staticmethod
+    def delete(request: Request,
                ) -> Response:
         """ delete room by token """
         token = request.headers['Auth-Token']
@@ -92,8 +92,8 @@ class Delete(APIView):
 
 
 class KickUser(APIView):
-    def delete(self,
-               request: Request,
+    @staticmethod
+    def delete(request: Request,
                ) -> Response:
         """ kick user (only for admin).
          for now, stick to room option """
@@ -112,8 +112,8 @@ class KickUser(APIView):
 
 
 class Ready(APIView):
-    def put(self,
-            request: Request,
+    @staticmethod
+    def put(request: Request,
             ) -> Response:
         """ change readiness (in room) state """
         token = request.headers['Auth-Token']
@@ -129,8 +129,8 @@ class Ready(APIView):
 
 
 class Leave(APIView):
-    def delete(self,
-               request: Request,
+    @staticmethod
+    def delete(request: Request,
                ) -> Response:
         """ leave room """
         token = request.headers['Auth-Token']

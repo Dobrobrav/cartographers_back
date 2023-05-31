@@ -3,8 +3,8 @@ from ..models import ShapeSQL
 
 
 class ShapeSQLTest(TestCase):
-    def create(self,
-               shape_str: str,
+    @staticmethod
+    def create(shape_str: str,
                gives_coin: bool,
                ) -> ShapeSQL:
         return ShapeSQL.objects.create(shape_str=shape_str,

@@ -2,13 +2,13 @@ from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
-from services.redis.model_transformers import UserTransformer
-from services.redis.model_transformers_base import DictModel
-from services.redis.redis_models_base import DataClassModel
+from services.redis.transformers import UserTransformer
+from services.redis.transformers_base import DictModel
+from services.redis.models_base import DataClassModel
 from .key_schemas import RoomKeySchema
-from .model_transformers import RoomTransformer
-from services.redis.redis_dao_base import DaoRedis, DaoSQL
-from .models import RoomDC
+from .transformers import RoomTransformer
+from services.redis.redis_dao_base import DaoRedis, DaoFull
+from .dc_models import RoomDC
 
 
 class RoomDaoRedis(DaoRedis):
@@ -26,7 +26,7 @@ class RoomDaoRedis(DaoRedis):
                        ) -> list[int]:
         room_id = self.get_room_id_by_user_id(user_id)
         room = self.fetch_dc_model(room_id=room_id)
-        player_ids = room.user_ids
+        player_ids = ...
         return player_ids
 
     def get_page(self,

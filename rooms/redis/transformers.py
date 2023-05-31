@@ -1,15 +1,12 @@
-from typing import Iterable
-
 from django.db.models import Model
-
-from rooms.redis.models import RoomDC
-from services.redis.model_transformers_base import BaseRedisTransformer, DictModel, HashModel
-from services.redis.redis_models_base import DataClassModel
+from rooms.redis.dc_models import RoomDC
+from services.redis.transformers_base import BaseRedisTransformer, DictModel, HashModel
 
 
 class RoomTransformer(BaseRedisTransformer):
     @staticmethod
-    def sql_model_to_dict_model(sql_model: Model) -> DictModel:
+    def sql_model_to_dict_model(sql_model: Model,
+                                ) -> DictModel:
         pass
 
     @staticmethod

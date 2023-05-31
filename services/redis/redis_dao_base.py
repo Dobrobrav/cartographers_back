@@ -5,11 +5,11 @@ from redis.client import Redis
 
 from services.redis.key_schemas_base import IKeySchema
 
-from .model_transformers_base import BaseRedisTransformer, DictModel, HashModel
-from .redis_models_base import DataClassModel
+from .transformers_base import BaseRedisTransformer, DictModel, HashModel, BaseFullTransformer
+from .models_base import DataClassModel
 
 
-class BaseDao:
+class DaoBase:
     _key_schema: IKeySchema
     _redis: Redis
     _model_class: DataClassModel
@@ -34,23 +34,6 @@ class BaseDao:
         hash_key = self._key_schema.get_hash_key(model_id)
         hash_model = self._redis.hgetall(hash_key)
         return hash_model
-
-    def fetch_dc_models(self,
-                        model_ids: Iterable[int],
-                        ) -> list[DataClassModel]:
-        redis_models = [
-            self.fetch_dc_model(id)
-            for id in model_ids
-        ]
-        return redis_models
-
-    def fetch_dc_model(self,
-                       model_id: int,
-                       ) -> DataClassModel:
-        hash_model = self._fetch_hash_model(model_id)
-        redis_model = self._transformer. \
-            hash_model_to_dc_model(hash_model)
-        return redis_model
 
     def delete_by_id(self,
                      id: int,
@@ -115,7 +98,25 @@ class BaseDao:
         return new_id
 
 
-class DaoRedis(BaseDao):
+class DaoRedis(DaoBase):
+    _transformer: BaseRedisTransformer
+
+    def fetch_dc_models(self,
+                        model_ids: Iterable[int],
+                        ) -> list[DataClassModel]:
+        redis_models = [
+            self.fetch_dc_model(id)
+            for id in model_ids
+        ]
+        return redis_models
+
+    def fetch_dc_model(self,
+                       model_id: int,
+                       ) -> DataClassModel:
+        hash_model = self._fetch_hash_model(model_id)
+        redis_model = self._transformer. \
+            hash_model_to_dc_model(hash_model)
+        return redis_model
 
     def insert_dc_models(self,
                          models: Iterable[DataClassModel],
@@ -135,7 +136,9 @@ class DaoRedis(BaseDao):
         return dict_model
 
 
-class DaoSQL(BaseDao):
+class DaoFull(DaoRedis):
+    _transformer: BaseFullTransformer
+
     def insert_sql_models(self,
                           models: Iterable[Model],
                           ) -> list[DictModel]:

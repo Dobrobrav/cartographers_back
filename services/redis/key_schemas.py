@@ -7,6 +7,6 @@ class UserKeySchema(IKeySchema):
                      ) -> str:
         pass
 
-    @staticmethod
-    def ids_key() -> str:
+    @property
+    def ids_key(self) -> str:
         pass

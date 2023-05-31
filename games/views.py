@@ -11,8 +11,8 @@ from services.utils import get_user_id_by_token, check_user_is_admin
 
 # Create your views here.
 class GameAPIView(APIView):
-    def post(self,
-             request: Request,
+    @staticmethod
+    def post(request: Request,
              ) -> Response:
         """ start game (sends admin) """
         token = request.auth
