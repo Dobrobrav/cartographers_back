@@ -23,7 +23,7 @@ class Display(APIView):
 
         dict_rooms = RoomDaoRedis(REDIS).get_page(page, limit)
 
-        return Response(data=dict_rooms, status=status.HTTP_201_CREATED)
+        return Response(data=dict_rooms, status=status.HTTP_200_OK)
 
 
 class RoomAPIView(APIView):
@@ -59,9 +59,7 @@ class RoomAPIView(APIView):
         token = request.headers['Auth-Token']  # TODO: fix this
         user_id = get_user_id_by_token(token)
 
-        room_dao = RoomDaoRedis(REDIS)
-        room_id = room_dao.get_room_id_by_user_id(user_id)
-        room = room_dao.get_complete_room(room_id)
+        room = RoomDaoRedis(REDIS).get_complete_room(user_id=user_id)
 
         return Response(room, status=status.HTTP_200_OK)
 
