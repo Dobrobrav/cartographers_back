@@ -10,7 +10,7 @@ from services.utils import get_user_id_by_token
 
 
 # Create your views here.
-class Display(APIView):
+class DisplayRoomsAPIView(APIView):
 
     # TODO: add_current_users attr
     @staticmethod
@@ -33,7 +33,7 @@ class RoomAPIView(APIView):
     @staticmethod
     def post(request: Request,
              ) -> Response:
-        """ create a room and put the user in it """
+        """ create a room and put the user in it as admin """
         token = request.auth
         data = request.data
 
@@ -41,9 +41,9 @@ class RoomAPIView(APIView):
         creator_id = get_user_id_by_token(token)
 
         # TODO: allow to make a room without a password
-        room_dc = room_dao.create_room(
+        room_dc = room_dao.create_room_dc(
             name=data['name'],
-            password=str(data['password']) if 'password' in data else None,
+            password=str(data['password']),
             max_users=int(data['max_users']),
             creator_id=creator_id,
         )
@@ -54,12 +54,10 @@ class RoomAPIView(APIView):
     @staticmethod
     def get(request: Request,
             ) -> Response:
-        """ get room data """
+        """ get room data where user is """
         token = request.auth
-        data = request.data
 
         user_id = get_user_id_by_token(token)
-
         room = RoomDaoRedis(REDIS).get_complete_room(user_id=user_id)
 
         return Response(room, status=status.HTTP_200_OK)

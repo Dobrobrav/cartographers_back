@@ -8,7 +8,7 @@ from services.redis.dict_models import UserDict
 from services.redis.transformers import UserTransformer
 from services.redis.transformers_base import DictModel
 from services.redis.models_base import DataClassModel
-from .dict_models import RoomDict
+from .dict_models import RoomDict, RoomDictForPage
 from .key_schemas import RoomKeySchema
 from .transformers import RoomTransformer
 from services.redis.redis_dao_base import DaoRedis, DaoFull
@@ -36,13 +36,14 @@ class RoomDaoRedis(DaoRedis):
     def get_page(self,
                  page: int,
                  limit: int,
-                 ) -> list[DataClassModel]:
+                 ) -> list[RoomDictForPage]:
         all_ids = self._get_all_ids()
         ids_for_page = self._get_ids_for_page(all_ids, page, limit)
         hash_rooms = self._fetch_hash_models(ids_for_page)
         dict_rooms = self._transformer.hash_models_to_dict_models(hash_rooms)
+        page = self._transformer.make_dict_rooms_for_page(dict_rooms)
 
-        return dict_rooms
+        return page
 
     def delete_by_user_id(self,
                           user_id: int,
@@ -96,12 +97,12 @@ class RoomDaoRedis(DaoRedis):
 
         return room_id
 
-    def create_room(self,
-                    name: str,
-                    password: str,
-                    max_users: int,
-                    creator_id: int,
-                    ) -> DataClassModel:
+    def create_room_dc(self,
+                       name: str,
+                       password: str,
+                       max_users: int,
+                       creator_id: int,
+                       ) -> DataClassModel:
         room_id = self._gen_new_id()
         self._check_name_unique(name)
         model = self._model_class(
@@ -111,6 +112,7 @@ class RoomDaoRedis(DaoRedis):
             max_users=max_users,
             admin_id=creator_id,
             user_ids=[creator_id],
+            is_game_started=False,
         )
         self._add_room_id_by_user_id_index(
             user_id=creator_id, room_id=room_id
@@ -175,7 +177,7 @@ class RoomDaoRedis(DaoRedis):
         sql_users = list(User.objects.filter(id__in=user_ids))
         dict_users = UserTransformer().sql_models_to_dict_models(sql_users)
 
-        room_dict: RoomDict = self._transformer.\
+        room_dict: RoomDict = self._transformer. \
             dc_model_to_dict_model(room_dc)
         room_dict['users'] = dict_users
 

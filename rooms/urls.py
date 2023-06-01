@@ -2,12 +2,12 @@ from django.urls import path
 
 from . import utils
 from .views import RoomAPIView, EnterDetails, Search, Delete, \
-    KickUser, Ready, Leave, Display
+    KickUser, Ready, Leave, DisplayRoomsAPIView
 
 utils.save_models_to_redis()
 
 urlpatterns = [
-    path('', Display.as_view(), name='rooms'),
+    path('', DisplayRoomsAPIView.as_view(), name='rooms'),
     path('room/', RoomAPIView.as_view(), name='room'),
     path('enter_details/', EnterDetails.as_view(), name='enter-details'),
     path('search/', Search.as_view(), name='search'),

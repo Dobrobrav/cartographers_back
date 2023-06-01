@@ -10,7 +10,7 @@ class RoomDC(DataClassModel):
     max_users: int
     admin_id: int
     user_ids: list[int]
-    current_users: int = 0
+    is_game_started: bool
 
 
 @dataclass
