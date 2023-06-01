@@ -11,6 +11,4 @@ class RoomDict(DictModel):
     current_users: int
 
 
-class UserDict(DictModel):
-    id: int
-    name: str
+

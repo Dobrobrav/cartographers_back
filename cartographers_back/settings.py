@@ -84,27 +84,18 @@ WSGI_APPLICATION = 'cartographers_back.wsgi.application'
 
 EXTERNAL_POSTGRES_URL = 'postgres://user:ukfvSVC8RC73GY1Nhhp52WVjUGMr26u3@dpg-chfrl9jhp8u065ri1lig-a.oregon-postgres.render.com/cartographers'
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'cartographers',
-        'USER': 'postgres',
-        'PASSWORD': '1771',
-        # 'HOST': 'postgres',
-        'HOST': 'localhost',
-        # 'PORT': 5432,
-        'PORT': 5433,
-    },
-
     # 'default': {
     #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
     #     'NAME': 'cartographers',
-    #     'USER': 'user',
-    #     'PASSWORD': 'ukfvSVC8RC73GY1Nhhp52WVjUGMr26u3',
-    #     'HOST': 'postgres.render.com',
-    #     'PORT': '5432',
-    # }
+    #     'USER': 'postgres',
+    #     'PASSWORD': '1771',
+    #     # 'HOST': 'postgres',
+    #     'HOST': 'localhost',
+    #     # 'PORT': 5432,
+    #     'PORT': 5433,
+    # },
 
-    # 'default': dj_database_url.config(default=EXTERNAL_POSTGRES_URL)
+    'default': dj_database_url.config(default=EXTERNAL_POSTGRES_URL)
 
 }
 
@@ -164,7 +155,7 @@ REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
 
-# AUTHTOKEN_TOKEN_LIFETIME = 24 * 60 * 60  # token lifespan is 24 hours
+# AUTHTOKEN_TOKEN_LIFETIME = 24 * 60 * 60  # make token lifespan is 24 hours
 
 REDIS = redis.Redis(
     # host='redis',

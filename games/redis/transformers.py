@@ -145,7 +145,6 @@ class MonsterCardTransformer(BaseFullTransformer):
     @staticmethod
     def dc_model_to_dict_model(dc_model: MonsterCardDC,
                                ) -> MonsterCardDict:
-        print(type(dc_model))
         monster_card_dict = MonsterCardDict(
             id=dc_model.id,
             name=dc_model.name,

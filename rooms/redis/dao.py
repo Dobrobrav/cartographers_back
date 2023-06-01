@@ -1,10 +1,14 @@
-from typing import Any
+from typing import Any, Optional
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
+from djoser.conf import User
+
+from services.redis.dict_models import UserDict
 from services.redis.transformers import UserTransformer
 from services.redis.transformers_base import DictModel
 from services.redis.models_base import DataClassModel
+from .dict_models import RoomDict
 from .key_schemas import RoomKeySchema
 from .transformers import RoomTransformer
 from services.redis.redis_dao_base import DaoRedis, DaoFull
@@ -146,8 +150,8 @@ class RoomDaoRedis(DaoRedis):
     # TODO: implement this
 
     def get_complete_room(self,
-                          user_id: int | None = None,
-                          room_id: int | None = None,
+                          user_id: Optional[int] = None,
+                          room_id: Optional[int] = None,
                           ) -> dict[str, Any]:
         if room_id is not None:
             return self._get_complete_room_by_room_id(room_id)
@@ -166,16 +170,17 @@ class RoomDaoRedis(DaoRedis):
     def _get_complete_room_by_room_id(self,
                                       room_id: int,
                                       ) -> dict[str, Any]:
-        redis_room: RoomDC = self.fetch_dc_model(room_id=room_id)
-        user_ids = redis_room.user_ids
+        room_dc: RoomDC = self.fetch_dc_model(room_id=room_id)
+        user_ids = room_dc.user_ids
 
-        sql_users = list(get_user_model().objects.filter(id__in=user_ids))
-        dict_users = UserTransformer().sql_models_to_dict_models(sql_users)
+        users_sql = list(User.objects.filter(id__in=user_ids))
+        users_dict = UserTransformer().sql_models_to_dict_models(users_sql)
 
-        dict_room = self._transformer.dc_model_to_dict_model(redis_room)
-        dict_room['users'] = dict_users
+        room_dict: RoomDict = self._transformer.\
+            dc_model_to_dict_model(room_dc)
+        room_dict['users'] = users_dict
 
-        return dict_room
+        return room_dict
 
     def add_user(self,
                  room_id: int,

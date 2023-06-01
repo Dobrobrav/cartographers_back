@@ -74,4 +74,5 @@ class BaseFullTransformer(BaseRedisTransformer, BaseSQLTransformer, ABC):
                                 ) -> DictModel:
         dc_model = self.sql_model_to_dc_model(sql_model)
         dict_model = self.dc_model_to_dict_model(dc_model)
+
         return dict_model

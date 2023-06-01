@@ -8,19 +8,19 @@ from games.redis.dao import MonsterCardDaoRedis
 
 
 def save_models_to_redis():
-    _upload_discovery_cards(REDIS)
-    _upload_monster_cards_to_redis(REDIS)
+    _upload_terrain_cards(REDIS)
+    _upload_monster_cards(REDIS)
 
 
-def _upload_monster_cards_to_redis(redis: Redis,
-                                   ) -> None:
+def _upload_monster_cards(redis: Redis,
+                          ) -> None:
     dao = MonsterCardDaoRedis(redis)
     cards = MonsterCardSQL.objects.select_related('shape').all()
     dao.insert_sql_models(cards)
 
 
-def _upload_discovery_cards(redis: Redis,
-                            ) -> None:
+def _upload_terrain_cards(redis: Redis,
+                          ) -> None:
     cards = DiscoveryCardSQL.objects \
         .select_related('shape', 'additional_shape') \
         .all()
