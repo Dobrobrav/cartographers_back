@@ -47,11 +47,9 @@ class RoomAPIView(APIView):
             max_users=int(data['max_users']),
             creator_id=creator_id,
         )
-        dict_room = room_dao.insert_dc_model(room_dc)
-        room_id = dict_room['id']
-        json_ready_room = room_dao.get_complete_room(room_id=room_id)
+        room_dao.insert_dc_model(room_dc)
 
-        return Response(data=json_ready_room, status=status.HTTP_201_CREATED)
+        return Response(status=status.HTTP_201_CREATED)
 
     @staticmethod
     def get(request: Request,
