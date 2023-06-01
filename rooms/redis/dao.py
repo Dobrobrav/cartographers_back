@@ -172,12 +172,12 @@ class RoomDaoRedis(DaoRedis):
         room_dc: RoomDC = self.fetch_dc_model(room_id=room_id)
         user_ids = room_dc.user_ids
 
-        users_sql = list(User.objects.filter(id__in=user_ids))
-        users_dict = UserTransformer().sql_models_to_dict_models(users_sql)
+        sql_users = list(User.objects.filter(id__in=user_ids))
+        dict_users = UserTransformer().sql_models_to_dict_models(sql_users)
 
         room_dict: RoomDict = self._transformer.\
             dc_model_to_dict_model(room_dc)
-        room_dict['users'] = users_dict
+        room_dict['users'] = dict_users
 
         return room_dict
 

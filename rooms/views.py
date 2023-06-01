@@ -43,7 +43,7 @@ class RoomAPIView(APIView):
         room_dc = room_dao.create_room(
             name=data['name'],
             password=str(data['password']) if 'password' in data else None,
-            max_users=int(data['max_players']),
+            max_users=int(data['max_users']),
             creator_id=creator_id,
         )
         dict_room = room_dao.insert_dc_model(room_dc)
