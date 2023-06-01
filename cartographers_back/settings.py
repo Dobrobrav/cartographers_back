@@ -14,6 +14,9 @@ import redis
 
 from pathlib import Path
 
+from cartographers_back import env
+from cartographers_back.env import env_default
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -82,7 +85,6 @@ WSGI_APPLICATION = 'cartographers_back.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-EXTERNAL_POSTGRES_URL = 'postgres://user:ukfvSVC8RC73GY1Nhhp52WVjUGMr26u3@dpg-chfrl9jhp8u065ri1lig-a.oregon-postgres.render.com/cartographers'
 DATABASES = {
     # 'default': {
     #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -95,16 +97,7 @@ DATABASES = {
     #     # 'PORT': 5433,
     # },
 
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
-    #     'NAME': 'cartographers',
-    #     'USER': 'user',
-    #     'PASSWORD': 'ukfvSVC8RC73GY1Nhhp52WVjUGMr26u3',
-    #     'HOST': 'postgres.render.com',
-    #     'PORT': '5432',
-    # }
-
-    'default': dj_database_url.config(default=EXTERNAL_POSTGRES_URL)
+    'default': env.RELATIONAL_DB,
 
 }
 
@@ -166,13 +159,7 @@ REST_FRAMEWORK = {
 
 # AUTHTOKEN_TOKEN_LIFETIME = 24 * 60 * 60  # token lifespan is 24 hours
 
-REDIS = redis.Redis(
-    host='redis',
-    # host='localhost',
-    port=6379,
-    # port=6380,
-    db=0,
-)
+REDIS = env.REDIS
 
 # поправить константу ниже
 # REDIS_EXTERNAL_URL = ''
