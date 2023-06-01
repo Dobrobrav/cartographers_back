@@ -11,6 +11,7 @@ from services.utils import get_user_id_by_token
 
 # Create your views here.
 class Display(APIView):
+
     @staticmethod
     def get(request: Request,
             ) -> Response:
@@ -20,10 +21,9 @@ class Display(APIView):
         page = int(params['page'])
         limit = int(params['limit'])
 
-        room_hashes = RoomDaoRedis(REDIS) \
-            .get_page(page, limit)
+        dict_rooms = RoomDaoRedis(REDIS).get_page(page, limit)
 
-        return Response(room_hashes)
+        return Response(data=dict_rooms, status=status.HTTP_201_CREATED)
 
 
 class RoomAPIView(APIView):
@@ -40,14 +40,13 @@ class RoomAPIView(APIView):
         creator_id = get_user_id_by_token(token)
 
         # TODO: allow to make a room without a password
-        redis_room = room_dao.create_room(
+        room_dc = room_dao.create_room(
             name=data['name'],
-            password=str(data['password']),
+            password=str(data['password']) if 'password' in data else None,
             max_users=int(data['max_players']),
             creator_id=creator_id,
         )
-        dict_room = room_dao.insert_dc_model(redis_room)
-        # print(f"{dict_room=}")
+        dict_room = room_dao.insert_dc_model(room_dc)
         room_id = dict_room['id']
         json_ready_room = room_dao.get_complete_room(room_id=room_id)
 

@@ -44,6 +44,7 @@ class DaoBase:
     def _get_all_ids(self) -> set[int]:
         all_ids_hash = self._key_schema.ids_key
         all_ids = {int(id) for id in self._redis.smembers(all_ids_hash)}
+        print(all_ids)
         return all_ids
 
     @staticmethod
@@ -51,9 +52,10 @@ class DaoBase:
                           page: int,
                           limit: int,
                           ) -> list[int]:
-        start = (page - 1) * limit + 1
-        end = start + limit
-        ids = sorted(all_ids)[start:end]
+        start_id = (page - 1) * limit + 1
+        end_id = start_id + limit - 1
+        ids = sorted(all_ids)[start_id - 1:end_id]
+        print(ids)
         return ids
 
     def _insert_many(self,

@@ -40,6 +40,13 @@ class BaseRedisTransformer(ABC):
                                ) -> DataClassModel:
         pass
 
+    def hash_models_to_dict_models(self,
+                                   hash_models: Iterable[HashModel],
+                                   ) -> list[DictModel]:
+        dc_models = self.hash_models_to_dc_models(hash_models)
+        dict_models = self.dc_models_to_dict_models(dc_models)
+        return dict_models
+
 
 class BaseSQLTransformer(ABC):
     @staticmethod

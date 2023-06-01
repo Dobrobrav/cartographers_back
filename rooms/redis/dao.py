@@ -39,11 +39,10 @@ class RoomDaoRedis(DaoRedis):
                  ) -> list[DataClassModel]:
         all_ids = self._get_all_ids()
         ids_for_page = self._get_ids_for_page(all_ids, page, limit)
-        hash_models = self._fetch_hash_models(ids_for_page)
-        redis_models = self._transformer. \
-            hash_models_to_dc_models(hash_models)
+        hash_rooms = self._fetch_hash_models(ids_for_page)
+        dict_rooms = self._transformer.hash_models_to_dict_models(hash_rooms)
 
-        return redis_models
+        return dict_rooms
 
     def delete_by_user_id(self,
                           user_id: int,
