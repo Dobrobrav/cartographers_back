@@ -12,6 +12,7 @@ from services.utils import get_user_id_by_token
 # Create your views here.
 class Display(APIView):
 
+    # TODO: add_current_users attr
     @staticmethod
     def get(request: Request,
             ) -> Response:
@@ -55,8 +56,10 @@ class RoomAPIView(APIView):
     @staticmethod
     def get(request: Request,
             ) -> Response:
-        """ get room data the user is in """
-        token = request.headers['Auth-Token']  # TODO: fix this
+        """ get room data """
+        token = request.auth
+        data = request.data
+
         user_id = get_user_id_by_token(token)
 
         room = RoomDaoRedis(REDIS).get_complete_room(user_id=user_id)
