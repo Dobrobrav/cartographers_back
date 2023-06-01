@@ -5,7 +5,6 @@ from services.redis.models_base import DataClassModel
 
 @dataclass
 class RoomDC(DataClassModel):
-    id: int
     name: str
     password: str
     max_users: int
@@ -16,5 +15,4 @@ class RoomDC(DataClassModel):
 
 @dataclass
 class UserDC(DataClassModel):
-    id: int
     name: str

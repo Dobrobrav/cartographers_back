@@ -6,7 +6,6 @@ from services.redis.models_base import DictModel
 
 
 class GameDict(DictModel):
-    id: int
     room_id: int
     admin_id: int
     player_ids: str
@@ -17,7 +16,6 @@ class GameDict(DictModel):
 
 
 class SeasonDict(DictModel):
-    id: int
     name: str
     ending_points: int
     objective_card_ids: str
@@ -27,7 +25,6 @@ class SeasonDict(DictModel):
 
 
 class MoveDict(DictModel):
-    id: int
     is_prev_card_ruins: bool
     discovery_card_type: str
     discovery_card_id: int
@@ -35,7 +32,6 @@ class MoveDict(DictModel):
 
 
 class TerrainCardDict(DictModel):
-    id: int
     name: str
     image_url: str
     card_type: str
@@ -47,13 +43,11 @@ class TerrainCardDict(DictModel):
 
 
 class ObjectiveCardDict(DictModel):
-    id: int
     name: str
     image_url: str
 
 
 class PlayerDict(DictModel):
-    id: int
     user_id: int
     field: str  # TODO: fill in
     left_player_id: int
@@ -62,7 +56,6 @@ class PlayerDict(DictModel):
 
 
 class MonsterCardDict(DictModel):
-    id: int
     name: str
     image_url: str
     shape_id: int

@@ -2,7 +2,6 @@ from services.redis.models_base import DictModel
 
 
 class RoomDict(DictModel):
-    id: int
     name: str
     password: str
     max_users: int
