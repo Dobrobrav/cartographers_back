@@ -8,25 +8,11 @@ class ETerrainTypeLimited(models.TextChoices):
     FOREST = 'forest'
     VILLAGE = 'village'
 
-    @classmethod
-    def get_enum_by_value(cls,
-                          value: str,
-                          ) -> Self:
-        type_ = cls.__new__(cls, value)
-        return type_
-
 
 class ETerrainCardType(models.TextChoices):
     REGULAR = 'regular'
     RUINS = 'ruins'
     ANOMALY = 'anomaly'
-
-    @classmethod
-    def get_enum_by_value(cls,
-                          value: str,
-                          ) -> Self:
-        type_ = cls.__new__(cls, value)
-        return type_
 
 
 class ETerrainType(models.TextChoices):
@@ -101,13 +87,6 @@ class SeasonCardSQL(models.Model):
 class EExchangeOrder(models.TextChoices):
     CLOCKWISE = 'clockwise'
     COUNTERCLOCKWISE = 'counterclockwise'
-
-    @classmethod
-    def get_enum_by_value(cls,
-                          value: str,
-                          ) -> Self:
-        type_ = cls.__new__(cls, value)
-        return type_
 
 
 class MonsterCardSQL(models.Model):

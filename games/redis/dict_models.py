@@ -5,6 +5,7 @@ from games.redis.dc_models import ESeasonName, EDiscoveryCardType
 from services.redis.models_base import DictModel
 
 
+# TODO: I can't put None into dict for redis
 class GameDict(DictModel):
     room_id: int
     admin_id: int
@@ -12,7 +13,7 @@ class GameDict(DictModel):
     monster_card_ids: str
     terrain_card_ids: str
     season_ids: str
-    current_season_id: Optional[int]
+    current_season_id: int
 
 
 class SeasonDict(DictModel):
@@ -21,7 +22,7 @@ class SeasonDict(DictModel):
     objective_card_ids: str
     terrain_card_ids: str  # make sure it's a copy of set
     monster_card_ids: str  # same as above
-    current_move_id: Optional[int]
+    current_move_id: int
 
 
 class MoveDict(DictModel):
@@ -38,8 +39,8 @@ class TerrainCardDict(DictModel):
     shape_id: int
     terrain: str
     season_points: int
-    additional_shape_id: Optional[int]
-    additional_terrain: Optional[str]
+    additional_shape_id: int
+    additional_terrain: str
 
 
 class ObjectiveCardDict(DictModel):

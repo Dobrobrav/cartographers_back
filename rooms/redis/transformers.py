@@ -1,16 +1,12 @@
 from typing import Iterable
 
-from django.db.models import Model
 from rooms.redis.dc_models import RoomDC
 from rooms.redis.dict_models import RoomDict, RoomDictForPage
-from services.redis.transformers_base import BaseRedisTransformer, DictModel, HashModel
+from rooms.redis.hash_models import RoomHash
+from services.redis.transformers_base import BaseRedisTransformer
 
 
 class RoomTransformer(BaseRedisTransformer):
-    @staticmethod
-    def sql_model_to_dict_model(sql_model: Model,
-                                ) -> DictModel:
-        pass
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: RoomDC,
@@ -30,7 +26,7 @@ class RoomTransformer(BaseRedisTransformer):
         return room_dict
 
     @staticmethod
-    def hash_model_to_dc_model(hash_model: HashModel,
+    def hash_model_to_dc_model(hash_model: RoomHash,
                                ) -> RoomDC:
         redis_model = RoomDC(
             id=int(hash_model[b'id']),
@@ -69,19 +65,3 @@ class RoomTransformer(BaseRedisTransformer):
             is_game_started=bool(dict_room['is_game_started']),
         )
         return room
-
-    @staticmethod
-    def bytes_to_redis_model(hash: HashModel,
-                             ) -> DictModel:
-        room_hash = {
-            'id': int(hash[b'id']),
-            'name': hash[b'name'],
-            'password': hash[b'password'],
-            'max_players': int(hash[b'max_players']),
-            'admin_id': int(hash[b'admin_id']),
-            'user_ids': [
-                int(user_id)
-                for user_id in hash[b'user_ids'].split()
-            ],
-        }
-        return room_hash

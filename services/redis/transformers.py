@@ -1,12 +1,9 @@
-from typing import Iterable
-
 from django.contrib.auth.models import User
-from django.db.models import Model
 
 from rooms.redis.dc_models import UserDC
 from services.redis.dict_models import UserDict
-from services.redis.transformers_base import HashModel, DictModel, BaseFullTransformer
-from services.redis.models_base import DataClassModel
+from services.redis.hash_models import UserHash
+from services.redis.transformers_base import DictModel, BaseFullTransformer
 
 
 class UserTransformer(BaseFullTransformer):
@@ -30,6 +27,10 @@ class UserTransformer(BaseFullTransformer):
         return user_dict
 
     @staticmethod
-    def hash_model_to_dc_model(hash_model: HashModel,
-                               ) -> DataClassModel:
-        pass
+    def hash_model_to_dc_model(a: UserHash,
+                               ) -> UserDC:
+        user_dc = UserDC(
+            id=int(a[b'id']),
+            name=a[b'id'].decode('utf-8'),
+        )
+        return user_dc

@@ -13,6 +13,7 @@ class RoomDict(DictModel):
 
 
 class RoomDictForPage(TypedDict):
+    """ not derived from DictModel """
     room_id: int
     room_name: str
     max_users: int

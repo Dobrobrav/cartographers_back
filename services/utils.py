@@ -2,6 +2,8 @@ from typing import MutableSequence
 
 from rest_framework.authtoken.models import Token
 
+from games.models import ETerrainType
+
 
 def get_user_id_by_token(token: str) -> int:
     token_obj = Token.objects.get(key=token)
@@ -24,4 +26,14 @@ def bytes_to_list(bts: bytes,
 
 def check_user_is_admin(user_id: int,
                         ) -> None:
-    pass
+    raise NotImplementedError()  # TODO: implement
+
+
+def dump_field(field: MutableSequence[MutableSequence[ETerrainType]],
+               ) -> str:
+    raise NotImplementedError  # TODO: implement
+
+
+def load_field(field: bytes,
+               ) -> MutableSequence[MutableSequence[ETerrainType]]:
+    raise NotImplementedError  # TODO: implement

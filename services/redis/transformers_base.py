@@ -3,9 +3,7 @@ from typing import TypeAlias, Iterable, Any
 
 from django.db.models import Model
 
-from services.redis.models_base import DataClassModel, DictModel
-
-HashModel: TypeAlias = dict[bytes, bytes]
+from services.redis.models_base import DataClassModel, DictModel, HashModel
 
 
 # TODO: add TypeAlias SQLModel for Model

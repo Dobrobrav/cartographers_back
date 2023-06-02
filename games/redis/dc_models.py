@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import MutableSequence
+from typing import MutableSequence, Optional
 
 from games.models import ETerrainType, ETerrainTypeLimited, ETerrainCardType, EExchangeOrder
 from services.redis.models_base import DataClassModel
@@ -20,30 +20,27 @@ class ESeasonName(str, Enum):
 
 @dataclass
 class GameDC(DataClassModel):
-    id: int
     room_id: int
     admin_id: int
     player_ids: MutableSequence[int]
     monster_card_ids: MutableSequence[int]
     terrain_card_ids: MutableSequence[int]
     season_ids: MutableSequence[int]
-    current_season_id: int | None
+    current_season_id: Optional[int]
 
 
 @dataclass
 class SeasonDC(DataClassModel):
-    id: int
     name: ESeasonName
     ending_points: int
     objective_card_ids: MutableSequence[int]
     terrain_card_ids: MutableSequence[int]  # make sure it's a copy of set
     monster_card_ids: MutableSequence[int]  # same as above
-    current_move_id: int | None
+    current_move_id: Optional[int]
 
 
 @dataclass
 class MoveDC(DataClassModel):
-    id: int
     is_prev_card_ruins: bool
     discovery_card_type: EDiscoveryCardType
     discovery_card_id: int
@@ -52,27 +49,24 @@ class MoveDC(DataClassModel):
 
 @dataclass
 class TerrainCardDC(DataClassModel):
-    id: int
     name: str
     image_url: str
     card_type: ETerrainCardType
     shape_id: int
     terrain: ETerrainTypeLimited
     season_points: int
-    additional_shape_id: int | None = None
-    additional_terrain: ETerrainTypeLimited | None = None
+    additional_shape_id: Optional[int] = None
+    additional_terrain: Optional[ETerrainTypeLimited] = None
 
 
 @dataclass
 class ObjectiveCardDC(DataClassModel):
-    id: int
     name: str
     image_url: str
 
 
 @dataclass
 class PlayerDC(DataClassModel):
-    id: int
     user_id: int
     field: MutableSequence[MutableSequence[ETerrainType]]
     left_player_id: int
@@ -86,3 +80,10 @@ class MonsterCardDC(DataClassModel):
     image_url: str
     shape_id: int
     exchange_order: EExchangeOrder
+
+
+@dataclass
+class SeasonCardDC(DataClassModel):
+    name: str
+    points_to_end: int
+    image_url: str
