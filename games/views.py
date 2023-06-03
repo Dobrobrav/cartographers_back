@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 
 from cartographers_back.settings import REDIS
 from games.redis.dao import GameDaoRedis
+from rooms.redis.dao import RoomDaoRedis
 from services.utils import get_user_id_by_token, check_user_is_admin
 
 
@@ -18,8 +19,8 @@ class GameAPIView(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        check_user_is_admin(user_id)  # should be in room_dao
-        game = GameDaoRedis(REDIS).start_new_game(user_id)
+        RoomDaoRedis(REDIS).check_user_is_admin(user_id)  # should be in room_dao
+        GameDaoRedis(REDIS).start_new_game(user_id)
 
         return Response(status=HTTP_201_CREATED)
 

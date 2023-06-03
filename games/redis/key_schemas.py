@@ -4,21 +4,22 @@ from services.redis.key_schemas_base import IKeySchema
 class GameKeySchema(IKeySchema):
     @staticmethod
     def get_hash_key(id: int) -> str:
-        return f"game-tables:{id}"
+        return f"games:{id}"
 
     @property
     def ids_key(self) -> str:
-        return "game-tables:ids"
+        return "games:ids"
 
 
 class TerrainCardKeySchema(IKeySchema):
     @staticmethod
-    def get_hash_key(id: int) -> str:
-        pass
+    def get_hash_key(id: int,
+                     ) -> str:
+        return f"terrain-cards:{id}"
 
     @property
     def ids_key(self) -> str:
-        pass
+        return f"terrain-cards:ids"
 
 
 class ObjectiveCardKeySchema(IKeySchema):

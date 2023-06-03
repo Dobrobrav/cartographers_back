@@ -66,7 +66,8 @@ class SeasonTransformer(BaseRedisTransformer):
         season_dict = SeasonDict(
             id=dc_model.id,
             name=dc_model.name.value,
-            ending_points=dc_model.ending_points,
+            image_url=dc_model.image_url,
+            points_to_end=dc_model.points_to_end,
             objective_card_ids=utils.ids_to_str(
                 dc_model.objective_card_ids
             ),
@@ -76,7 +77,7 @@ class SeasonTransformer(BaseRedisTransformer):
             monster_card_ids=utils.ids_to_str(
                 dc_model.monster_card_ids
             ),
-            current_move_id=dc_model.current_move_id,
+            current_move_id=dc_model.current_move_id or '',
         )
         return season_dict
 
@@ -88,7 +89,8 @@ class SeasonTransformer(BaseRedisTransformer):
             name=get_enum_by_value(
                 ESeasonName, hash_model[b'name'].decode('utf-8')
             ),
-            ending_points=int(hash_model[b'ending_points']),
+            image_url=hash_model[b'image_url'].decode('utf-8'),
+            points_to_end=int(hash_model[b'points_to_end']),
             objective_card_ids=utils.bytes_to_list(
                 hash_model[b'objective_card_ids']
             ),
@@ -103,7 +105,7 @@ class SeasonTransformer(BaseRedisTransformer):
         return season_dc
 
 
-class SeasonCardTransformer(BaseSQLTransformer):
+class SeasonCardTransformer(BaseSQLTransformer):  # А нужен ли он мне вообще???
 
     @staticmethod
     def sql_model_to_dc_model(sql_model: SeasonCardSQL,
@@ -124,8 +126,8 @@ class MoveTransformer(BaseRedisTransformer):
                                ) -> MoveDict:
         move_dict = MoveDict(
             id=dc_model.id,
-            is_prev_card_ruins=dc_model.is_prev_card_ruins,
-            discovery_card_type=dc_model.discovery_card_type,
+            is_prev_card_ruins=int(dc_model.is_prev_card_ruins),
+            discovery_card_type=dc_model.discovery_card_type.value,
             discovery_card_id=dc_model.discovery_card_id,
             season_points=dc_model.season_points,
         )
@@ -258,72 +260,128 @@ class TerrainCardTransformer(BaseFullTransformer):
     @staticmethod
     def sql_model_to_dc_model(sql_model: DiscoveryCardSQL,
                               ) -> TerrainCardDC:
-        terrain_card_dict = TerrainCardDC(
-            id=sql_model.pk,
-            name=sql_model.name,
-            image_url=sql_model.image.url,
-            card_type=get_enum_by_value(
-                ETerrainCardType,
-                sql_model.card_type
-            ),
-            shape_id=sql_model.shape.id,
-            terrain=get_enum_by_value(
-                ETerrainTypeLimited,
-                sql_model.terrain
-            ),
-            season_points=sql_model.season_points,
-            additional_shape_id=sql_model.additional_shape.id,
-            additional_terrain=get_enum_by_value(
-                ETerrainTypeLimited,
-                sql_model.additional_terrain,
-            ),
+        card_type = get_enum_by_value(
+            ETerrainCardType,
+            sql_model.card_type,
         )
-        return terrain_card_dict
+
+        match card_type:
+            case ETerrainCardType.RUINS | ETerrainCardType.ANOMALY:
+                terrain_card_dc = TerrainCardDC(
+                    id=sql_model.pk,
+                    name=sql_model.name,
+                    image_url=sql_model.image.url,
+                    card_type=card_type,
+                    shape_id=None,
+                    terrain=None,
+                    season_points=None,
+                    additional_shape_id=None,
+                    additional_terrain=None,
+                )
+            case ETerrainCardType.REGULAR:
+                terrain_card_dc = TerrainCardDC(
+                    id=sql_model.pk,
+                    name=sql_model.name,
+                    image_url=sql_model.image.url,
+                    card_type=card_type,
+                    shape_id=sql_model.shape_id,
+                    terrain=get_enum_by_value(
+                        ETerrainTypeLimited,
+                        sql_model.terrain,
+                    ),
+                    season_points=sql_model.season_points,
+                    additional_shape_id=sql_model.additional_shape_id,
+                    additional_terrain=get_enum_by_value(
+                        ETerrainTypeLimited,
+                        sql_model.additional_terrain,
+                    ) if sql_model.additional_terrain else None,
+                )
+            case _:
+                raise ValueError('terrain card must either ruins or regular')
+
+        return terrain_card_dc
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: TerrainCardDC,
                                ) -> TerrainCardDict:
-        if dc_model.additional_terrain:
-            additional_terrain = dc_model.additional_terrain.value
-        else:
-            additional_terrain = ''
+        card_type = dc_model.card_type
 
-        terrain_card_dict = TerrainCardDict(
-            id=dc_model.id,
-            name=dc_model.name,
-            image_url=dc_model.image_url,
-            card_type=dc_model.card_type.value,
-            shape_id=dc_model.shape_id,
-            terrain=dc_model.terrain.value,
-            season_points=dc_model.season_points,
-            additional_shape_id=dc_model.additional_shape_id or 0,
-            additional_terrain=additional_terrain,
-        )
+        if card_type in (ETerrainCardType.RUINS, ETerrainCardType.ANOMALY):
+            terrain_card_dict = TerrainCardDict(
+                id=dc_model.id,
+                name=dc_model.name,
+                image_url=dc_model.image_url,
+                card_type=card_type.value,
+                shape_id='',
+                terrain='',
+                season_points='',
+                additional_shape_id='',
+                additional_terrain='',
+            )
+        elif card_type is ETerrainCardType.REGULAR:
+            terrain_card_dict = TerrainCardDict(
+                id=dc_model.id,
+                name=dc_model.name,
+                image_url=dc_model.image_url,
+                card_type=card_type.value,
+                shape_id=dc_model.shape_id,
+                terrain=dc_model.terrain.value,
+                season_points=dc_model.season_points,
+                additional_shape_id=dc_model.additional_shape_id or '',
+                additional_terrain=dc_model.additional_terrain or '',
+            )
+        else:
+            raise ValueError('terrain card must either ruins or regular')
+
         return terrain_card_dict
 
     @staticmethod
     def hash_model_to_dc_model(hash_model: TerrainCardHash,
                                ) -> TerrainCardDC:
-        redis_model = TerrainCardDC(
-            id=int(hash_model[b'id'].decode('utf-8')),
-            name=hash_model[b'name'].decode('utf-8'),
-            image_url=hash_model[b'image_url'].decode('utf-8'),
-            card_type=get_enum_by_value(
-                ETerrainCardType,
-                hash_model[b'card_type'].decode('utf-8')
-            ),
-            shape_id=int(hash_model[b'shape_id'].decode('utf-8')),
-            terrain=get_enum_by_value(
-                ETerrainTypeLimited,
-                hash_model[b'terrain'].decode('utf-8')
-            ),
-            season_points=int(hash_model[b'season_points']),
-            additional_shape_id=int(
-                hash_model[b'additional_shape_id'].decode('utf-8')
-            ),
-            additional_terrain=get_enum_by_value(
-                ETerrainTypeLimited,
-                hash_model[b'additional_terrain'].decode('utf-8')
-            ),
+        card_type = get_enum_by_value(
+            ETerrainCardType,
+            hash_model[b'card_type'].decode('utf-8'),
         )
-        return redis_model
+
+        if card_type is ETerrainCardType.RUINS:
+            terrain_card_dc = TerrainCardDC(
+                id=int(hash_model[b'id'].decode('utf-8')),
+                name=hash_model[b'name'].decode('utf-8'),
+                image_url=hash_model[b'image_url'].decode('utf-8'),
+                card_type=get_enum_by_value(
+                    ETerrainCardType,
+                    hash_model[b'card_type'].decode('utf-8')
+                ),
+                shape_id=None,
+                terrain=None,
+                season_points=None,
+                additional_shape_id=None,
+                additional_terrain=None,
+            )
+        elif card_type is ETerrainCardType.REGULAR:
+            terrain_card_dc = TerrainCardDC(
+                id=int(hash_model[b'id'].decode('utf-8')),
+                name=hash_model[b'name'].decode('utf-8'),
+                image_url=hash_model[b'image_url'].decode('utf-8'),
+                card_type=get_enum_by_value(
+                    ETerrainCardType,
+                    hash_model[b'card_type'].decode('utf-8'),
+                ),
+                shape_id=int(hash_model[b'shape_id'].decode('utf-8')),
+                terrain=get_enum_by_value(
+                    ETerrainTypeLimited,
+                    hash_model[b'terrain'].decode('utf-8'),
+                ),
+                season_points=int(hash_model[b'season_points']),
+                additional_shape_id=int(id) if (
+                    id := hash_model[b'additional_shape_id']
+                ) else None,
+                additional_terrain=get_enum_by_value(
+                    ETerrainTypeLimited,
+                    hash_model[b'additional_terrain'].decode('utf-8'),
+                ),
+            )
+        else:
+            raise ValueError('terrain card must either ruins or regular')
+
+        return terrain_card_dc

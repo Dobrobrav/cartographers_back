@@ -18,7 +18,8 @@ class GameDict(DictModel):
 
 class SeasonDict(DictModel):
     name: str
-    ending_points: int
+    image_url: str
+    points_to_end: int
     objective_card_ids: str
     terrain_card_ids: str  # make sure it's a copy of set
     monster_card_ids: str  # same as above
@@ -26,7 +27,7 @@ class SeasonDict(DictModel):
 
 
 class MoveDict(DictModel):
-    is_prev_card_ruins: bool
+    is_prev_card_ruins: int
     discovery_card_type: str
     discovery_card_id: int
     season_points: int
@@ -36,10 +37,10 @@ class TerrainCardDict(DictModel):
     name: str
     image_url: str
     card_type: str
-    shape_id: int
+    shape_id: int | str  # str for cases when attr is absent
     terrain: str
-    season_points: int
-    additional_shape_id: int
+    season_points: int | str
+    additional_shape_id: int | str
     additional_terrain: str
 
 

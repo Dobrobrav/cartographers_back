@@ -32,7 +32,8 @@ class GameDC(DataClassModel):
 @dataclass
 class SeasonDC(DataClassModel):
     name: ESeasonName
-    ending_points: int
+    image_url: str
+    points_to_end: int
     objective_card_ids: MutableSequence[int]
     terrain_card_ids: MutableSequence[int]  # make sure it's a copy of set
     monster_card_ids: MutableSequence[int]  # same as above
@@ -52,11 +53,11 @@ class TerrainCardDC(DataClassModel):
     name: str
     image_url: str
     card_type: ETerrainCardType
-    shape_id: int
-    terrain: ETerrainTypeLimited
-    season_points: int
-    additional_shape_id: Optional[int] = None
-    additional_terrain: Optional[ETerrainTypeLimited] = None
+    shape_id: Optional[int]
+    terrain: Optional[ETerrainTypeLimited]
+    season_points: Optional[int]
+    additional_shape_id: Optional[int]
+    additional_terrain: Optional[ETerrainTypeLimited]
 
 
 @dataclass

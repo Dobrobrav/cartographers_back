@@ -27,7 +27,15 @@ class ETerrainType(models.TextChoices):
 
 
 class EObjectiveCardName(models.TextChoices):
+    LAKEFOLK_MAP = 'lakefolk_map'
+    GOLD_VEIN = 'gold_vein'
+    ENCHANTERS_DELL = 'enchanter\'s_dell'
     GREEN_LAND = 'green_land'
+    SENTINEL_WOOD = 'sentinel_wood'
+    MOUNTAIN_GROVE = 'mountain_grove'
+    VAST_PLAINS = 'vast_plains'
+    BROKEN_ROADS = 'broken_roads'
+    CALDERAS = 'calderas'
 
 
 # Create your models here.
@@ -72,7 +80,7 @@ class DiscoveryCardSQL(models.Model):
         choices=ETerrainTypeLimited.choices, max_length=20,
         blank=True, null=True,
     )
-    season_points = models.IntegerField(default=3)
+    season_points = models.IntegerField(null=True, blank=True)
 
     def __str__(self) -> str:
         return str(self.name)

@@ -5,7 +5,7 @@ from redis.client import Redis
 
 from services.redis.key_schemas_base import IKeySchema
 
-from .transformers_base import BaseRedisTransformer, DictModel, HashModel, BaseFullTransformer
+from .transformers_base import BaseRedisTransformer, DictModel, HashModel, BaseFullTransformer, BaseSQLTransformer
 from .models_base import DataClassModel
 
 
@@ -75,10 +75,10 @@ class DaoBase:
         hash_key = self._key_schema.get_hash_key(id=model.id)
         ids_key = self._key_schema.ids_key
         # these actually should be a transaction
-        hash_model = dumper(model)
-        self._redis.hset(hash_key, mapping=hash_model)
+        dict_model = dumper(model)
+        self._redis.hset(hash_key, mapping=dict_model)
         self._redis.sadd(ids_key, model.id)
-        return hash_model
+        return dict_model
 
     def _gen_new_id(self) -> int:
         ids = self._get_ids()
@@ -144,13 +144,13 @@ class DaoFull(DaoRedis):
     def insert_sql_models(self,
                           models: Iterable[Model],
                           ) -> list[DictModel]:
-        model_hashes = [
+        hash_models = [
             self._insert_single(
                 model, dumper=self._transformer.sql_model_to_dict_model
             )
             for model in models
         ]
-        return model_hashes
+        return hash_models
 
     def insert_sql_model(self,
                          model: Model,

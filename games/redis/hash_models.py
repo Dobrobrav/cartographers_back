@@ -1,7 +1,3 @@
-from typing import MutableSequence, Optional
-
-from games.models import ETerrainCardType, ETerrainTypeLimited, ETerrainType, EExchangeOrder
-from games.redis.dc_models import ESeasonName, EDiscoveryCardType
 from services.redis.models_base import HashModel
 
 
@@ -17,7 +13,8 @@ class GameHash(HashModel):
 
 class SeasonHash(HashModel):
     name: bytes
-    ending_points: bytes
+    image_url: bytes
+    points_to_end: bytes
     objective_card_ids: bytes
     terrain_card_ids: bytes  # make sure it's a copy of set
     monster_card_ids: bytes  # same as above

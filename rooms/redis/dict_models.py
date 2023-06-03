@@ -12,6 +12,7 @@ class RoomDict(DictModel):
     is_game_started: int
 
 
+# special case
 class RoomDictForPage(TypedDict):
     """ not derived from DictModel """
     room_id: int

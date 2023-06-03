@@ -15,7 +15,7 @@ from services.redis.redis_dao_base import DaoRedis, DaoFull
 from .dc_models import RoomDC
 
 
-class RoomDaoRedis(DaoRedis):
+class RoomDaoRedis(DaoFull):
     _key_schema = RoomKeySchema()
     _transformer = RoomTransformer()
     _model_class = RoomDC
@@ -25,12 +25,21 @@ class RoomDaoRedis(DaoRedis):
                    ) -> None:
         ...
 
+    def check_user_is_admin(self,
+                            user_id: int,
+                            ) -> None:
+        room_id = self.get_room_id_by_user_id(user_id)
+        admin_id = self.fetch_dc_model(room_id=room_id).admin_id
+
+        if user_id != admin_id:
+            raise Exception('Game can only be started by its admin')
+
     def get_player_ids(self,
                        user_id: int,
                        ) -> list[int]:
         room_id = self.get_room_id_by_user_id(user_id)
         room = self.fetch_dc_model(room_id=room_id)
-        player_ids = ...
+        player_ids = room.user_ids
         return player_ids
 
     def get_page(self,
@@ -54,11 +63,11 @@ class RoomDaoRedis(DaoRedis):
     def fetch_dc_model(self,
                        room_id: int | None = None,
                        room_name: str | None = None,
-                       ) -> DataClassModel:
+                       ) -> RoomDC:
         if room_id is not None:
-            redis_model = super().fetch_dc_model(room_id)
+            redis_model: RoomDC = super().fetch_dc_model(room_id)
         elif room_name is not None:
-            redis_model = self._fetch_redis_model_by_name(room_name)
+            redis_model: RoomDC = self._fetch_redis_model_by_name(room_name)
         else:
             raise ValueError()
 
@@ -93,7 +102,7 @@ class RoomDaoRedis(DaoRedis):
                                user_id: int,
                                ) -> int:
         key = self._key_schema.room_id_by_user_id_index_key
-        room_id = int(self._redis.zscore(key, user_id))
+        room_id = int(self._redis.hget(key, user_id))
 
         return room_id
 
@@ -140,7 +149,7 @@ class RoomDaoRedis(DaoRedis):
                                       ) -> None:
         """ score - user_id; member - room_id. room_ids are sorted by user_ids """
         key = self._key_schema.room_id_by_user_id_index_key
-        self._redis.zadd(key, {user_id: room_id})
+        self._redis.hset(key, user_id, room_id)
 
     def kick_user(self,
                   admin_id: int,

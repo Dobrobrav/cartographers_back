@@ -5,8 +5,8 @@ class UserKeySchema(IKeySchema):
     @staticmethod
     def get_hash_key(id: int,
                      ) -> str:
-        pass
+        return f"users:{id}"
 
     @property
     def ids_key(self) -> str:
-        pass
+        return "users:ids"
