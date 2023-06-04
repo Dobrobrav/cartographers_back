@@ -42,8 +42,8 @@ class RoomAPIView(APIView):
 
         # TODO: allow to make a room without a password
         room_dc = room_dao.create_room_dc(
-            name=data['name'],
-            password=str(data['password']),
+            name=str(data['name']),
+            password=str(pw) if (pw := None) is not None else None,
             max_users=int(data['max_users']),
             creator_id=creator_id,
         )
