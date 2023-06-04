@@ -19,7 +19,7 @@ from django.urls import path, include, re_path
 from cartographers_back.settings import REDIS
 
 # Обнуляем базу данных
-# REDIS.flushall()
+REDIS.flushall()
 
 urlpatterns = [
     re_path(r'^auth/', include('djoser.urls')),

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from services.redis.models_base import DataClassModel
 
@@ -6,7 +7,7 @@ from services.redis.models_base import DataClassModel
 @dataclass
 class RoomDC(DataClassModel):
     name: str
-    password: str
+    password: Optional[str]
     max_users: int
     admin_id: int
     user_ids: list[int]

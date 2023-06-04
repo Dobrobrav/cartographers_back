@@ -14,7 +14,7 @@ class RoomTransformer(BaseRedisTransformer):
         room_dict = RoomDict(
             id=dc_model.id,
             name=dc_model.name,
-            password=dc_model.password,
+            password=dc_model.password or '',
             max_users=dc_model.max_users,
             admin_id=dc_model.admin_id,
             user_ids=' '.join(
@@ -31,7 +31,7 @@ class RoomTransformer(BaseRedisTransformer):
         redis_model = RoomDC(
             id=int(hash_model[b'id']),
             name=hash_model[b'name'].decode('utf-8'),
-            password=hash_model[b'password'].decode('utf-8'),
+            password=hash_model[b'password'].decode('utf-8') or None,
             max_users=int(hash_model[b'max_users']),
             admin_id=int(hash_model[b'admin_id']),
             user_ids=[

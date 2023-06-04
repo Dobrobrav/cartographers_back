@@ -1,9 +1,8 @@
 from typing import Any, Optional
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from djoser.conf import User
-
 from services.redis.dict_models import UserDict
 from services.redis.transformers import UserTransformer
 from services.redis.transformers_base import DictModel
@@ -108,16 +107,17 @@ class RoomDaoRedis(DaoFull):
 
     def create_room_dc(self,
                        name: str,
-                       password: str,
+                       password: Optional[str],
                        max_users: int,
                        creator_id: int,
                        ) -> DataClassModel:
+        print(password)
         room_id = self._gen_new_id()
         self._check_name_unique(name)
         model = self._model_class(
             id=room_id,
             name=name,
-            password=make_password(password),
+            password=make_password(password) if password else None,
             max_users=max_users,
             admin_id=creator_id,
             user_ids=[creator_id],
