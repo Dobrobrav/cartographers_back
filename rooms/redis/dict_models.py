@@ -15,8 +15,8 @@ class RoomDict(DictModel):
 # special case
 class RoomDictForPage(TypedDict):
     """ not derived from DictModel """
-    room_id: int
-    room_name: str
+    id: int
+    name: str
     max_users: int
     current_users: int
     contains_password: bool

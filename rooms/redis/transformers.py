@@ -57,8 +57,8 @@ class RoomTransformer(BaseRedisTransformer):
     def make_dict_room_for_page(dict_room: RoomDict,
                                 ) -> RoomDictForPage:
         room = RoomDictForPage(
-            room_id=dict_room['id'],
-            room_name=dict_room['name'],
+            id=dict_room['id'],
+            name=dict_room['name'],
             max_users=dict_room['max_users'],
             current_users=len(dict_room['user_ids'].split()),
             contains_password=bool(dict_room['password']),
