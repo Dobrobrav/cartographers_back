@@ -1,4 +1,4 @@
-from typing import Iterable, Callable
+from typing import Iterable, Callable, Generator
 
 from django.db.models import Model
 from redis.client import Redis
@@ -18,6 +18,11 @@ class DaoBase:
                  redis_client: Redis,
                  ) -> None:
         self._redis = redis_client
+
+    def get_all_ids(self) -> Generator:
+        ids_key = self._key_schema.ids_key
+        ids = (int(id) for id in self._redis.get(ids_key))
+        return ids
 
     def _fetch_hash_models(self,
                            ids: Iterable[int],

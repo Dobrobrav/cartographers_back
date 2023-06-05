@@ -1,18 +1,19 @@
 import random
 from copy import copy
-from typing import MutableSequence, NamedTuple
+from typing import MutableSequence, NamedTuple, Any, Iterable
 
 from cartographers_back.settings import REDIS
 from rooms.redis.dao import RoomDaoRedis
 from services.redis.transformers_base import DictModel
 from services.redis.redis_dao_base import DaoRedis, DaoFull, DaoBase
+from .dict_models import GameDictPretty, PlayerDictPretty, SeasonName, URL, ScoreSource, ScoreValue
 from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema, \
     TerrainCardKeySchema, ObjectiveCardKeySchema
 from .transformers import MonsterCardTransformer, GameTransformer, SeasonTransformer, MoveTransformer, \
     TerrainCardTransformer, ObjectiveCardTransformer, PlayerTransformer
 from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
-    ObjectiveCardDC
-from ..models import SeasonCardSQL
+    ObjectiveCardDC, PlayerDC
+from ..models import SeasonCardSQL, ETerrainTypeAll
 
 
 class InitialCards(NamedTuple):
@@ -26,6 +27,11 @@ class SeasonCards(NamedTuple):
     summer: SeasonCardSQL
     fall: SeasonCardSQL
     winter: SeasonCardSQL
+
+
+class SeasonPretty(NamedTuple):
+    name: str
+    url: str
 
 
 class GameDaoRedis(DaoRedis):
@@ -57,6 +63,66 @@ class GameDaoRedis(DaoRedis):
         )
 
         return game
+
+    def get_game(self,
+                 player_id: int,
+                 ) -> GameDictPretty:
+        game_id = self._get_game_id_by_player_id(player_id)
+        game: GameDC = self.fetch_dc_model(game_id)
+
+        room_name = RoomDaoRedis(REDIS).get_room_name(game.room_id)
+
+        player_dao = PlayerDaoRedis(REDIS)
+        field = player_dao.get_field_pretty(player_id)
+        score = player_dao.get_score(player_id)
+        coins = player_dao.get_coins(player_id)
+        players = player_dao.get_players_pretty(game.player_ids)
+
+        season_dao = SeasonDaoRedis(REDIS)
+        current_season_name = season_dao. \
+            get_season_name(game.current_season_id)
+        seasons = season_dao.get_seasons_pretty()
+
+        discovery_card = self._get_discovery_card_pretty(game_id)
+        move_id = ...
+        is_prev_card_ruins = MoveDaoRedis(REDIS).check_prev_card_is_ruins(move_id)
+        current_season_id = game.current_season_id
+
+        game_pretty = GameDictPretty(
+            id=game_id,
+            room_name=room_name,
+            field=field,
+            seasons=seasons,
+            current_season_name=current_season_name,
+            players=players,
+            discovery_card=discovery_card,
+            is_prev_card_ruins=is_prev_card_ruins,
+            coins=coins,
+            score=score,
+            season_score=season_dao.get_season_score_pretty(current_season_id),
+        )
+
+        return game_pretty
+
+    def _get_game_id_by_player_id(self,
+                                  player_id: int,
+                                  ) -> int:
+        room_id = RoomDaoRedis(REDIS).get_room_id_by_user_id(player_id)
+        game_id = self._get_game_id_by_room_id(room_id)
+        return game_id
+
+    def _get_game_id_by_room_id(self,
+                                room_id: int,
+                                ) -> int:
+        key = self._key_schema.game_id_by_room_id_index_key
+        game_id = self._redis.hget(key, room_id)
+        return game_id
+
+    def _get_discovery_card_pretty(
+            self,
+            game_id: int,
+    ) -> dict[str, str | MutableSequence[MutableSequence[int]]]:
+        raise NotImplementedError()
 
     # TODO: need to store in redis attr indicating if user has finished his move
 
@@ -223,6 +289,42 @@ class SeasonDaoRedis(DaoRedis):
 
         return season.id
 
+    def get_seasons_pretty(self) -> dict[SeasonName, URL]:
+        season_ids = self.get_all_ids()
+
+        seasons = {
+            (season := self.get_season_pretty(season_id)).name: season.url
+            for season_id in season_ids
+        }
+        return seasons
+
+    def get_season_pretty(self,
+                          season_id: int,
+                          ) -> SeasonPretty:
+        name = self.get_season_name(season_id)
+        url = self.get_season_url(season_id)
+        return SeasonPretty(name, url)
+
+    def get_season_url(self,
+                       season_id: int,
+                       ) -> str:
+        key = self._key_schema.get_hash_key(season_id)
+        url = self._redis.hget(key, 'image_url').decode('utf-8')
+        return url
+
+    def get_season_name(self,
+                        season_id: int,
+                        ) -> str:
+        key = self._key_schema.get_hash_key(season_id)
+        season_name = self._redis.hget(key, 'season_name').decode('utf-8')
+        return season_name
+
+    def get_season_score_pretty(
+            self,
+            season_id: int,
+    ) -> dict[SeasonName, dict[ScoreSource, ScoreValue]]:
+        raise NotImplementedError()
+
     @staticmethod
     def _get_season_cards() -> SeasonCards:
         cards = SeasonCards(
@@ -327,11 +429,64 @@ class MoveDaoRedis(DaoRedis):
         self.insert_dc_model(move)
         return move.id
 
+    def check_prev_card_is_ruins(self,
+                                 move_id: int,
+                                 ) -> bool:
+        raise NotImplementedError()
+
 
 # TODO: it will be nice to use deck-type in the future
 class PlayerDaoRedis(DaoRedis):
     _key_schema = PlayerKeySchema()
     _transformer = PlayerTransformer()
+
+    def get_players_pretty(self,
+                           player_ids: Iterable[int],
+                           ) -> list[PlayerDictPretty]:
+        players = [
+            self._get_player_pretty(player_id)
+            for player_id in player_ids
+        ]
+        return players
+
+    def _get_player_pretty(self,
+                           player_id: int,
+                           ) -> PlayerDictPretty:
+        player_name = self.get_name(player_id)
+        player_score = self.get_score(player_id)
+        return PlayerDictPretty(
+            id=player_id,
+            name=player_name,
+            score=player_score
+        )
+
+    def get_field_pretty(self,
+                         player_id: int,
+                         ) -> list[list[int]]:
+        key = self._key_schema.get_hash_key(player_id)
+        field_raw = self._redis.hget(key, 'field')
+        field_pretty = ...
+
+    def get_score(self,
+                  player_id: int,
+                  ) -> int:
+        key = self._key_schema.get_hash_key(player_id)
+        score = int(self._redis.hget(key, 'score'))
+        return score
+
+    def get_coins(self,
+                  player_id: int,
+                  ) -> int:
+        key = self._key_schema.get_hash_key(player_id)
+        score = int(self._redis.hget(key, 'coins'))
+        return score
+
+    def get_name(self,
+                 player_id: int,
+                 ) -> str:
+        key = self._key_schema.get_hash_key(player_id)
+        name = self._redis.hget(key, 'name').decode('utf-8')
+        return name
 
 
 class MonsterCardDaoRedis(DaoFull):

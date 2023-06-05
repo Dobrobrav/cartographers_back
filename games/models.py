@@ -3,10 +3,10 @@ from typing_extensions import Self
 
 
 class ETerrainTypeLimited(models.TextChoices):
-    WATER = 'water'
-    FIELD = 'field'
-    FOREST = 'forest'
-    VILLAGE = 'village'
+    WATER = 'water', 3
+    FIELD = 'field', 4
+    FOREST = 'forest', 1
+    VILLAGE = 'village', 2
 
 
 class ETerrainCardType(models.TextChoices):
@@ -15,15 +15,15 @@ class ETerrainCardType(models.TextChoices):
     ANOMALY = 'anomaly'
 
 
-class ETerrainType(models.TextChoices):
-    WATER = 'water'
-    FIELD = 'field'
-    FOREST = 'forest'
-    VILLAGE = 'village'
-    MONSTER = 'monster'
-    MOUNTAIN = 'mountain'
-    RUINS = 'ruins'
-    BLANK = 'blank'
+class ETerrainTypeAll(models.Choices):
+    WATER = 'water', 3
+    FIELD = 'field', 4
+    FOREST = 'forest', 1
+    VILLAGE = 'village', 2
+    MONSTER = 'monster', 5
+    MOUNTAIN = 'mountain', 6
+    RUINS = 'ruins', 7
+    BLANK = 'blank', 0
 
 
 class EObjectiveCardName(models.TextChoices):

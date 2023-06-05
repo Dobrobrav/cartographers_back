@@ -385,3 +385,8 @@ class TerrainCardTransformer(BaseFullTransformer):
             raise ValueError('terrain card must either ruins or regular')
 
         return terrain_card_dc
+
+
+class FieldTransformer:
+
+    pass

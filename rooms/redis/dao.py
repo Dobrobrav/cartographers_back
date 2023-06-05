@@ -72,6 +72,13 @@ class RoomDaoRedis(DaoFull):
 
         return redis_model
 
+    def get_room_name(self,
+                      room_id: int,
+                      ) -> str:
+        key = self._key_schema.get_hash_key(room_id)
+        room_name = self._redis.hget(key, 'name')
+        return room_name
+
     def _fetch_redis_model_by_name(self,
                                    model_name: str,
                                    ) -> DataClassModel:

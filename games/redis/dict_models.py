@@ -1,8 +1,15 @@
-from typing import MutableSequence, Optional
+from typing import MutableSequence, Optional, TypedDict, TypeAlias, Literal
 
-from games.models import ETerrainCardType, ETerrainTypeLimited, ETerrainType, EExchangeOrder
+from games.models import ETerrainCardType, ETerrainTypeLimited, ETerrainTypeAll, EExchangeOrder
 from games.redis.dc_models import ESeasonName, EDiscoveryCardType
 from services.redis.models_base import DictModel
+
+SeasonName: TypeAlias = str
+URL: TypeAlias = str
+UserID: TypeAlias = int
+Score: TypeAlias = int
+ScoreSource: TypeAlias = str
+ScoreValue: TypeAlias = int
 
 
 # TODO: I can't put None into dict for redis
@@ -62,3 +69,27 @@ class MonsterCardDict(DictModel):
     image_url: str
     shape_id: int
     exchange_order: str
+
+
+# create dc as well and the transformers. or it's not necessary
+# create a dict str -> int for Hablak
+class GameDictPretty(TypedDict):
+    id: int
+    room_name: str
+    player_field: MutableSequence[MutableSequence[int]]
+    seasons: dict[SeasonName, URL]
+    current_season_name: str
+    players: MutableSequence['PlayerDictPretty']
+    discovery_card: dict[str, str | MutableSequence[MutableSequence[int]]]
+    is_prev_card_ruins: bool
+    player_coins: int
+    player_score: int
+    season_score: dict[SeasonName, dict[ScoreSource, ScoreValue]]
+
+
+class PlayerDictPretty(TypedDict):
+    id: int
+    name: str
+    score: int
+    # image: URL - for the future
+

@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_201_CREATED
@@ -19,7 +20,7 @@ class GameAPIView(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        RoomDaoRedis(REDIS).check_user_is_admin(user_id)  # should be in room_dao
+        RoomDaoRedis(REDIS).check_user_is_admin(user_id)
         GameDaoRedis(REDIS).start_new_game(user_id)
 
         return Response(status=HTTP_201_CREATED)
@@ -27,7 +28,16 @@ class GameAPIView(APIView):
     def get(self,
             request: Request,
             ) -> Response:
-        """ check if new turn has started """
+        """ get game data for concrete user """
+        token = request.auth
+        user_id = get_user_id_by_token(token)
+
+        game = GameDaoRedis(REDIS).get_game(user_id)
+
+        return Response(data=game, status=status.HTTP_200_OK)
+
+
+
 
 
 class MoveAPIView(APIView):
