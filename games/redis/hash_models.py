@@ -22,7 +22,7 @@ class SeasonHash(HashModel):
 
 
 class MoveHash(HashModel):
-    is_prev_card_ruins: bool
+    is_prev_card_ruins: bytes
     discovery_card_type: bytes
     discovery_card_id: bytes
     season_points: bytes
@@ -46,10 +46,44 @@ class ObjectiveCardHash(HashModel):
 
 class PlayerHash(HashModel):
     user_id: bytes  # not a substitute of id, it's another attr
-    field: bytes  # TODO: fill in
+    field: bytes
     left_player_id: bytes
     right_player_id: bytes
     score: bytes
+
+
+class SeasonsScoreHash(HashModel):
+    spring_score_id: int
+    summer_score_id: int
+    fall_score_id: int
+    winter_score_id: int
+    total: int
+
+
+class SeasonScoreHash(HashModel):
+    from_coins: int
+    monsters: int
+    total: int
+
+
+class SpringScoreHash(SeasonScoreHash):
+    A: int
+    B: int
+
+
+class SummerScoreHash(SeasonScoreHash):
+    B: int
+    C: int
+
+
+class FallScoreHash(SeasonScoreHash):
+    C: int
+    D: int
+
+
+class WinterScoreHash(SeasonScoreHash):
+    D: int
+    A: int
 
 
 class MonsterCardHash(HashModel):

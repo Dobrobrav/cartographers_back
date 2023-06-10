@@ -1,15 +1,16 @@
 from games.models import MonsterCardSQL, DiscoveryCardSQL, ETerrainCardType, ETerrainTypeLimited, ObjectiveCardSQL, \
     EExchangeOrder, SeasonCardSQL
 from games.redis.dc_models import MonsterCardDC, GameDC, TerrainCardDC, ObjectiveCardDC, MoveDC, PlayerDC, SeasonDC, \
-    ESeasonName, SeasonCardDC, EDiscoveryCardType
+    ESeasonName, SeasonCardDC, EDiscoveryCardType, SpringScoreDC, SummerScoreDC, FallScoreDC, WinterScoreDC, \
+    SeasonsScoreDC
 from games.redis.dict_models import SeasonDict, MoveDict, PlayerDict, MonsterCardDict, GameDict, TerrainCardDict, \
-    ObjectiveCardDict
+    ObjectiveCardDict, SpringScoreDict, SummerScoreDict, FallScoreDict, WinterScoreDict, SeasonsScoreDict
 from games.redis.hash_models import GameHash, SeasonHash, MonsterCardHash, TerrainCardHash, MoveHash, PlayerHash, \
-    ObjectiveCardHash
+    ObjectiveCardHash, FallScoreHash, WinterScoreHash, SummerScoreHash, SpringScoreHash, SeasonsScoreHash
 from services import utils
 from services.redis.transformers_base import BaseRedisTransformer, BaseSQLTransformer, \
     BaseFullTransformer
-from services.redis.models_base import get_enum_by_value
+from services.redis.models_base import get_enum_by_value, HashModel, DataClassModel, DictModel
 
 
 class GameTransformer(BaseRedisTransformer):
@@ -170,7 +171,7 @@ class PlayerTransformer(BaseRedisTransformer):
         player_dc = PlayerDC(
             id=int(a[b'id']),
             user_id=int(a[b'user_id']),
-            field=utils.load_field(a[b'field']),
+            field=utils.decode_field(a[b'field']),
             left_player_id=int(a[b'left_player_id']),
             right_player_id=int(a[b'right_player_id']),
             score=int(a[b'score']),
@@ -387,6 +388,66 @@ class TerrainCardTransformer(BaseFullTransformer):
         return terrain_card_dc
 
 
-class FieldTransformer:
+class SeasonsScoreTransformer(BaseRedisTransformer):
 
-    pass
+    @staticmethod
+    def dc_model_to_dict_model(dc_model: SeasonsScoreDC,
+                               ) -> SeasonsScoreDict:
+        pass
+
+    @staticmethod
+    def hash_model_to_dc_model(hash_model: SeasonsScoreHash,
+                               ) -> SeasonsScoreDC:
+        pass
+
+
+class SpringScoreTransformer(BaseRedisTransformer):
+
+    @staticmethod
+    def dc_model_to_dict_model(dc_model: SpringScoreDC,
+                               ) -> SpringScoreDict:
+        pass
+
+    @staticmethod
+    def hash_model_to_dc_model(hash_model: SpringScoreHash,
+                               ) -> SpringScoreDC:
+        pass
+
+
+class SummerScoreTransformer(BaseRedisTransformer):
+
+    @staticmethod
+    def dc_model_to_dict_model(dc_model: SummerScoreDC,
+                               ) -> SummerScoreDict:
+        pass
+
+    @staticmethod
+    def hash_model_to_dc_model(hash_model: SummerScoreHash,
+                               ) -> SummerScoreDC:
+        pass
+
+
+class FallScoreTransformer(BaseRedisTransformer):
+
+    @staticmethod
+    def dc_model_to_dict_model(dc_model: FallScoreDC,
+                               ) -> FallScoreDict:
+        pass
+
+    @staticmethod
+    def hash_model_to_dc_model(hash_model: FallScoreHash,
+                               ) -> FallScoreDC:
+        pass
+
+
+class WinterScoreTransformer(BaseRedisTransformer):
+
+    @staticmethod
+    def dc_model_to_dict_model(dc_model: WinterScoreDC,
+                               ) -> WinterScoreDict:
+        pass
+
+    @staticmethod
+    def hash_model_to_dc_model(hash_model: WinterScoreHash,
+                               ) -> WinterScoreDC:
+        pass

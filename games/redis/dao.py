@@ -1,19 +1,21 @@
 import random
 from copy import copy
-from typing import MutableSequence, NamedTuple, Any, Iterable
+from typing import MutableSequence, NamedTuple, Iterable, Optional
 
+import services.utils
 from cartographers_back.settings import REDIS
 from rooms.redis.dao import RoomDaoRedis
 from services.redis.transformers_base import DictModel
-from services.redis.redis_dao_base import DaoRedis, DaoFull, DaoBase
-from .dict_models import GameDictPretty, PlayerDictPretty, SeasonName, URL, ScoreSource, ScoreValue
+from services.redis.redis_dao_base import DaoRedis, DaoFull
+from .dict_models import GamePretty, PlayerPretty, SeasonName, URL, ScoreSource, ScoreValue, DiscoveryCardPretty, \
+    SeasonScores
 from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema, \
     TerrainCardKeySchema, ObjectiveCardKeySchema
 from .transformers import MonsterCardTransformer, GameTransformer, SeasonTransformer, MoveTransformer, \
     TerrainCardTransformer, ObjectiveCardTransformer, PlayerTransformer
 from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
-    ObjectiveCardDC, PlayerDC
-from ..models import SeasonCardSQL, ETerrainTypeAll
+    ObjectiveCardDC
+from ..models import SeasonCardSQL, TERRAIN_STR_TO_NUM
 
 
 class InitialCards(NamedTuple):
@@ -34,6 +36,29 @@ class SeasonPretty(NamedTuple):
     url: str
 
 
+class DiscoveryCardDao(DaoFull):
+
+    def get_shape(self,
+                  discovery_card_id: int,
+                  ) -> str:
+        shape = self.get_model_field(
+            model_id=discovery_card_id,
+            field_name='shape',
+            converter=services.utils.decode_bytes,
+        )
+        return shape
+
+    def get_image_url(self,
+                      discovery_card_id: int,
+                      ) -> str:
+        url = self.get_model_field(
+            model_id=discovery_card_id,
+            field_name='image_url',
+            converter=services.utils.decode_bytes,
+        )
+        return url
+
+
 class GameDaoRedis(DaoRedis):
     MONSTER_CARDS_AMOUNT = 4
     SEASONS_IN_GAME = 4
@@ -46,7 +71,7 @@ class GameDaoRedis(DaoRedis):
     # TODO: point of redis models is that I operate with them and  transform it into other forms to send it somewhere
     def start_new_game(self,
                        admin_id: int,
-                       ) -> DictModel:
+                       ) -> None:
         # каждый сезон карты местности перетасовываются, а после хода карта откладывается
         initial_cards = self._get_initial_cards()
 
@@ -54,7 +79,7 @@ class GameDaoRedis(DaoRedis):
 
         room_id, player_ids = self._get_room_and_players(admin_id)
 
-        game = self._create_game_model(
+        self._create_game_model(
             initial_cards=initial_cards,
             season_ids=season_ids,
             player_ids=player_ids,
@@ -62,44 +87,34 @@ class GameDaoRedis(DaoRedis):
             admin_id=admin_id,
         )
 
-        return game
-
     def get_game(self,
                  player_id: int,
-                 ) -> GameDictPretty:
+                 ) -> GamePretty:
         game_id = self._get_game_id_by_player_id(player_id)
         game: GameDC = self.fetch_dc_model(game_id)
 
-        room_name = RoomDaoRedis(REDIS).get_room_name(game.room_id)
-
-        player_dao = PlayerDaoRedis(REDIS)
-        field = player_dao.get_field_pretty(player_id)
-        score = player_dao.get_score(player_id)
-        coins = player_dao.get_coins(player_id)
-        players = player_dao.get_players_pretty(game.player_ids)
-
-        season_dao = SeasonDaoRedis(REDIS)
-        current_season_name = season_dao. \
-            get_season_name(game.current_season_id)
-        seasons = season_dao.get_seasons_pretty()
-
-        discovery_card = self._get_discovery_card_pretty(game_id)
-        move_id = ...
-        is_prev_card_ruins = MoveDaoRedis(REDIS).check_prev_card_is_ruins(move_id)
-        current_season_id = game.current_season_id
-
-        game_pretty = GameDictPretty(
-            id=game_id,
-            room_name=room_name,
-            field=field,
-            seasons=seasons,
-            current_season_name=current_season_name,
-            players=players,
-            discovery_card=discovery_card,
-            is_prev_card_ruins=is_prev_card_ruins,
-            coins=coins,
-            score=score,
-            season_score=season_dao.get_season_score_pretty(current_season_id),
+        game_pretty = GamePretty(
+            id=game.id,
+            room_name=RoomDaoRedis(REDIS).get_room_name(game.room_id),
+            player_field=(player_dao := PlayerDaoRedis(
+                REDIS
+            )).get_field_pretty(player_id),
+            seasons=(season_dao := SeasonDaoRedis(REDIS)).get_seasons_pretty(),
+            current_season_name=season_dao.get_season_name(
+                game.current_season_id
+            ),
+            players=player_dao.get_players_pretty(game.player_ids),
+            discovery_card=(move_dao := MoveDaoRedis(
+                REDIS
+            )).get_discovery_card_pretty(game_id),
+            is_prev_card_ruins=move_dao.fetch_is_prev_card_ruins(
+                season_dao.fetch_move_id(game.current_season_id)
+            ),
+            player_coins=player_dao.get_coins(player_id),
+            player_score=player_dao.get_score(player_id),
+            season_score=season_dao.get_season_score_pretty(
+                game.current_season_id
+            ),
         )
 
         return game_pretty
@@ -117,12 +132,6 @@ class GameDaoRedis(DaoRedis):
         key = self._key_schema.game_id_by_room_id_index_key
         game_id = self._redis.hget(key, room_id)
         return game_id
-
-    def _get_discovery_card_pretty(
-            self,
-            game_id: int,
-    ) -> dict[str, str | MutableSequence[MutableSequence[int]]]:
-        raise NotImplementedError()
 
     # TODO: need to store in redis attr indicating if user has finished his move
 
@@ -193,12 +202,46 @@ class ObjectiveCardDaoRedis(DaoFull):
         return picked_card_ids
 
 
-class TerrainCardDaoRedis(DaoFull):
+class TerrainCardDaoRedis(DiscoveryCardDao):
     TERRAIN_CARD_QUANTITY = 2
 
     _key_schema = TerrainCardKeySchema()
     _transformer = TerrainCardTransformer()
     _model_class = TerrainCardDC
+
+    def get_terrain_pretty(self,
+                           terrain_card_id: int,
+                           ) -> int:
+        terrain = self.get_model_field(
+            model_id=terrain_card_id,
+            field_name='terrain',
+            converter=services.utils.decode_bytes
+        )
+        terrain_pretty = TERRAIN_STR_TO_NUM[terrain]
+        return terrain_pretty
+
+    def get_additional_terrain_pretty(self,
+                                      terrain_card_id: int,
+                                      ) -> Optional[int]:
+        additional_terrain = self.get_model_field(
+            model_id=terrain_card_id,
+            field_name='additional_terrain',
+            converter=services.utils.decode_bytes,
+        )
+        # if no add_terrain, then return None
+        additional_terrain_pretty = (additional_terrain
+                                     and TERRAIN_STR_TO_NUM[additional_terrain])
+        return additional_terrain_pretty
+
+    def get_additional_shape(self,
+                             terrain_card_id: int,
+                             ) -> Optional[str]:
+        additional_shape = self.get_model_field(
+            model_id=terrain_card_id,
+            field_name='additional_shape',
+            converter=services.utils.decode_bytes,
+        )
+        return additional_shape
 
     def pick_terrain_cards(self):
         card_ids_key = self._key_schema.ids_key
@@ -213,6 +256,13 @@ class SeasonDaoRedis(DaoRedis):
     _key_schema = SeasonKeySchema()
     _transformer = SeasonTransformer()
     _model_class = SeasonDC
+
+    def fetch_move_id(self,
+                      season_id: int,
+                      ) -> int:
+        key = self._key_schema.get_hash_key(season_id)
+        move_id = int(self._redis.hget(key, 'current_move_id'))
+        return move_id
 
     def init_seasons(self,
                      initial_cards: InitialCards,
@@ -319,11 +369,10 @@ class SeasonDaoRedis(DaoRedis):
         season_name = self._redis.hget(key, 'season_name').decode('utf-8')
         return season_name
 
-    def get_season_score_pretty(
-            self,
-            season_id: int,
-    ) -> dict[SeasonName, dict[ScoreSource, ScoreValue]]:
-        raise NotImplementedError()
+    def get_season_score_pretty(self,
+                                season_id: int,
+                                ) -> SeasonScores:
+        res
 
     @staticmethod
     def _get_season_cards() -> SeasonCards:
@@ -397,16 +446,14 @@ class MoveDaoRedis(DaoRedis):
     _model_class = MoveDC
 
     def start_new_move(self,
-                       season_card_id: int,
                        is_prev_card_ruins: bool,
                        discovery_card_type: EDiscoveryCardType,
                        discovery_card_id: int,
-                       season_points: int | None = None,
+                       season_points: Optional[int] = None,
                        ):
         id = self._gen_new_id()
         move = self._model_class(
             id=id,
-            season_card_id=season_card_id,
             is_prev_card_ruins=is_prev_card_ruins,
             discovery_card_type=discovery_card_type,
             discovery_card_id=discovery_card_id,
@@ -429,10 +476,141 @@ class MoveDaoRedis(DaoRedis):
         self.insert_dc_model(move)
         return move.id
 
-    def check_prev_card_is_ruins(self,
+    def get_discovery_card_pretty(self,
+                                  move_id: int,
+                                  ) -> DiscoveryCardPretty:
+        discovery_card_pretty = DiscoveryCardPretty(
+            image=self._fetch_discovery_card_image_url(move_id),
+            type=self._fetch_discovery_card_type(move_id),
+            terrain=self._fetch_discovery_card_terrain(move_id),
+            additional_terrain=self._fetch_discovery_card_additional_terrain(move_id),
+            shape=self._fetch_discovery_card_shape(move_id),
+            additional_shape=self._fetch_discovery_card_additional_shape(move_id),
+            is_prev_card_ruins=self._fetch_is_prev_card_ruins(move_id),
+        )
+
+        return discovery_card_pretty
+
+    def _fetch_discovery_card_terrain(self,
+                                      move_id: int,
+                                      ) -> int:
+        type = self._fetch_discovery_card_type(move_id)
+        match type:
+            case 'terrain':
+                terrain = TerrainCardDaoRedis(REDIS).get_terrain_pretty(
+                    terrain_card_id=self._fetch_discovery_card_id(move_id)
+                )
+            case 'monster':
+                terrain = 'monster'
+            case _:
+                raise ValueError('discovery card type must be '
+                                 'either "terrain" or "monster"')
+
+        return TERRAIN_STR_TO_NUM[terrain]
+
+    def _fetch_discovery_card_additional_terrain(self,
+                                                 move_id: int,
+                                                 ) -> Optional[int]:
+        type = self._fetch_discovery_card_type(move_id)
+        if type != 'terrain':
+            raise ValueError('discovery card type must be '
+                             'either "terrain" or "monster"')
+
+        terrain = TerrainCardDaoRedis(REDIS).get_additional_terrain_pretty(
+            terrain_card_id=self._fetch_discovery_card_id(move_id)
+        )
+        return terrain
+
+    def _fetch_discovery_card_id(self,
+                                 move_id: int,
+                                 ) -> int:
+        id = self.get_model_field(
+            model_id=move_id,
+            field_name='discovery_card_id',
+            converter=int,
+        )
+        return id
+
+    def _fetch_discovery_card_shape(self,
+                                    move_id: int,
+                                    ) -> str:
+        type = self._fetch_discovery_card_type(move_id)
+        match type:
+            case 'terrain':
+                shape = TerrainCardDaoRedis(REDIS).get_shape(
+                    self._fetch_discovery_card_id(move_id)
+                )
+            case 'monster':
+                shape = MonsterCardDaoRedis(REDIS).get_shape(
+                    self._fetch_discovery_card_id(move_id)
+                )
+            case _:
+                raise ValueError('type must be either "monster" or "terrain"')
+
+        return shape
+
+    def _fetch_discovery_card_additional_shape(self,
+                                               move_id: int,
+                                               ) -> Optional[str]:
+        type = self._fetch_discovery_card_type(move_id)
+        if type != 'terrain':
+            raise ValueError('must be terrain type')
+
+        additional_shape = TerrainCardDaoRedis(REDIS).get_additional_shape(
+            self._fetch_discovery_card_id(move_id)
+        )
+
+        return additional_shape
+
+    def _fetch_is_prev_card_ruins(self,
+                                  move_id: int,
+                                  ) -> bool:
+        res = self.get_model_field(
+            model_id=move_id,
+            field_name='is_prev_card_ruins',
+            converter=lambda x: bool(int(x)),
+        )
+        return res
+
+    def _fetch_discovery_card_image_url(self,
+                                        move_id: int,
+                                        ) -> URL:
+        type = self._fetch_discovery_card_type(move_id)
+
+        match type:  # why not use Literal for card_type everywhere
+            case 'terrain':
+                discovery_card_dao = TerrainCardDaoRedis(REDIS)
+            case 'monster':
+                discovery_card_dao = MonsterCardDaoRedis(REDIS)
+            case _:
+                raise ValueError('Type of discovery card must be either '
+                                 '"terrain" or "monster"')
+
+        res = discovery_card_dao.get_image_url(
+            self._fetch_discovery_card_id(move_id)
+        )
+
+        return res
+
+    def _fetch_discovery_card_type(self,
+                                   move_id: int,
+                                   ) -> str:
+        type = self.get_model_field(
+            model_id=move_id,
+            field_name='discovery_card_type',
+            converter=services.utils.decode_bytes,
+        )
+        return type
+
+    def fetch_is_prev_card_ruins(self,
                                  move_id: int,
                                  ) -> bool:
-        raise NotImplementedError()
+        is_prev_card_ruins = self.get_model_field(
+            model_id=move_id,
+            field_name='is_prev_card_ruins',
+            converter=lambda x: bool(int(x)),
+        )
+        return is_prev_card_ruins
 
 
 # TODO: it will be nice to use deck-type in the future
@@ -442,7 +620,7 @@ class PlayerDaoRedis(DaoRedis):
 
     def get_players_pretty(self,
                            player_ids: Iterable[int],
-                           ) -> list[PlayerDictPretty]:
+                           ) -> list[PlayerPretty]:
         players = [
             self._get_player_pretty(player_id)
             for player_id in player_ids
@@ -451,21 +629,33 @@ class PlayerDaoRedis(DaoRedis):
 
     def _get_player_pretty(self,
                            player_id: int,
-                           ) -> PlayerDictPretty:
-        player_name = self.get_name(player_id)
-        player_score = self.get_score(player_id)
-        return PlayerDictPretty(
+                           ) -> PlayerPretty:
+        return PlayerPretty(
             id=player_id,
-            name=player_name,
-            score=player_score
+            name=self.get_name(player_id),
+            score=self.get_score(player_id)
         )
 
     def get_field_pretty(self,
                          player_id: int,
                          ) -> list[list[int]]:
-        key = self._key_schema.get_hash_key(player_id)
-        field_raw = self._redis.hget(key, 'field')
-        field_pretty = ...
+        field_pretty = self.get_model_field(
+            model_id=player_id,
+            field_name='field',
+            converter=lambda x: self._make_field_pretty(
+                services.utils.decode_field(x)
+            ),
+        )
+        return field_pretty
+
+    @staticmethod
+    def _make_field_pretty(field: list[list[str]],
+                           ) -> list[list[int]]:
+        field_pretty = [
+            [TERRAIN_STR_TO_NUM[cell] for cell in row]
+            for row in field
+        ]
+        return field_pretty
 
     def get_score(self,
                   player_id: int,
@@ -489,7 +679,27 @@ class PlayerDaoRedis(DaoRedis):
         return name
 
 
-class MonsterCardDaoRedis(DaoFull):
+class SeasonsScore(DaoRedis):
+    _key_schema = SeasonsScoreKeySchema()
+
+
+class SpringScore(DaoRedis):
+    ...
+
+
+class SummerScore(DaoRedis):
+    ...
+
+
+class FallScore(DaoRedis):
+    ...
+
+
+class WinterScore(DaoRedis):
+    ...
+
+
+class MonsterCardDaoRedis(DiscoveryCardDao):
     _key_schema = MonsterCardKeySchema()
     _transformer = MonsterCardTransformer()
     MONSTER_CARD_QUANTITY = 4

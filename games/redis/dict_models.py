@@ -1,18 +1,14 @@
-from typing import MutableSequence, Optional, TypedDict, TypeAlias, Literal
+from typing import MutableSequence, TypedDict, TypeAlias, Literal, Optional
 
-from games.models import ETerrainCardType, ETerrainTypeLimited, ETerrainTypeAll, EExchangeOrder
-from games.redis.dc_models import ESeasonName, EDiscoveryCardType
 from services.redis.models_base import DictModel
 
 SeasonName: TypeAlias = str
 URL: TypeAlias = str
 UserID: TypeAlias = int
-Score: TypeAlias = int
 ScoreSource: TypeAlias = str
 ScoreValue: TypeAlias = int
 
 
-# TODO: I can't put None into dict for redis
 class GameDict(DictModel):
     room_id: int
     admin_id: int
@@ -58,10 +54,51 @@ class ObjectiveCardDict(DictModel):
 
 class PlayerDict(DictModel):
     user_id: int
-    field: str  # TODO: fill in
+    field: str
     left_player_id: int
     right_player_id: int
+    score_id: int
+
+
+class PlayerPretty(TypedDict):
+    id: int
+    name: str
     score: int
+    # image: URL - for the future
+
+
+class SeasonsScoreDict(DictModel):
+    spring_score_id: int
+    summer_score_id: int
+    fall_score_id: int
+    winter_score_id: int
+    total: int
+
+
+class SeasonScoreDict(DictModel):
+    from_coins: int
+    monsters: int
+    total: int
+
+
+class SpringScoreDict(SeasonScoreDict):
+    A: int
+    B: int
+
+
+class SummerScoreDict(SeasonScoreDict):
+    B: int
+    C: int
+
+
+class FallScoreDict(SeasonScoreDict):
+    C: int
+    D: int
+
+
+class WinterScoreDict(SeasonScoreDict):
+    D: int
+    A: int
 
 
 class MonsterCardDict(DictModel):
@@ -73,23 +110,32 @@ class MonsterCardDict(DictModel):
 
 # create dc as well and the transformers. or it's not necessary
 # create a dict str -> int for Hablak
-class GameDictPretty(TypedDict):
+class GamePretty(TypedDict):
     id: int
     room_name: str
     player_field: MutableSequence[MutableSequence[int]]
     seasons: dict[SeasonName, URL]
     current_season_name: str
-    players: MutableSequence['PlayerDictPretty']
-    discovery_card: dict[str, str | MutableSequence[MutableSequence[int]]]
+    players: MutableSequence['PlayerPretty']
+    discovery_card: 'DiscoveryCardPretty'
     is_prev_card_ruins: bool
     player_coins: int
     player_score: int
     season_score: dict[SeasonName, dict[ScoreSource, ScoreValue]]
 
 
-class PlayerDictPretty(TypedDict):
-    id: int
-    name: str
-    score: int
-    # image: URL - for the future
+class DiscoveryCardPretty(TypedDict):
+    image: str
+    type: str
+    terrain: int
+    other_terrain: Optional[int]
+    shape: 'ShapePretty'
+    other_shape: Optional['ShapePretty']
+    is_prev_card_ruins: bool
+
+
+class ShapePretty(TypedDict):
+    gives_coin: bool
+    shape_value: MutableSequence[MutableSequence[Literal[1, 0]]]
+
 

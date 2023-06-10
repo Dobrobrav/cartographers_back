@@ -1,12 +1,11 @@
 from django.db import models
-from typing_extensions import Self
 
 
 class ETerrainTypeLimited(models.TextChoices):
-    WATER = 'water', 3
-    FIELD = 'field', 4
-    FOREST = 'forest', 1
-    VILLAGE = 'village', 2
+    WATER = 'water'
+    FIELD = 'field'
+    FOREST = 'forest'
+    VILLAGE = 'village'
 
 
 class ETerrainCardType(models.TextChoices):
@@ -16,14 +15,26 @@ class ETerrainCardType(models.TextChoices):
 
 
 class ETerrainTypeAll(models.Choices):
-    WATER = 'water', 3
-    FIELD = 'field', 4
-    FOREST = 'forest', 1
-    VILLAGE = 'village', 2
-    MONSTER = 'monster', 5
-    MOUNTAIN = 'mountain', 6
-    RUINS = 'ruins', 7
-    BLANK = 'blank', 0
+    WATER = 'water'
+    FIELD = 'field'
+    FOREST = 'forest'
+    VILLAGE = 'village'
+    MONSTER = 'monster'
+    MOUNTAIN = 'mountain'
+    RUINS = 'ruins'
+    BLANK = 'blank'
+
+
+TERRAIN_STR_TO_NUM: dict[str, int] = {
+    'water': 3,
+    'field': 4,
+    'forest': 1,
+    'village': 2,
+    'monster': 5,
+    'mountain': 6,
+    'ruins': 7,
+    'blank': 0,
+}
 
 
 class EObjectiveCardName(models.TextChoices):

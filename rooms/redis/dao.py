@@ -1,16 +1,14 @@
 from typing import Any, Optional
 
-from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.hashers import make_password
 from djoser.conf import User
-from services.redis.dict_models import UserDict
 from services.redis.transformers import UserTransformer
 from services.redis.transformers_base import DictModel
 from services.redis.models_base import DataClassModel
 from .dict_models import RoomDict, RoomDictForPage
 from .key_schemas import RoomKeySchema
 from .transformers import RoomTransformer
-from services.redis.redis_dao_base import DaoRedis, DaoFull
+from services.redis.redis_dao_base import DaoFull
 from .dc_models import RoomDC
 
 

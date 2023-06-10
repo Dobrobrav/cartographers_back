@@ -14,7 +14,8 @@ from rooms.redis.dao import RoomDaoRedis
 
 class RoomsAPITestCase(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='test_user', password='test_password')
+        self.user = User.objects.create_user(username='test_user',
+                                             password='test_password')
         self.token = Token.objects.create(user=self.user)
         self.api_authentication()
         redis_patcher = patch('rooms.views.REDIS', fakeredis.FakeRedis)

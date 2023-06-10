@@ -1,5 +1,3 @@
-from rest_framework.utils import json
-
 from cartographers_back.settings import REDIS
 from games.models import DiscoveryCardSQL, MonsterCardSQL, ObjectiveCardSQL
 from redis import Redis

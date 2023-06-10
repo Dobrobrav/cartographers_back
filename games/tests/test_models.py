@@ -13,4 +13,3 @@ class ShapeSQLTest(TestCase):
     def test_creation(self) -> None:
         shape = self.create(shape_str='111 011 001', gives_coin=True)
         self.assertTrue(isinstance(shape, ShapeSQL))
-

@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import MutableSequence, Optional
 
@@ -73,6 +73,46 @@ class PlayerDC(DataClassModel):
     left_player_id: int
     right_player_id: int
     score: int
+
+
+@dataclass
+class SeasonsScoreDC(DataClassModel):
+    spring_score_id: int
+    summer_score_id: int
+    fall_score_id: int
+    winter_score_id: int
+    total: int
+
+
+@dataclass
+class SeasonScoreDC(DataClassModel):
+    from_coins: int
+    monsters: int
+    total: int
+
+
+@dataclass
+class SpringScoreDC(SeasonScoreDC):
+    A: int
+    B: int
+
+
+@dataclass
+class SummerScoreDC(SeasonScoreDC):
+    B: int
+    C: int
+
+
+@dataclass
+class FallScoreDC(SeasonScoreDC):
+    C: int
+    D: int
+
+
+@dataclass
+class WinterScoreDC(SeasonScoreDC):
+    D: int
+    A: int
 
 
 @dataclass

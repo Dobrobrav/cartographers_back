@@ -17,3 +17,4 @@ class RoomDC(DataClassModel):
 @dataclass
 class UserDC(DataClassModel):
     name: str
+    is_ready: bool

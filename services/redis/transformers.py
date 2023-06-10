@@ -14,6 +14,7 @@ class UserTransformer(BaseFullTransformer):
         user_dc = UserDC(
             id=sql_model.pk,
             name=sql_model.username,
+            is_ready=False,
         )
         return user_dc
 
@@ -23,14 +24,16 @@ class UserTransformer(BaseFullTransformer):
         user_dict = UserDict(
             id=dc_model.id,
             name=dc_model.name,
+            is_ready=int(dc_model.is_ready)
         )
         return user_dict
 
     @staticmethod
-    def hash_model_to_dc_model(a: UserHash,
+    def hash_model_to_dc_model(hash_model: UserHash,
                                ) -> UserDC:
         user_dc = UserDC(
-            id=int(a[b'id']),
-            name=a[b'id'].decode('utf-8'),
+            id=int(hash_model[b'id']),
+            name=hash_model[b'id'].decode('utf-8'),
+            is_ready=bool(int(hash_model[b'is_ready']))
         )
         return user_dc

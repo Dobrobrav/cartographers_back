@@ -23,7 +23,7 @@ class TerrainCardKeySchema(IKeySchema):
 
     @property
     def ids_key(self) -> str:
-        return f"terrain-cards:ids"
+        return "terrain-cards:ids"
 
 
 class ObjectiveCardKeySchema(IKeySchema):
@@ -65,6 +65,61 @@ class PlayerKeySchema(IKeySchema):
     @property
     def ids_key(self) -> str:
         return "players:ids"
+
+
+class SeasonsScoreKeySchema(IKeySchema):
+
+    @staticmethod
+    def get_hash_key(id: int) -> str:
+        return f'seasons_scores:{id}'
+
+    @property
+    def ids_key(self) -> str:
+        return 'seasons_scores:ids'
+
+
+class SpringScoreKeySchema(IKeySchema):
+
+    @staticmethod
+    def get_hash_key(id: int) -> str:
+        return f'spring_scores:{id}'
+
+    @property
+    def ids_key(self) -> str:
+        return f'spring_scores:ids'
+
+
+class SummerScoreKeySchema(IKeySchema):
+
+    @staticmethod
+    def get_hash_key(id: int) -> str:
+        return f'summer_scores:{id}'
+
+    @property
+    def ids_key(self) -> str:
+        return f'summer_scores:ids'
+
+
+class FallScoreKeySchema(IKeySchema):
+
+    @staticmethod
+    def get_hash_key(id: int) -> str:
+        return f'fall_scores:{id}'
+
+    @property
+    def ids_key(self) -> str:
+        return f'fall_scores:ids'
+
+
+class WinterScoreKeySchema(IKeySchema):
+
+    @staticmethod
+    def get_hash_key(id: int) -> str:
+        return f'winter_scores:{id}'
+
+    @property
+    def ids_key(self) -> str:
+        return f'winter_scores:ids'
 
 
 class MonsterCardKeySchema(IKeySchema):

@@ -1,6 +1,8 @@
 from typing import MutableSequence
 
+from django_redis.serializers import json
 from rest_framework.authtoken.models import Token
+from rest_framework.utils import json
 
 from games.models import ETerrainTypeAll
 
@@ -24,16 +26,18 @@ def bytes_to_list(bts: bytes,
     return ids
 
 
-def check_user_is_admin(user_id: int,
-                        ) -> None:
-    raise NotImplementedError()  # TODO: implement
-
-
 def dump_field(field: MutableSequence[MutableSequence[ETerrainTypeAll]],
                ) -> str:
     raise NotImplementedError  # TODO: implement
 
 
-def load_field(field: bytes,
-               ) -> MutableSequence[MutableSequence[ETerrainTypeAll]]:
-    raise NotImplementedError  # TODO: implement
+def decode_field(field: bytes,
+                 ) -> list[list[str]]:
+    field = decode_bytes(field)
+    res = json.loads(field)
+    return res
+
+
+def decode_bytes(bytes_: bytes,
+                 ) -> str:
+    return bytes_.decode('utf-8')

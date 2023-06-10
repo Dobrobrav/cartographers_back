@@ -1,12 +1,14 @@
-from typing import Iterable, Callable, Generator
+from typing import Iterable, Callable, Generator, Any, TypeVar, Optional
 
 from django.db.models import Model
 from redis.client import Redis
 
 from services.redis.key_schemas_base import IKeySchema
 
-from .transformers_base import BaseRedisTransformer, DictModel, HashModel, BaseFullTransformer, BaseSQLTransformer
+from .transformers_base import BaseRedisTransformer, DictModel, HashModel, BaseFullTransformer
 from .models_base import DataClassModel
+
+T = TypeVar('T')
 
 
 class DaoBase:
@@ -23,6 +25,16 @@ class DaoBase:
         ids_key = self._key_schema.ids_key
         ids = (int(id) for id in self._redis.get(ids_key))
         return ids
+
+    def get_model_field(self,
+                        model_id: int,
+                        field_name: str,
+                        converter: Callable[[bytes], T],
+                        ) -> Optional[T]:
+        key = self._key_schema.get_hash_key(model_id)
+        response = self._redis.hget(key, field_name)
+        res = response and converter(response)
+        return res
 
     def _fetch_hash_models(self,
                            ids: Iterable[int],
@@ -121,8 +133,7 @@ class DaoRedis(DaoBase):
                        model_id: int,
                        ) -> DataClassModel:
         hash_model = self._fetch_hash_model(model_id)
-        redis_model = self._transformer. \
-            hash_model_to_dc_model(hash_model)
+        redis_model = self._transformer.hash_model_to_dc_model(hash_model)
         return redis_model
 
     def insert_dc_models(self,
