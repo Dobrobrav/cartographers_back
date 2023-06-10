@@ -36,6 +36,15 @@ class DaoBase:
         res = response and converter(response)
         return res
 
+    def set_model_field(self,
+                        model_id: int,
+                        field_name: str,
+                        value: T,
+                        converter: Callable[[T], Any],
+                        ) -> None:
+        key = self._key_schema.get_hash_key(model_id)
+        self._redis.hset(key, field_name, converter(value))
+
     def _fetch_hash_models(self,
                            ids: Iterable[int],
                            ) -> list[HashModel]:
@@ -105,6 +114,12 @@ class DaoBase:
     def _get_ids(self) -> set[int]:
         ids_key = self._key_schema.ids_key
         ids = {int(id) for id in self._redis.smembers(ids_key)}
+        return ids
+
+    def _gen_new_ids(self,
+                     quantity: int,
+                     ) -> list[int]:
+        ids = [self._gen_new_id() for _ in range(quantity)]
         return ids
 
     @staticmethod

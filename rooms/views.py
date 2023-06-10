@@ -87,7 +87,12 @@ class Delete(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class KickUser(APIView):
+class User(APIView):
+
+    def put(self,
+            request: Request,
+            ) -> Response:
+
     @staticmethod
     def delete(request: Request,
                ) -> Response:
@@ -101,7 +106,7 @@ class KickUser(APIView):
 
         room_dao = RoomDaoRedis(REDIS)
         user = room_dao.kick_user(
-            admin_id=kicker_id, kick_user_id=kick_user_id
+            kicker_id=kicker_id, kick_user_id=kick_user_id
         )
 
         return Response(user, status=status.HTTP_200_OK)

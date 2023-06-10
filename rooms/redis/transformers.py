@@ -1,9 +1,11 @@
+import json
 from typing import Iterable
 
 from rooms.redis.dc_models import RoomDC
 from rooms.redis.dict_models import RoomDict, RoomDictForPage
 from rooms.redis.hash_models import RoomHash
 from services.redis.transformers_base import BaseRedisTransformer
+from services.utils import decode_bytes
 
 
 class RoomTransformer(BaseRedisTransformer):
@@ -17,10 +19,7 @@ class RoomTransformer(BaseRedisTransformer):
             password=dc_model.password or '',
             max_users=dc_model.max_users,
             admin_id=dc_model.admin_id,
-            user_ids=' '.join(
-                str(user_id)
-                for user_id in dc_model.user_ids
-            ),
+            user_ids=json.dumps(dc_model.user_ids),
             is_game_started=int(dc_model.is_game_started),
         )
         return room_dict
@@ -34,10 +33,7 @@ class RoomTransformer(BaseRedisTransformer):
             password=hash_model[b'password'].decode('utf-8') or None,
             max_users=int(hash_model[b'max_users']),
             admin_id=int(hash_model[b'admin_id']),
-            user_ids=[
-                int(user_id)
-                for user_id in hash_model[b'user_ids'].split()
-            ],
+            user_ids=json.loads(decode_bytes(hash_model[b'user_ids'])),
             is_game_started=bool(int(hash_model[b'is_game_started'])),
         )
 

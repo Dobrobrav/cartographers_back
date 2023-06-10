@@ -1,7 +1,10 @@
+import json
 from typing import Any, Optional
 
 from django.contrib.auth.hashers import make_password
 from djoser.conf import User
+
+import services.utils
 from services.redis.transformers import UserTransformer
 from services.redis.transformers_base import DictModel
 from services.redis.models_base import DataClassModel
@@ -36,7 +39,6 @@ class RoomDaoRedis(DaoFull):
                      ) -> list[int]:
         room_id = self.get_room_id_by_user_id(user_id)
         room = self.fetch_dc_model(room_id=room_id)
-        players =
         player_ids = room.user_ids
         return player_ids
 
@@ -158,10 +160,11 @@ class RoomDaoRedis(DaoFull):
         self._redis.hset(key, user_id, room_id)
 
     def kick_user(self,
-                  admin_id: int,
+                  kicker_id: int,
                   kick_user_id: int,
                   ) -> DictModel:
-        ...
+
+        pass
 
     # TODO: implement this
 
@@ -203,6 +206,17 @@ class RoomDaoRedis(DaoFull):
                  user_id: int,
                  ) -> None:
         # TODO: add NO more than max_users
-        room = self.fetch_dc_model(room_id)
-        room.user_ids.append(user_id)
-        self.insert_dc_model(room)
+        # add value to user_ids str -> fetch it change it set it
+        user_ids = self.get_model_field(
+            model_id=room_id,
+            field_name='user_ids',
+            converter=lambda x: json.loads(services.utils.decode_bytes(x)),
+        )
+        user_ids.append(user_id)
+
+        self.set_model_field(
+            model_id=room_id,
+            field_name='user_ids',
+            value=user_ids,
+            converter=json.dumps,
+        )
