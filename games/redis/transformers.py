@@ -13,6 +13,9 @@ from services.redis.transformers_base import BaseRedisTransformer, BaseSQLTransf
 from services.redis.models_base import get_enum_by_value, HashModel, DataClassModel, DictModel
 
 
+# TODO: use Converter instead of Transformer
+
+
 class GameTransformer(BaseRedisTransformer):
 
     @staticmethod
@@ -161,7 +164,7 @@ class PlayerTransformer(BaseRedisTransformer):
             field=utils.dump_field(dc_model.field),
             left_player_id=dc_model.left_player_id,
             right_player_id=dc_model.right_player_id,
-            score=dc_model.score,
+            score=dc_model.seasons_score_id,
         )
         return player_dict
 
@@ -174,7 +177,7 @@ class PlayerTransformer(BaseRedisTransformer):
             field=utils.decode_field(a[b'field']),
             left_player_id=int(a[b'left_player_id']),
             right_player_id=int(a[b'right_player_id']),
-            score=int(a[b'score']),
+            seasons_score_id=int(a[b'score']),
         )
         return player_dc
 
@@ -393,12 +396,28 @@ class SeasonsScoreTransformer(BaseRedisTransformer):
     @staticmethod
     def dc_model_to_dict_model(dc_model: SeasonsScoreDC,
                                ) -> SeasonsScoreDict:
-        pass
+        season_score_dict = SeasonsScoreDict(
+            id=dc_model.id,
+            spring_score_id=dc_model.spring_score_id,
+            summer_score_id=dc_model.summer_score_id,
+            fall_score_id=dc_model.fall_score_id,
+            winter_score_id=dc_model.winter_score_id,
+            total=dc_model.total,
+        )
+        return season_score_dict
 
     @staticmethod
     def hash_model_to_dc_model(hash_model: SeasonsScoreHash,
                                ) -> SeasonsScoreDC:
-        pass
+        season_score_dc = SeasonsScoreDC(
+            id=int(hash_model[b'id']),
+            spring_score_id=int(hash_model[b'spring_score_id']),
+            summer_score_id=int(hash_model[b'summer_score_id']),
+            fall_score_id=int(hash_model[b'fall_score_id']),
+            winter_score_id=int(hash_model[b'winter_score_id']),
+            total=int(hash_model[b'total'])
+        )
+        return season_score_dc
 
 
 class SpringScoreTransformer(BaseRedisTransformer):
@@ -406,12 +425,28 @@ class SpringScoreTransformer(BaseRedisTransformer):
     @staticmethod
     def dc_model_to_dict_model(dc_model: SpringScoreDC,
                                ) -> SpringScoreDict:
-        pass
+        res = SpringScoreDict(
+            id=dc_model.id,
+            from_coins=dc_model.from_coins,
+            monsters=dc_model.monsters,
+            total=dc_model.total,
+            A=dc_model.A,
+            B=dc_model.B,
+        )
+        return res
 
     @staticmethod
     def hash_model_to_dc_model(hash_model: SpringScoreHash,
                                ) -> SpringScoreDC:
-        pass
+        res = SpringScoreDC(
+            id=int(hash_model[b'id']),
+            from_coins=int(hash_model[b'from_coins']),
+            monsters=int(hash_model[b'monsters']),
+            total=int(hash_model[b'total']),
+            A=int(hash_model[b'A']),
+            B=int(hash_model[b'B']),
+        )
+        return res
 
 
 class SummerScoreTransformer(BaseRedisTransformer):
@@ -419,12 +454,28 @@ class SummerScoreTransformer(BaseRedisTransformer):
     @staticmethod
     def dc_model_to_dict_model(dc_model: SummerScoreDC,
                                ) -> SummerScoreDict:
-        pass
+        res = SummerScoreDict(
+            id=dc_model.id,
+            from_coins=dc_model.from_coins,
+            monsters=dc_model.monsters,
+            total=dc_model.total,
+            B=dc_model.B,
+            C=dc_model.C,
+        )
+        return res
 
     @staticmethod
     def hash_model_to_dc_model(hash_model: SummerScoreHash,
                                ) -> SummerScoreDC:
-        pass
+        res = SummerScoreDC(
+            id=int(hash_model[b'id']),
+            from_coins=int(hash_model[b'from_coins']),
+            monsters=int(hash_model[b'monsters']),
+            total=int(hash_model[b'total']),
+            B=int(hash_model[b'B']),
+            C=int(hash_model[b'C']),
+        )
+        return res
 
 
 class FallScoreTransformer(BaseRedisTransformer):
@@ -432,12 +483,28 @@ class FallScoreTransformer(BaseRedisTransformer):
     @staticmethod
     def dc_model_to_dict_model(dc_model: FallScoreDC,
                                ) -> FallScoreDict:
-        pass
+        res = FallScoreDict(
+            id=dc_model.id,
+            from_coins=dc_model.from_coins,
+            monsters=dc_model.monsters,
+            total=dc_model.total,
+            C=dc_model.C,
+            D=dc_model.D,
+        )
+        return res
 
     @staticmethod
     def hash_model_to_dc_model(hash_model: FallScoreHash,
                                ) -> FallScoreDC:
-        pass
+        res = FallScoreDC(
+            id=int(hash_model[b'id']),
+            from_coins=int(hash_model[b'from_coins']),
+            monsters=int(hash_model[b'monsters']),
+            total=int(hash_model[b'total']),
+            C=int(hash_model[b'C']),
+            D=int(hash_model[b'D']),
+        )
+        return res
 
 
 class WinterScoreTransformer(BaseRedisTransformer):
@@ -445,9 +512,25 @@ class WinterScoreTransformer(BaseRedisTransformer):
     @staticmethod
     def dc_model_to_dict_model(dc_model: WinterScoreDC,
                                ) -> WinterScoreDict:
-        pass
+        res = WinterScoreDict(
+            id=dc_model.id,
+            from_coins=dc_model.from_coins,
+            monsters=dc_model.monsters,
+            total=dc_model.total,
+            D=dc_model.D,
+            A=dc_model.A,
+        )
+        return res
 
     @staticmethod
     def hash_model_to_dc_model(hash_model: WinterScoreHash,
                                ) -> WinterScoreDC:
-        pass
+        res = WinterScoreDC(
+            id=int(hash_model[b'id']),
+            from_coins=int(hash_model[b'from_coins']),
+            monsters=int(hash_model[b'monsters']),
+            total=int(hash_model[b'total']),
+            D=int(hash_model[b'D']),
+            A=int(hash_model[b'A']),
+        )
+        return res

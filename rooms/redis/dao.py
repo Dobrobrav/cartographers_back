@@ -31,11 +31,12 @@ class RoomDaoRedis(DaoFull):
         if user_id != admin_id:
             raise Exception('Game can only be started by its admin')
 
-    def get_player_ids(self,
-                       user_id: int,
-                       ) -> list[int]:
+    def get_user_ids(self,
+                     user_id: int,
+                     ) -> list[int]:
         room_id = self.get_room_id_by_user_id(user_id)
         room = self.fetch_dc_model(room_id=room_id)
+        players =
         player_ids = room.user_ids
         return player_ids
 

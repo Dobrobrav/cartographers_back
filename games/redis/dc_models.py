@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import MutableSequence, Optional
+from typing import MutableSequence, Optional, TypeAlias
 
 from games.models import ETerrainTypeAll, ETerrainTypeLimited, ETerrainCardType, EExchangeOrder
 from services.redis.models_base import DataClassModel
+
+Field: TypeAlias = MutableSequence[MutableSequence[ETerrainTypeAll]]
 
 
 class EDiscoveryCardType(str, Enum):
@@ -69,10 +71,10 @@ class ObjectiveCardDC(DataClassModel):
 @dataclass
 class PlayerDC(DataClassModel):
     user_id: int
-    field: MutableSequence[MutableSequence[ETerrainTypeAll]]
+    field: Field
     left_player_id: int
     right_player_id: int
-    score: int
+    seasons_score_id: int
 
 
 @dataclass

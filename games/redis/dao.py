@@ -1,6 +1,6 @@
 import random
 from copy import copy
-from typing import MutableSequence, NamedTuple, Iterable, Optional
+from typing import MutableSequence, NamedTuple, Iterable, Optional, TypeAlias, Sequence
 
 import services.utils
 from cartographers_back.settings import REDIS
@@ -8,13 +8,14 @@ from rooms.redis.dao import RoomDaoRedis
 from services.redis.transformers_base import DictModel
 from services.redis.redis_dao_base import DaoRedis, DaoFull
 from .dict_models import GamePretty, PlayerPretty, SeasonName, URL, ScoreSource, ScoreValue, DiscoveryCardPretty, \
-    SeasonScores
 from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema, \
-    TerrainCardKeySchema, ObjectiveCardKeySchema
+    TerrainCardKeySchema, ObjectiveCardKeySchema, SeasonsScoreKeySchema, SpringScoreKeySchema, SummerScoreKeySchema, \
+    FallScoreKeySchema, WinterScoreKeySchema
 from .transformers import MonsterCardTransformer, GameTransformer, SeasonTransformer, MoveTransformer, \
-    TerrainCardTransformer, ObjectiveCardTransformer, PlayerTransformer
+    TerrainCardTransformer, ObjectiveCardTransformer, PlayerTransformer, SeasonsScoreTransformer, \
+    SpringScoreTransformer, SummerScoreTransformer, FallScoreTransformer, WinterScoreTransformer
 from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
-    ObjectiveCardDC
+    ObjectiveCardDC, PlayerDC, Field
 from ..models import SeasonCardSQL, TERRAIN_STR_TO_NUM
 
 
@@ -34,6 +35,14 @@ class SeasonCards(NamedTuple):
 class SeasonPretty(NamedTuple):
     name: str
     url: str
+
+
+class PlayerNeighbors(NamedTuple):
+    left_player_id: int
+    right_player_id: int
+
+
+PlayerID: TypeAlias = int
 
 
 class DiscoveryCardDao(DaoFull):
@@ -176,14 +185,18 @@ class GameDaoRedis(DaoRedis):
 
         return game
 
-    @staticmethod
-    def _get_room_and_players(admin_id: int,
+    def _get_room_and_players(self,
+                              admin_id: int,
                               ) -> tuple[int, list[int]]:
-        room_dao = RoomDaoRedis(REDIS)
-        player_ids = room_dao.get_player_ids(admin_id)
+        user_ids = (room_dao := RoomDaoRedis(REDIS)).get_user_ids(admin_id)
+        field = self._gen_field()
+        player_ids = PlayerDaoRedis(REDIS).init_players(user_ids, field)
         room_id = room_dao.get_room_id_by_user_id(admin_id)
 
         return room_id, player_ids
+
+    def _gen_field(self) -> Field:
+        raise NotImplementedError()
 
 
 class ObjectiveCardDaoRedis(DaoFull):
@@ -617,6 +630,7 @@ class MoveDaoRedis(DaoRedis):
 class PlayerDaoRedis(DaoRedis):
     _key_schema = PlayerKeySchema()
     _transformer = PlayerTransformer()
+    _model_class = PlayerDC
 
     def get_players_pretty(self,
                            player_ids: Iterable[int],
@@ -626,6 +640,62 @@ class PlayerDaoRedis(DaoRedis):
             for player_id in player_ids
         ]
         return players
+
+    def init_players(self,
+                     user_ids: Sequence[int],
+                     field: Field,
+                     ) -> list[int]:
+        neighbours = self._get_neighbors(user_ids)
+        player_ids = [
+            self._init_player(neighbours[user_id], field)
+            for user_id in user_ids
+        ]
+        return player_ids
+
+    # need to somehow insert left and right players into players
+    def _get_neighbors(self,
+                       user_ids: Sequence[int],
+                       ) -> dict[PlayerID, PlayerNeighbors]:
+        dictionary = {}
+
+        for i, user_id in enumerate(user_ids):
+            right_player_id_index = (0 if self._is_last_index(user_ids, i)
+                                     else i + 1)
+
+            dictionary[user_id] = PlayerNeighbors(
+                left_player_id=user_ids[i - 1],
+                right_player_id=user_ids[right_player_id_index]
+            )
+
+        return dictionary
+
+    @staticmethod
+    def _is_last_index(seq: Sequence,
+                       index: int,
+                       ) -> bool:
+        return index == len(seq) - 1
+
+    def _init_player(self,
+                     neighbors: PlayerNeighbors,
+                     field: Field
+                     ) -> int:
+        player_dc = self._create_model(player_data)
+        self.insert_dc_model(player_dc)
+        return player_dc.id
+
+    def _create_model(self,
+                      user_id: int,
+                      field: Field,
+                      left_player_id: int,
+                      right_player_id: int,
+                      ) -> PlayerDC:
+        player_dc = self._model_class(
+            id=self._gen_new_id(),
+            user_id=user_id,
+            field=field,
+            left_player_id=
+        )
+        return player_dc
 
     def _get_player_pretty(self,
                            player_id: int,
@@ -681,22 +751,27 @@ class PlayerDaoRedis(DaoRedis):
 
 class SeasonsScore(DaoRedis):
     _key_schema = SeasonsScoreKeySchema()
+    _transformer = SeasonsScoreTransformer()
 
 
 class SpringScore(DaoRedis):
-    ...
+    _key_schema = SpringScoreKeySchema()
+    _transformer = SpringScoreTransformer()
 
 
 class SummerScore(DaoRedis):
-    ...
+    _key_schema = SummerScoreKeySchema()
+    _transformer = SummerScoreTransformer()
 
 
 class FallScore(DaoRedis):
-    ...
+    _key_schema = FallScoreKeySchema()
+    _transformer = FallScoreTransformer()
 
 
 class WinterScore(DaoRedis):
-    ...
+    _key_schema = WinterScoreKeySchema()
+    _transformer = WinterScoreTransformer()
 
 
 class MonsterCardDaoRedis(DiscoveryCardDao):
