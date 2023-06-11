@@ -1,12 +1,13 @@
 from games.models import MonsterCardSQL, DiscoveryCardSQL, ETerrainCardType, ETerrainTypeLimited, ObjectiveCardSQL, \
     EExchangeOrder, SeasonCardSQL
 from games.redis.dc_models import MonsterCardDC, GameDC, TerrainCardDC, ObjectiveCardDC, MoveDC, PlayerDC, SeasonDC, \
-    ESeasonName, SeasonCardDC, EDiscoveryCardType, SpringScoreDC, SummerScoreDC, FallScoreDC, WinterScoreDC, \
-    SeasonsScoreDC
+    ESeasonName, SeasonCardDC, EDiscoveryCardType, SeasonsScoreDC, SeasonScoreDC
 from games.redis.dict_models import SeasonDict, MoveDict, PlayerDict, MonsterCardDict, GameDict, TerrainCardDict, \
-    ObjectiveCardDict, SpringScoreDict, SummerScoreDict, FallScoreDict, WinterScoreDict, SeasonsScoreDict
+    ObjectiveCardDict, SeasonsScoreDict, \
+    SeasonScoreDict
 from games.redis.hash_models import GameHash, SeasonHash, MonsterCardHash, TerrainCardHash, MoveHash, PlayerHash, \
-    ObjectiveCardHash, FallScoreHash, WinterScoreHash, SummerScoreHash, SpringScoreHash, SeasonsScoreHash
+    ObjectiveCardHash, SeasonsScoreHash, \
+    SeasonScoreHash
 from services import utils
 from services.redis.transformers_base import BaseRedisTransformer, BaseSQLTransformer, \
     BaseFullTransformer
@@ -164,7 +165,7 @@ class PlayerTransformer(BaseRedisTransformer):
             field=utils.dump_field(dc_model.field),
             left_player_id=dc_model.left_player_id,
             right_player_id=dc_model.right_player_id,
-            score=dc_model.seasons_score_id,
+            seasons_score_id=dc_model.seasons_score_id,
         )
         return player_dict
 
@@ -402,6 +403,7 @@ class SeasonsScoreTransformer(BaseRedisTransformer):
             summer_score_id=dc_model.summer_score_id,
             fall_score_id=dc_model.fall_score_id,
             winter_score_id=dc_model.winter_score_id,
+            coins=dc_model.coins,
             total=dc_model.total,
         )
         return season_score_dict
@@ -415,122 +417,36 @@ class SeasonsScoreTransformer(BaseRedisTransformer):
             summer_score_id=int(hash_model[b'summer_score_id']),
             fall_score_id=int(hash_model[b'fall_score_id']),
             winter_score_id=int(hash_model[b'winter_score_id']),
-            total=int(hash_model[b'total'])
+            coins=int(hash_model[b'coins']),
+            total=int(hash_model[b'total']),
         )
         return season_score_dc
 
 
-class SpringScoreTransformer(BaseRedisTransformer):
+class SeasonScoreTransformer(BaseRedisTransformer):
 
     @staticmethod
-    def dc_model_to_dict_model(dc_model: SpringScoreDC,
-                               ) -> SpringScoreDict:
-        res = SpringScoreDict(
+    def dc_model_to_dict_model(dc_model: SeasonScoreDC,
+                               ) -> SeasonScoreDict:
+        res = SeasonScoreDict(
             id=dc_model.id,
             from_coins=dc_model.from_coins,
             monsters=dc_model.monsters,
+            from_first_task=dc_model.from_first_task,
+            from_second_task=dc_model.from_second_task,
             total=dc_model.total,
-            A=dc_model.A,
-            B=dc_model.B,
         )
         return res
 
     @staticmethod
-    def hash_model_to_dc_model(hash_model: SpringScoreHash,
-                               ) -> SpringScoreDC:
-        res = SpringScoreDC(
+    def hash_model_to_dc_model(hash_model: SeasonScoreHash,
+                               ) -> SeasonScoreDC:
+        res = SeasonScoreDC(
             id=int(hash_model[b'id']),
             from_coins=int(hash_model[b'from_coins']),
             monsters=int(hash_model[b'monsters']),
+            from_first_task=int(hash_model[b'from_first_task']),
+            from_second_task=int(hash_model[b'from_second_task']),
             total=int(hash_model[b'total']),
-            A=int(hash_model[b'A']),
-            B=int(hash_model[b'B']),
-        )
-        return res
-
-
-class SummerScoreTransformer(BaseRedisTransformer):
-
-    @staticmethod
-    def dc_model_to_dict_model(dc_model: SummerScoreDC,
-                               ) -> SummerScoreDict:
-        res = SummerScoreDict(
-            id=dc_model.id,
-            from_coins=dc_model.from_coins,
-            monsters=dc_model.monsters,
-            total=dc_model.total,
-            B=dc_model.B,
-            C=dc_model.C,
-        )
-        return res
-
-    @staticmethod
-    def hash_model_to_dc_model(hash_model: SummerScoreHash,
-                               ) -> SummerScoreDC:
-        res = SummerScoreDC(
-            id=int(hash_model[b'id']),
-            from_coins=int(hash_model[b'from_coins']),
-            monsters=int(hash_model[b'monsters']),
-            total=int(hash_model[b'total']),
-            B=int(hash_model[b'B']),
-            C=int(hash_model[b'C']),
-        )
-        return res
-
-
-class FallScoreTransformer(BaseRedisTransformer):
-
-    @staticmethod
-    def dc_model_to_dict_model(dc_model: FallScoreDC,
-                               ) -> FallScoreDict:
-        res = FallScoreDict(
-            id=dc_model.id,
-            from_coins=dc_model.from_coins,
-            monsters=dc_model.monsters,
-            total=dc_model.total,
-            C=dc_model.C,
-            D=dc_model.D,
-        )
-        return res
-
-    @staticmethod
-    def hash_model_to_dc_model(hash_model: FallScoreHash,
-                               ) -> FallScoreDC:
-        res = FallScoreDC(
-            id=int(hash_model[b'id']),
-            from_coins=int(hash_model[b'from_coins']),
-            monsters=int(hash_model[b'monsters']),
-            total=int(hash_model[b'total']),
-            C=int(hash_model[b'C']),
-            D=int(hash_model[b'D']),
-        )
-        return res
-
-
-class WinterScoreTransformer(BaseRedisTransformer):
-
-    @staticmethod
-    def dc_model_to_dict_model(dc_model: WinterScoreDC,
-                               ) -> WinterScoreDict:
-        res = WinterScoreDict(
-            id=dc_model.id,
-            from_coins=dc_model.from_coins,
-            monsters=dc_model.monsters,
-            total=dc_model.total,
-            D=dc_model.D,
-            A=dc_model.A,
-        )
-        return res
-
-    @staticmethod
-    def hash_model_to_dc_model(hash_model: WinterScoreHash,
-                               ) -> WinterScoreDC:
-        res = WinterScoreDC(
-            id=int(hash_model[b'id']),
-            from_coins=int(hash_model[b'from_coins']),
-            monsters=int(hash_model[b'monsters']),
-            total=int(hash_model[b'total']),
-            D=int(hash_model[b'D']),
-            A=int(hash_model[b'A']),
         )
         return res

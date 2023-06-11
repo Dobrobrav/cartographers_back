@@ -9,13 +9,11 @@ from services.redis.transformers_base import DictModel
 from services.redis.redis_dao_base import DaoRedis, DaoFull
 from .dict_models import GamePretty, PlayerPretty, SeasonName, URL, ScoreSource, ScoreValue, DiscoveryCardPretty
 from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema, \
-    TerrainCardKeySchema, ObjectiveCardKeySchema, SeasonsScoreKeySchema, SpringScoreKeySchema, SummerScoreKeySchema, \
-    FallScoreKeySchema, WinterScoreKeySchema
+    TerrainCardKeySchema, ObjectiveCardKeySchema, SeasonsScoreKeySchema, SeasonScoreKeySchema
 from .transformers import MonsterCardTransformer, GameTransformer, SeasonTransformer, MoveTransformer, \
-    TerrainCardTransformer, ObjectiveCardTransformer, PlayerTransformer, SeasonsScoreTransformer, \
-    SpringScoreTransformer, SummerScoreTransformer, FallScoreTransformer, WinterScoreTransformer
+    TerrainCardTransformer, ObjectiveCardTransformer, PlayerTransformer, SeasonsScoreTransformer, SeasonScoreTransformer
 from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
-    ObjectiveCardDC, PlayerDC, Field
+    ObjectiveCardDC, PlayerDC, Field, SeasonsScoreDC, SeasonScoreDC
 from ..models import SeasonCardSQL, TERRAIN_STR_TO_NUM, ETerrainTypeAll
 
 
@@ -85,9 +83,7 @@ class GameDaoRedis(DaoRedis):
                        ) -> None:
         # каждый сезон карты местности перетасовываются, а после хода карта откладывается
         initial_cards = self._get_initial_cards()
-
         season_ids = SeasonDaoRedis(REDIS).init_seasons(initial_cards)
-
         room_id, player_ids = self._get_room_and_players(admin_id)
 
         self._create_game_model(
@@ -683,13 +679,15 @@ class PlayerDaoRedis(DaoRedis):
                      neighbors: Neighbors,
                      field: Field
                      ) -> int:
-        player_dc = self._create_model(neighbors, field)
+        seasons_score_id = SeasonsScoreDao(REDIS).init_seasons_score()  # create seasons for players
+        player_dc = self._create_model(neighbors, field, seasons_score_id)
         self.insert_dc_model(player_dc)
         return player_dc.id
 
     def _create_model(self,
                       neighbors: Neighbors,
                       field: Field,
+                      seasons_score_id: int,
                       ) -> PlayerDC:
         player_dc = self._model_class(
             id=neighbors.player_id,
@@ -697,6 +695,7 @@ class PlayerDaoRedis(DaoRedis):
             field=field,
             left_player_id=neighbors.left_player_id,
             right_player_id=neighbors.right_player_id,
+            seasons_score_id=seasons_score_id,
         )
         return player_dc
 
@@ -752,29 +751,40 @@ class PlayerDaoRedis(DaoRedis):
         return name
 
 
-class SeasonsScore(DaoRedis):
+class SeasonsScoreDao(DaoRedis):
     _key_schema = SeasonsScoreKeySchema()
     _transformer = SeasonsScoreTransformer()
+    _model_class = SeasonsScoreDC
+
+    def init_seasons_score(self) -> int:
+        season_score_dao = SeasonScoreDao(REDIS)
+        season_score = self._model_class(
+            id=self._gen_new_id(),
+            spring_score_id=season_score_dao.init_season_score(),
+            summer_score_id=season_score_dao.init_season_score(),
+            fall_score_id=season_score_dao.init_season_score(),
+            winter_score_id=season_score_dao.init_season_score(),
+            coins=0,
+            total=0,
+        )
+        return season_score.id
 
 
-class SpringScore(DaoRedis):
-    _key_schema = SpringScoreKeySchema()
-    _transformer = SpringScoreTransformer()
+class SeasonScoreDao(DaoRedis):
+    _key_schema = SeasonScoreKeySchema()
+    _transformer = SeasonScoreTransformer()
+    _model_class = SeasonScoreDC
 
-
-class SummerScore(DaoRedis):
-    _key_schema = SummerScoreKeySchema()
-    _transformer = SummerScoreTransformer()
-
-
-class FallScore(DaoRedis):
-    _key_schema = FallScoreKeySchema()
-    _transformer = FallScoreTransformer()
-
-
-class WinterScore(DaoRedis):
-    _key_schema = WinterScoreKeySchema()
-    _transformer = WinterScoreTransformer()
+    def init_season_score(self) -> int:
+        season = self._model_class(
+            id=self._gen_new_id(),
+            from_first_task=0,
+            from_second_task=0,
+            from_coins=0,
+            monsters=0,
+            total=0,
+        )
+        return season.id
 
 
 class MonsterCardDaoRedis(DiscoveryCardDao):

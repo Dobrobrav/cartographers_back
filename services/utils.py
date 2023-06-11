@@ -28,8 +28,11 @@ def bytes_to_list(bts: bytes,
 
 def dump_field(field: MutableSequence[MutableSequence[ETerrainTypeAll]],
                ) -> str:
-    raise NotImplementedError  # TODO: implement
-
+    res = json.dumps([
+        [val.value for val in row]
+        for row in field
+    ])
+    return res
 
 def decode_field(field: bytes,
                  ) -> list[list[str]]:
@@ -41,5 +44,3 @@ def decode_field(field: bytes,
 def decode_bytes(bytes_: bytes,
                  ) -> str:
     return bytes_.decode('utf-8')
-
-

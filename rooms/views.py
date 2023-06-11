@@ -79,7 +79,7 @@ class Delete(APIView):
     def delete(request: Request,
                ) -> Response:
         """ delete room by token """
-        token = request.headers['Auth-Token']
+        token = request.auth
         user_id = get_user_id_by_token(token)
 
         RoomDaoRedis(REDIS).delete_by_user_id(user_id)
@@ -92,13 +92,23 @@ class User(APIView):
     def put(self,
             request: Request,
             ) -> Response:
+        """ add user to room """
+        token = request.auth
+        params = request.query_params
+        # need to check for password and users amount
+        user_id = get_user_id_by_token(token)
+        room_id = params['room_id']
+
+        RoomDaoRedis(REDIS).add_user(room_id, user_id)
+
+        return Response(status=status.HTTP_200_OK)
 
     @staticmethod
     def delete(request: Request,
                ) -> Response:
         """ kick user (only for admin).
          for now, stick to room option """
-        token = request.headers['Auth-Token']
+        token = request.auth
         data = request.data
 
         kicker_id = get_user_id_by_token(token)
@@ -117,7 +127,7 @@ class Ready(APIView):
     def put(request: Request,
             ) -> Response:
         """ change readiness (in room) state """
-        token = request.headers['Auth-Token']
+        token = request.auth
         room_dao = RoomDaoRedis(REDIS)
 
         user_id = get_user_id_by_token(token)
@@ -134,7 +144,7 @@ class Leave(APIView):
     def delete(request: Request,
                ) -> Response:
         """ leave room """
-        token = request.headers['Auth-Token']
+        token = request.auth
         user_id = get_user_id_by_token(token)
 
         RoomDaoRedis(REDIS).leave_room(user_id)

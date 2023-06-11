@@ -49,41 +49,25 @@ class PlayerHash(HashModel):
     field: bytes
     left_player_id: bytes
     right_player_id: bytes
-    score: bytes
+    coins: bytes
+    seasons_score_id: bytes
 
 
 class SeasonsScoreHash(HashModel):
-    spring_score_id: int
-    summer_score_id: int
-    fall_score_id: int
-    winter_score_id: int
-    total: int
+    spring_score_id: bytes
+    summer_score_id: bytes
+    fall_score_id: bytes
+    winter_score_id: bytes
+    coins: bytes
+    total: bytes
 
 
 class SeasonScoreHash(HashModel):
-    from_coins: int
-    monsters: int
-    total: int
-
-
-class SpringScoreHash(SeasonScoreHash):
-    A: int
-    B: int
-
-
-class SummerScoreHash(SeasonScoreHash):
-    B: int
-    C: int
-
-
-class FallScoreHash(SeasonScoreHash):
-    C: int
-    D: int
-
-
-class WinterScoreHash(SeasonScoreHash):
-    D: int
-    A: int
+    from_first_task: bytes
+    from_second_task: bytes
+    from_coins: bytes
+    monsters: bytes
+    total: bytes
 
 
 class MonsterCardHash(HashModel):

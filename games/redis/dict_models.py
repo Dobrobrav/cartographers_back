@@ -57,7 +57,7 @@ class PlayerDict(DictModel):
     field: str
     left_player_id: int
     right_player_id: int
-    score_id: int
+    seasons_score_id: int
 
 
 class PlayerPretty(TypedDict):
@@ -72,33 +72,16 @@ class SeasonsScoreDict(DictModel):
     summer_score_id: int
     fall_score_id: int
     winter_score_id: int
+    coins: int
     total: int
 
 
 class SeasonScoreDict(DictModel):
+    from_first_task: int
+    from_second_task: int
     from_coins: int
     monsters: int
     total: int
-
-
-class SpringScoreDict(SeasonScoreDict):
-    A: int
-    B: int
-
-
-class SummerScoreDict(SeasonScoreDict):
-    B: int
-    C: int
-
-
-class FallScoreDict(SeasonScoreDict):
-    C: int
-    D: int
-
-
-class WinterScoreDict(SeasonScoreDict):
-    D: int
-    A: int
 
 
 class MonsterCardDict(DictModel):
@@ -137,5 +120,3 @@ class DiscoveryCardPretty(TypedDict):
 class ShapePretty(TypedDict):
     gives_coin: bool
     shape_value: MutableSequence[MutableSequence[Literal[1, 0]]]
-
-

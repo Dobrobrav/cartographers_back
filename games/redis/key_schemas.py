@@ -78,48 +78,15 @@ class SeasonsScoreKeySchema(IKeySchema):
         return 'seasons_scores:ids'
 
 
-class SpringScoreKeySchema(IKeySchema):
+class SeasonScoreKeySchema(IKeySchema):
 
     @staticmethod
     def get_hash_key(id: int) -> str:
-        return f'spring_scores:{id}'
+        return f"season_scores:{id}"
 
     @property
     def ids_key(self) -> str:
-        return f'spring_scores:ids'
-
-
-class SummerScoreKeySchema(IKeySchema):
-
-    @staticmethod
-    def get_hash_key(id: int) -> str:
-        return f'summer_scores:{id}'
-
-    @property
-    def ids_key(self) -> str:
-        return f'summer_scores:ids'
-
-
-class FallScoreKeySchema(IKeySchema):
-
-    @staticmethod
-    def get_hash_key(id: int) -> str:
-        return f'fall_scores:{id}'
-
-    @property
-    def ids_key(self) -> str:
-        return f'fall_scores:ids'
-
-
-class WinterScoreKeySchema(IKeySchema):
-
-    @staticmethod
-    def get_hash_key(id: int) -> str:
-        return f'winter_scores:{id}'
-
-    @property
-    def ids_key(self) -> str:
-        return f'winter_scores:ids'
+        return "season_scores:ids"
 
 
 class MonsterCardKeySchema(IKeySchema):

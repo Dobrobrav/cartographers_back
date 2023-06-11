@@ -83,38 +83,17 @@ class SeasonsScoreDC(DataClassModel):
     summer_score_id: int
     fall_score_id: int
     winter_score_id: int
+    coins: int
     total: int
 
 
 @dataclass
 class SeasonScoreDC(DataClassModel):
+    from_first_task: int
+    from_second_task: int
     from_coins: int
     monsters: int
     total: int
-
-
-@dataclass
-class SpringScoreDC(SeasonScoreDC):
-    A: int
-    B: int
-
-
-@dataclass
-class SummerScoreDC(SeasonScoreDC):
-    B: int
-    C: int
-
-
-@dataclass
-class FallScoreDC(SeasonScoreDC):
-    C: int
-    D: int
-
-
-@dataclass
-class WinterScoreDC(SeasonScoreDC):
-    D: int
-    A: int
 
 
 @dataclass
