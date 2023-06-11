@@ -28,7 +28,7 @@ class GameDC(DataClassModel):
     monster_card_ids: MutableSequence[int]
     terrain_card_ids: MutableSequence[int]
     season_ids: MutableSequence[int]
-    current_season_id: Optional[int]
+    current_season_id: Optional[int]  # should not be optional
 
 
 @dataclass

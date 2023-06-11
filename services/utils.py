@@ -1,4 +1,4 @@
-from typing import MutableSequence
+from typing import MutableSequence, Any
 
 from django_redis.serializers import json
 from rest_framework.authtoken.models import Token
@@ -34,10 +34,23 @@ def dump_field(field: MutableSequence[MutableSequence[ETerrainTypeAll]],
     ])
     return res
 
+
 def decode_field(field: bytes,
                  ) -> list[list[str]]:
     field = decode_bytes(field)
     res = json.loads(field)
+    return res
+
+
+def load_collection(raw: bytes,
+                    ) -> Any:
+    a = json.loads(decode_bytes(raw))
+    return a
+
+
+def dump_collection(val: Any,
+                    ) -> str:
+    res = json.dumps(val)
     return res
 
 

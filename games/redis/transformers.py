@@ -1,3 +1,5 @@
+import json
+
 from games.models import MonsterCardSQL, DiscoveryCardSQL, ETerrainCardType, ETerrainTypeLimited, ObjectiveCardSQL, \
     EExchangeOrder, SeasonCardSQL
 from games.redis.dc_models import MonsterCardDC, GameDC, TerrainCardDC, ObjectiveCardDC, MoveDC, PlayerDC, SeasonDC, \
@@ -26,14 +28,10 @@ class GameTransformer(BaseRedisTransformer):
             id=dc_model.id,
             room_id=dc_model.room_id,
             admin_id=dc_model.admin_id,
-            player_ids=utils.ids_to_str(dc_model.player_ids),
-            monster_card_ids=utils.ids_to_str(
-                dc_model.monster_card_ids
-            ),
-            terrain_card_ids=utils.ids_to_str(
-                dc_model.terrain_card_ids
-            ),
-            season_ids=utils.ids_to_str(dc_model.season_ids),
+            player_ids=utils.dump_collection(dc_model.player_ids),
+            monster_card_ids=utils.dump_collection(dc_model.monster_card_ids),
+            terrain_card_ids=utils.dump_collection(dc_model.terrain_card_ids),
+            season_ids=utils.dump_collection(dc_model.season_ids),
             current_season_id=dc_model.current_season_id,
         )
         return game_dict
@@ -44,19 +42,11 @@ class GameTransformer(BaseRedisTransformer):
         game_dc = GameDC(
             id=int(hash_model[b'id']),
             room_id=int(hash_model[b'room_id']),
-            player_ids=utils.bytes_to_list(
-                hash_model[b'player_ids']
-            ),
+            player_ids=utils.load_collection(hash_model[b'player_ids']),
             admin_id=int(hash_model[b'admin_id']),
-            monster_card_ids=utils.bytes_to_list(
-                hash_model[b'monster_card_ids']
-            ),
-            terrain_card_ids=utils.bytes_to_list(
-                hash_model[b'terrain_card_ids']
-            ),
-            season_ids=utils.bytes_to_list(
-                hash_model[b'season_ids']
-            ),
+            monster_card_ids=utils.load_collection(hash_model[b'monster_card_ids']),
+            terrain_card_ids=utils.load_collection(hash_model[b'terrain_card_ids']),
+            season_ids=utils.load_collection(hash_model[b'season_ids']),
             current_season_id=int(hash_model[b'current_season_id']),
         )
         return game_dc
