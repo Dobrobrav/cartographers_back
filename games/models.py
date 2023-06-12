@@ -127,7 +127,7 @@ class MonsterCardSQL(models.Model):
 
 
 class ShapeSQL(models.Model):
-    DEFAULT_SHAPE = "000000 000000 000000 000000 000000 000000"
+    DEFAULT_SHAPE = "000000 000000 000000 000000 000000 000000" # костыль
 
     shape_str = models.CharField(
         max_length=41, default=DEFAULT_SHAPE,

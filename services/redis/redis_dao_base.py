@@ -3,6 +3,7 @@ from typing import Iterable, Callable, Generator, Any, TypeVar, Optional
 from django.db.models import Model
 from redis.client import Redis
 
+import services.utils
 from services.redis.key_schemas_base import IKeySchema
 
 from .transformers_base import BaseRedisTransformer, DictModel, HashModel, BaseFullTransformer
@@ -29,11 +30,11 @@ class DaoBase:
     def get_model_field(self,
                         model_id: int,
                         field_name: str,
-                        converter: Callable[[bytes], T],
+                        converter: Callable[[bytes], T] = services.utils.deserialize,
                         ) -> Optional[T]:
         key = self._key_schema.get_hash_key(model_id)
         response = self._redis.hget(key, field_name)
-        res = response and converter(response)
+        res = response and converter(response)  # assign None or converter
         return res
 
     def set_model_field(self,

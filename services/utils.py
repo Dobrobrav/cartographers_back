@@ -42,13 +42,13 @@ def decode_field(field: bytes,
 
 
 # TODO: load and dump methods must check incoming value type!
-def load_seq(raw: bytes,
-             ) -> MutableSequence:
+def deserialize(raw: bytes,
+                ) -> Any:
     return json.loads(decode_bytes(raw))
 
 
-def dump_seq(val: MutableSequence,
-             ) -> str:
+def serialize(val: Any,
+              ) -> str:
     return json.dumps(val)
 
 

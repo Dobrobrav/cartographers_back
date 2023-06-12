@@ -63,6 +63,12 @@ class TerrainCardDC(DataClassModel):
 
 
 @dataclass
+class ShapeDC(DataClassModel):
+    shape_str: str
+    gives_coin: bool
+
+
+@dataclass
 class ObjectiveCardDC(DataClassModel):
     name: str
     image_url: str

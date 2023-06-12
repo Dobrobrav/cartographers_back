@@ -35,7 +35,7 @@ class RoomDaoRedis(DaoFull):
         user_ids = self.get_model_field(
             model_id=room_id,
             field_name='user_ids',
-            converter=services.utils.load_seq,
+            converter=services.utils.deserialize,
         )
         user_ids.remove(user_id)
 
@@ -43,7 +43,7 @@ class RoomDaoRedis(DaoFull):
             model_id=room_id,
             field_name='user_ids',
             value=user_ids,
-            converter=services.utils.dump_seq,
+            converter=services.utils.serialize,
         )
 
         self._delete_room_id_by_user_id_index(user_id)
@@ -249,7 +249,7 @@ class RoomDaoRedis(DaoFull):
         user_ids = self.get_model_field(
             model_id=room_id,
             field_name='user_ids',
-            converter=services.utils.load_seq,
+            converter=services.utils.deserialize,
         )
         user_ids.append(user_id)
 
@@ -257,6 +257,6 @@ class RoomDaoRedis(DaoFull):
             model_id=room_id,
             field_name='user_ids',
             value=user_ids,
-            converter=services.utils.dump_seq,
+            converter=services.utils.serialize,
         )
         self._add_room_id_by_user_id_index(user_id, room_id)

@@ -47,6 +47,11 @@ class TerrainCardDict(DictModel):
     additional_terrain: str
 
 
+class ShapeDict(DictModel):
+    shape_str: str
+    gives_coin: str  # 'true' or 'false' for json parser
+
+
 class ObjectiveCardDict(DictModel):
     name: str
     image_url: str
@@ -104,19 +109,54 @@ class GamePretty(TypedDict):
     is_prev_card_ruins: bool
     player_coins: int
     player_score: int
-    season_score: dict[SeasonName, dict[ScoreSource, ScoreValue]]
+    season_scores: 'SeasonsScorePretty'
 
 
 class DiscoveryCardPretty(TypedDict):
     image: str
-    type: str
+    is_anomaly: bool
     terrain: int
-    other_terrain: Optional[int]
+    additional_terrain: Optional[int]
     shape: 'ShapePretty'
-    other_shape: Optional['ShapePretty']
+    additional_shape: Optional['ShapePretty']
     is_prev_card_ruins: bool
 
 
 class ShapePretty(TypedDict):
     gives_coin: bool
     shape_value: MutableSequence[MutableSequence[Literal[1, 0]]]
+
+
+class SeasonScorePretty(TypedDict):
+    from_coins: int
+    monsters: int
+    total: int
+
+
+class SpringScorePretty(SeasonScorePretty):
+    A: int
+    B: int
+
+
+class SummerScorePretty(SeasonScorePretty):
+    B: int
+    C: int
+
+
+class FallScorePretty(SeasonScorePretty):
+    C: int
+    D: int
+
+
+class WinterScorePretty(SeasonScorePretty):
+    D: int
+    A: int
+
+
+class SeasonsScorePretty(TypedDict):
+    spring_score: SpringScorePretty
+    summer_score: SummerScorePretty
+    fall_score: FallScorePretty
+    winter_score: WinterScorePretty
+    coins: int
+    total: int

@@ -31,7 +31,7 @@ class GameAPIView(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        game = GameDaoRedis(REDIS).get_game(user_id)
+        game = GameDaoRedis(REDIS).get_game_pretty(user_id)
 
         return Response(data=game, status=status.HTTP_200_OK)
 

@@ -26,15 +26,26 @@ class TerrainCardKeySchema(IKeySchema):
         return "terrain-cards:ids"
 
 
+class ShapeKeySchema(IKeySchema):
+
+    @staticmethod
+    def get_hash_key(id: int) -> str:
+        return f"shapes:{id}"
+
+    @property
+    def ids_key(self) -> str:
+        return "shapes:ids"
+
+
 class ObjectiveCardKeySchema(IKeySchema):
 
     @staticmethod
     def get_hash_key(id: int) -> str:
-        return f"objective-cards:{id}"
+        return f"objective_cards:{id}"
 
     @property
     def ids_key(self) -> str:
-        return "objective-cards:ids"
+        return "objective_cards:ids"
 
 
 class SeasonKeySchema(IKeySchema):

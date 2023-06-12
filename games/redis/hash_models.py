@@ -39,6 +39,11 @@ class TerrainCardHash(HashModel):
     additional_terrain: bytes
 
 
+class ShapeHash(HashModel):
+    shape_str: bytes
+    gives_coin: bytes
+
+
 class ObjectiveCardHash(HashModel):
     name: bytes
     image_url: bytes

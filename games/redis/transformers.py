@@ -1,15 +1,17 @@
 import json
 
+from django.db.models import Model
+
 from games.models import MonsterCardSQL, DiscoveryCardSQL, ETerrainCardType, ETerrainTypeLimited, ObjectiveCardSQL, \
-    EExchangeOrder, SeasonCardSQL
+    EExchangeOrder, SeasonCardSQL, ShapeSQL
 from games.redis.dc_models import MonsterCardDC, GameDC, TerrainCardDC, ObjectiveCardDC, MoveDC, PlayerDC, SeasonDC, \
-    ESeasonName, SeasonCardDC, EDiscoveryCardType, SeasonsScoreDC, SeasonScoreDC
+    ESeasonName, SeasonCardDC, EDiscoveryCardType, SeasonsScoreDC, SeasonScoreDC, ShapeDC
 from games.redis.dict_models import SeasonDict, MoveDict, PlayerDict, MonsterCardDict, GameDict, TerrainCardDict, \
     ObjectiveCardDict, SeasonsScoreDict, \
-    SeasonScoreDict
+    SeasonScoreDict, ShapeDict
 from games.redis.hash_models import GameHash, SeasonHash, MonsterCardHash, TerrainCardHash, MoveHash, PlayerHash, \
     ObjectiveCardHash, SeasonsScoreHash, \
-    SeasonScoreHash
+    SeasonScoreHash, ShapeHash
 from services import utils
 from services.redis.transformers_base import BaseRedisTransformer, BaseSQLTransformer, \
     BaseFullTransformer
@@ -28,10 +30,10 @@ class GameTransformer(BaseRedisTransformer):
             id=dc_model.id,
             room_id=dc_model.room_id,
             admin_id=dc_model.admin_id,
-            player_ids=utils.dump_seq(dc_model.player_ids),
-            monster_card_ids=utils.dump_seq(dc_model.monster_card_ids),
-            terrain_card_ids=utils.dump_seq(dc_model.terrain_card_ids),
-            season_ids=utils.dump_seq(dc_model.season_ids),
+            player_ids=utils.serialize(dc_model.player_ids),
+            monster_card_ids=utils.serialize(dc_model.monster_card_ids),
+            terrain_card_ids=utils.serialize(dc_model.terrain_card_ids),
+            season_ids=utils.serialize(dc_model.season_ids),
             current_season_id=dc_model.current_season_id,
         )
         return game_dict
@@ -42,11 +44,11 @@ class GameTransformer(BaseRedisTransformer):
         game_dc = GameDC(
             id=int(hash_model[b'id']),
             room_id=int(hash_model[b'room_id']),
-            player_ids=utils.load_seq(hash_model[b'player_ids']),
+            player_ids=utils.deserialize(hash_model[b'player_ids']),
             admin_id=int(hash_model[b'admin_id']),
-            monster_card_ids=utils.load_seq(hash_model[b'monster_card_ids']),
-            terrain_card_ids=utils.load_seq(hash_model[b'terrain_card_ids']),
-            season_ids=utils.load_seq(hash_model[b'season_ids']),
+            monster_card_ids=utils.deserialize(hash_model[b'monster_card_ids']),
+            terrain_card_ids=utils.deserialize(hash_model[b'terrain_card_ids']),
+            season_ids=utils.deserialize(hash_model[b'season_ids']),
             current_season_id=int(hash_model[b'current_season_id']),
         )
         return game_dc
@@ -63,13 +65,13 @@ class SeasonTransformer(BaseRedisTransformer):
             name=dc_model.name.value,
             image_url=dc_model.image_url,
             points_to_end=dc_model.points_to_end,
-            objective_card_ids=utils.dump_seq(
+            objective_card_ids=utils.serialize(
                 dc_model.objective_card_ids
             ),
-            terrain_card_ids=utils.dump_seq(
+            terrain_card_ids=utils.serialize(
                 dc_model.terrain_card_ids
             ),
-            monster_card_ids=utils.dump_seq(
+            monster_card_ids=utils.serialize(
                 dc_model.monster_card_ids
             ),
             current_move_id=dc_model.current_move_id or '',
@@ -380,6 +382,39 @@ class TerrainCardTransformer(BaseFullTransformer):
             raise ValueError('terrain card must either ruins or regular')
 
         return terrain_card_dc
+
+
+class ShapeTransformer(BaseFullTransformer):
+
+    @staticmethod
+    def dc_model_to_dict_model(dc_model: ShapeDC,
+                               ) -> ShapeDict:
+        shape_dict = ShapeDict(
+            id=dc_model.id,
+            shape_str=dc_model.shape_str,
+            gives_coin=utils.serialize(dc_model.gives_coin),
+        )
+        return shape_dict
+
+    @staticmethod
+    def hash_model_to_dc_model(hash_model: ShapeHash,
+                               ) -> ShapeDC:
+        shape_dc = ShapeDC(
+            id=int(hash_model[b'id']),
+            shape_str=utils.decode_bytes(hash_model[b'shape_str']),
+            gives_coin=utils.deserialize(hash_model[b'gives_coin']),
+        )
+        return shape_dc
+
+    @staticmethod
+    def sql_model_to_dc_model(sql_model: ShapeSQL,
+                              ) -> ShapeDC:
+        shape_dc = ShapeDC(
+            id=sql_model.id,
+            shape_str=sql_model.shape_str,
+            gives_coin=sql_model.gives_coin,
+        )
+        return shape_dc
 
 
 class SeasonsScoreTransformer(BaseRedisTransformer):
