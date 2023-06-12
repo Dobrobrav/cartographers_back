@@ -31,6 +31,7 @@ class RoomDaoRedis(DaoFull):
                      user_id: int,
                      room_id: int,
                      ) -> None:
+
         user_ids = self.get_model_field(
             model_id=room_id,
             field_name='user_ids',
@@ -77,8 +78,10 @@ class RoomDaoRedis(DaoFull):
         all_ids = self._get_all_ids()
         ids_for_page = self._get_ids_for_page(all_ids, page, limit)
         hash_rooms = self._fetch_hash_models(ids_for_page)
-        dict_rooms = self._transformer.hash_models_to_dict_models(hash_rooms)
-        page = self._transformer.make_dict_rooms_for_page(dict_rooms)
+        rooms_dc: list[RoomDC] = self._transformer. \
+            hash_models_to_dc_models(hash_rooms)
+
+        page = self._transformer.make_dict_rooms_for_page(rooms_dc)
 
         return page
 
