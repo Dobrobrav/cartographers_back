@@ -40,24 +40,24 @@ class RoomTransformer(BaseRedisTransformer):
         return redis_model
 
     def make_dict_rooms_for_page(self,
-                                 dict_models: Iterable[RoomDict],
+                                 dc_models: Iterable[RoomDC],
                                  ) -> list[RoomDictForPage]:
         """ rooms in dict-format for page of rooms """
         display_dict_rooms = [
-            self.make_dict_room_for_page(room_dict)
-            for room_dict in dict_models
+            self.make_dict_room_for_page(room_dc)
+            for room_dc in dc_models
         ]
         return display_dict_rooms
 
     @staticmethod
-    def make_dict_room_for_page(dict_room: RoomDict,
+    def make_dict_room_for_page(room_dc: RoomDC,
                                 ) -> RoomDictForPage:
-        room = RoomDictForPage(
-            id=dict_room['id'],
-            name=dict_room['name'],
-            max_users=dict_room['max_users'],
-            current_users=len(dict_room['user_ids'].split()),
-            contains_password=bool(dict_room['password']),
-            is_game_started=bool(dict_room['is_game_started']),
+        room_dc = RoomDictForPage(
+            id=room_dc.id,
+            name=room_dc.name,
+            max_users=room_dc.max_users,
+            current_users=len(room_dc.user_ids),
+            contains_password=bool(room_dc.password),
+            is_game_started=bool(room_dc.is_game_started),
         )
-        return room
+        return room_dc
