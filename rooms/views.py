@@ -28,7 +28,7 @@ class DisplayRoomsAPIView(APIView):
 
 
 class RoomAPIView(APIView):
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [TokenAuthentication]  # is it needed?
 
     @staticmethod
     def post(request: Request,
@@ -94,10 +94,10 @@ class User(APIView):
             ) -> Response:
         """ add user to room """
         token = request.auth
-        params = request.query_params
+        data = request.data
         # need to check for password and users amount
         user_id = get_user_id_by_token(token)
-        room_id = params['room_id']
+        room_id = data['room_id']
 
         RoomDaoRedis(REDIS).add_user(room_id, user_id)
 

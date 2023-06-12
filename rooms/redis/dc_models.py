@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, MutableSequence
 
 from services.redis.models_base import DataClassModel
 
@@ -10,7 +10,7 @@ class RoomDC(DataClassModel):
     password: Optional[str]
     max_users: int
     admin_id: int
-    user_ids: list[int]
+    user_ids: MutableSequence[int]
     is_game_started: bool
 
 
