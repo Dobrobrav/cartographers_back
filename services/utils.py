@@ -5,6 +5,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.utils import json
 
 from games.models import ETerrainTypeAll
+from services.redis.models_base import get_enum_by_value
 
 
 def get_user_id_by_token(token: str) -> int:
@@ -12,12 +13,6 @@ def get_user_id_by_token(token: str) -> int:
     user_id = token_obj.user_id
 
     return user_id
-
-
-def ids_to_str(ids: MutableSequence[int],
-               ) -> str:
-    string = ' '.join(str(id) for id in ids)
-    return string
 
 
 def bytes_to_list(bts: bytes,
@@ -36,22 +31,25 @@ def dump_field(field: MutableSequence[MutableSequence[ETerrainTypeAll]],
 
 
 def decode_field(field: bytes,
-                 ) -> list[list[str]]:
+                 ) -> list[list[ETerrainTypeAll]]:
     field = decode_bytes(field)
     res = json.loads(field)
+    res = [
+        [get_enum_by_value(ETerrainTypeAll, cell) for cell in row]
+        for row in field
+    ]
     return res
 
 
-def load_collection(raw: bytes,
-                    ) -> Any:
-    a = json.loads(decode_bytes(raw))
-    return a
+# TODO: load and dump methods must check incoming value type!
+def load_seq(raw: bytes,
+             ) -> MutableSequence:
+    return json.loads(decode_bytes(raw))
 
 
-def dump_collection(val: Any,
-                    ) -> str:
-    res = json.dumps(val)
-    return res
+def dump_seq(val: MutableSequence,
+             ) -> str:
+    return json.dumps(val)
 
 
 def decode_bytes(bytes_: bytes,

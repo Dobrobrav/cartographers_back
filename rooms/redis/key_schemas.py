@@ -16,7 +16,7 @@ class RoomKeySchema(IKeySchema):
 
     @property
     def model_id_by_model_name_index_key(self):
-        return "room_id_by-room_name_index"
+        return "room_id_by_room_name_index"
 
     @staticmethod
     def get_user_readiness_key(room_id: int,

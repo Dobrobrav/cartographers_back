@@ -109,17 +109,16 @@ class User(APIView):
         """ kick user (only for admin).
          for now, stick to room option """
         token = request.auth
-        data = request.data
+        params = request.query_params
 
         kicker_id = get_user_id_by_token(token)
-        kick_user_id = data['kick_user_id']
+        user_to_kick_id = int(params['user_to_kick_id'])
 
         room_dao = RoomDaoRedis(REDIS)
-        user = room_dao.kick_user(
-            kicker_id=kicker_id, kick_user_id=kick_user_id
-        )
+        room_dao.kick_user(kicker_id=kicker_id,
+                           user_to_kick_id=user_to_kick_id)
 
-        return Response(user, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK)
 
 
 class Ready(APIView):

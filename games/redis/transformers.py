@@ -28,10 +28,10 @@ class GameTransformer(BaseRedisTransformer):
             id=dc_model.id,
             room_id=dc_model.room_id,
             admin_id=dc_model.admin_id,
-            player_ids=utils.dump_collection(dc_model.player_ids),
-            monster_card_ids=utils.dump_collection(dc_model.monster_card_ids),
-            terrain_card_ids=utils.dump_collection(dc_model.terrain_card_ids),
-            season_ids=utils.dump_collection(dc_model.season_ids),
+            player_ids=utils.dump_seq(dc_model.player_ids),
+            monster_card_ids=utils.dump_seq(dc_model.monster_card_ids),
+            terrain_card_ids=utils.dump_seq(dc_model.terrain_card_ids),
+            season_ids=utils.dump_seq(dc_model.season_ids),
             current_season_id=dc_model.current_season_id,
         )
         return game_dict
@@ -42,11 +42,11 @@ class GameTransformer(BaseRedisTransformer):
         game_dc = GameDC(
             id=int(hash_model[b'id']),
             room_id=int(hash_model[b'room_id']),
-            player_ids=utils.load_collection(hash_model[b'player_ids']),
+            player_ids=utils.load_seq(hash_model[b'player_ids']),
             admin_id=int(hash_model[b'admin_id']),
-            monster_card_ids=utils.load_collection(hash_model[b'monster_card_ids']),
-            terrain_card_ids=utils.load_collection(hash_model[b'terrain_card_ids']),
-            season_ids=utils.load_collection(hash_model[b'season_ids']),
+            monster_card_ids=utils.load_seq(hash_model[b'monster_card_ids']),
+            terrain_card_ids=utils.load_seq(hash_model[b'terrain_card_ids']),
+            season_ids=utils.load_seq(hash_model[b'season_ids']),
             current_season_id=int(hash_model[b'current_season_id']),
         )
         return game_dc
@@ -63,13 +63,13 @@ class SeasonTransformer(BaseRedisTransformer):
             name=dc_model.name.value,
             image_url=dc_model.image_url,
             points_to_end=dc_model.points_to_end,
-            objective_card_ids=utils.ids_to_str(
+            objective_card_ids=utils.dump_seq(
                 dc_model.objective_card_ids
             ),
-            terrain_card_ids=utils.ids_to_str(
+            terrain_card_ids=utils.dump_seq(
                 dc_model.terrain_card_ids
             ),
-            monster_card_ids=utils.ids_to_str(
+            monster_card_ids=utils.dump_seq(
                 dc_model.monster_card_ids
             ),
             current_move_id=dc_model.current_move_id or '',
@@ -168,7 +168,7 @@ class PlayerTransformer(BaseRedisTransformer):
             field=utils.decode_field(a[b'field']),
             left_player_id=int(a[b'left_player_id']),
             right_player_id=int(a[b'right_player_id']),
-            seasons_score_id=int(a[b'score']),
+            seasons_score_id=int(a[b'seasons_score_id']),
         )
         return player_dc
 
