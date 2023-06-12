@@ -23,7 +23,7 @@ class DaoBase:
 
     def get_all_ids(self) -> Generator:
         ids_key = self._key_schema.ids_key
-        ids = (int(id) for id in self._redis.get(ids_key))
+        ids = (int(id) for id in self._redis.smembers(ids_key))
         return ids
 
     def get_model_field(self,
@@ -103,13 +103,21 @@ class DaoBase:
         # these actually should be a transaction
         dict_model = dumper(model)
         self._redis.hset(hash_key, mapping=dict_model)
-        self._redis.sadd(ids_key, model.id)
+        self._insert_id(model.id)
         return dict_model
 
     def _gen_new_id(self) -> int:
         ids = self._get_ids()
         id = self._gen_id(ids)
+        self._insert_id(id)
+
         return id
+
+    def _insert_id(self,
+                   id: int,
+                   ) -> None:
+        ids_key = self._key_schema.ids_key
+        self._redis.sadd(ids_key, id)
 
     def _get_ids(self) -> set[int]:
         ids_key = self._key_schema.ids_key
@@ -148,8 +156,8 @@ class DaoRedis(DaoBase):
                        model_id: int,
                        ) -> DataClassModel:
         hash_model = self._fetch_hash_model(model_id)
-        redis_model = self._transformer.hash_model_to_dc_model(hash_model)
-        return redis_model
+        dc_model = self._transformer.hash_model_to_dc_model(hash_model)
+        return dc_model
 
     def insert_dc_models(self,
                          models: Iterable[DataClassModel],

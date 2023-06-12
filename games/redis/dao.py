@@ -2,6 +2,8 @@ import random
 from copy import copy
 from typing import MutableSequence, NamedTuple, Iterable, Optional, TypeAlias, Sequence
 
+from django.contrib.auth.models import User
+
 import services.utils
 from cartographers_back.settings import REDIS
 from rooms.redis.dao import RoomDaoRedis
@@ -98,6 +100,7 @@ class GameDaoRedis(DaoRedis):
                  player_id: int,
                  ) -> GamePretty:
         game_id = self._get_game_id_by_player_id(player_id)
+        print(game_id)
         game: GameDC = self.fetch_dc_model(game_id)
 
         game_pretty = GamePretty(
@@ -137,7 +140,7 @@ class GameDaoRedis(DaoRedis):
                                 room_id: int,
                                 ) -> int:
         key = self._key_schema.game_id_by_room_id_index_key
-        game_id = self._redis.hget(key, room_id)
+        game_id = int(self._redis.hget(key, room_id))
         return game_id
 
     # TODO: need to store in redis attr indicating if user has finished his move
@@ -170,7 +173,7 @@ class GameDaoRedis(DaoRedis):
         terrain_card_ids = initial_cards.terrain_card_ids
 
         game = GameDC(
-            id=self._gen_new_id(),
+            id=(game_id := self._gen_new_id()),
             room_id=room_id,
             monster_card_ids=monster_card_ids,
             season_ids=season_ids,
@@ -180,8 +183,16 @@ class GameDaoRedis(DaoRedis):
             current_season_id=season_ids[0],
         )
         self.insert_dc_model(game)
+        self._update_game_id_by_room_id_index(room_id, game_id)
 
         return game
+
+    def _update_game_id_by_room_id_index(self,
+                                         room_id: int,
+                                         game_id: int,
+                                         ) -> None:
+        key = self._key_schema.game_id_by_room_id_index_key
+        self._redis.hset(key, room_id, game_id)
 
     def _get_room_and_players(self,
                               admin_id: int,
@@ -377,8 +388,14 @@ class SeasonDaoRedis(DaoRedis):
     def get_season_name(self,
                         season_id: int,
                         ) -> str:
-        key = self._key_schema.get_hash_key(season_id)
-        season_name = self._redis.hget(key, 'season_name').decode('utf-8')
+        print(season_id)
+        season_name = self.get_model_field(
+            model_id=season_id,
+            field_name='name',
+            converter=services.utils.decode_bytes,
+        )
+        if season_name is None:
+            raise ValueError('season_name must not be None')
         return season_name
 
     def get_season_score_pretty(self,
@@ -746,9 +763,19 @@ class PlayerDaoRedis(DaoRedis):
     def get_name(self,
                  player_id: int,
                  ) -> str:
-        key = self._key_schema.get_hash_key(player_id)
-        name = self._redis.hget(key, 'name').decode('utf-8')
+        user_id = self._get_user_id(player_id)
+        name = User.objects.get(pk=user_id).username
         return name
+
+    def _get_user_id(self,
+                     player_id: int,
+                     ) -> int:
+        user_id = self.get_model_field(
+            model_id=player_id,
+            field_name='user_id',
+            converter=int,
+        )
+        return user_id
 
 
 class SeasonsScoreDao(DaoRedis):

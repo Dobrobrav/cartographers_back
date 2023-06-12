@@ -5,6 +5,7 @@ from django.contrib.auth.hashers import make_password
 from djoser.conf import User
 
 import services.utils
+from cartographers_back.settings import REDIS
 from services.redis.transformers import UserTransformer
 from services.redis.transformers_base import DictModel
 from services.redis.models_base import DataClassModel
@@ -131,7 +132,7 @@ class RoomDaoRedis(DaoFull):
             user_ids=[creator_id],
             is_game_started=False,
         )
-        self._add_room_id_by_user_id_index(
+        self._update_room_id_by_user_id_index(
             user_id=creator_id, room_id=room_id
         )
         self._add_model_id_by_model_name_index(
@@ -151,10 +152,10 @@ class RoomDaoRedis(DaoFull):
                            ) -> None:
         pass
 
-    def _add_room_id_by_user_id_index(self,
-                                      user_id: int,
-                                      room_id: int,
-                                      ) -> None:
+    def _update_room_id_by_user_id_index(self,
+                                         user_id: int,
+                                         room_id: int,
+                                         ) -> None:
         """ score - user_id; member - room_id. room_ids are sorted by user_ids """
         key = self._key_schema.room_id_by_user_id_index_key
         self._redis.hset(key, user_id, room_id)
@@ -162,9 +163,30 @@ class RoomDaoRedis(DaoFull):
     def kick_user(self,
                   kicker_id: int,
                   kick_user_id: int,
-                  ) -> DictModel:
+                  ) -> None:
+        room_id = self._ckeck_user_is_admin(kicker_id, kick_user_id)
 
-        pass
+        user_ids = self.get_model_field(
+            model_id=room_id,
+            field_name='user_ids',
+            converter=services.utils.load_seq,
+        )
+        user_ids.remove(kick_user_id)
+
+        self.set_model_field(
+            model_id=room_id,
+            field_name='user_ids',
+            value=user_ids,
+            converter=services.utils.dump_seq,
+        )
+
+    def _ckeck_user_is_admin(self,
+                             kicker_id: int,
+                             kick_user_id: int,
+                             ) -> int:
+        room_id = self.get_room_id_by_user_id(kicker_id)
+        ...
+        return room_id
 
     # TODO: implement this
 
@@ -210,7 +232,7 @@ class RoomDaoRedis(DaoFull):
         user_ids = self.get_model_field(
             model_id=room_id,
             field_name='user_ids',
-            converter=lambda x: json.loads(services.utils.decode_bytes(x)),
+            converter=services.utils.load_seq,
         )
         user_ids.append(user_id)
 
@@ -218,5 +240,6 @@ class RoomDaoRedis(DaoFull):
             model_id=room_id,
             field_name='user_ids',
             value=user_ids,
-            converter=json.dumps,
+            converter=services.utils.dump_seq,
         )
+        self._update_room_id_by_user_id_index(user_id, room_id)

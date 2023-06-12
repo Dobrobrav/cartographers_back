@@ -12,7 +12,7 @@ class GameKeySchema(IKeySchema):
 
     @property
     def game_id_by_room_id_index_key(self) -> str:
-        return "game-id-by-room-id-index"
+        return "game_id_by_room_id_index"
 
 
 class TerrainCardKeySchema(IKeySchema):
