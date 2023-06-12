@@ -10,7 +10,7 @@ from rooms.redis.dao import RoomDaoRedis
 from services.redis.transformers_base import DictModel
 from services.redis.redis_dao_base import DaoRedis, DaoFull
 from .dict_models import GamePretty, PlayerPretty, SeasonName, URL, ScoreSource, ScoreValue, DiscoveryCardPretty, \
-    SeasonsScorePretty, SpringScorePretty, SummerScorePretty, FallScorePretty, WinterScorePretty
+    SeasonsScorePretty, SpringScorePretty, SummerScorePretty, FallScorePretty, WinterScorePretty, ShapePretty
 from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema, \
     TerrainCardKeySchema, ObjectiveCardKeySchema, SeasonsScoreKeySchema, SeasonScoreKeySchema, ShapeKeySchema
 from .transformers import MonsterCardTransformer, GameTransformer, SeasonTransformer, MoveTransformer, \
@@ -50,15 +50,20 @@ class Neighbors(NamedTuple):
 
 class DiscoveryCardDao(DaoFull):
 
-    def get_shape(self,
-                  discovery_card_id: int,
-                  ) -> str:
-        shape = self.get_model_field(
+    def get_shape_pretty(self,
+                         discovery_card_id: int,
+                         ) -> ShapePretty:
+        shape_id = self.get_model_field(
             model_id=discovery_card_id,
-            field_name='shape',
-            converter=services.utils.decode_bytes,
+            field_name='shape_id',
+            converter=int,
         )
-        return shape
+        shape_dc: ShapeDC = ShapeDaoRedis(REDIS).fetch_dc_model(shape_id)
+        shape_pretty = ShapePretty(
+            shape_value=shape_dc.shape_value,
+            gives_coin=shape_dc.gives_coin,
+        )
+        return shape_pretty
 
     def get_image_url(self,
                       discovery_card_id: int,
@@ -552,7 +557,7 @@ class MoveDaoRedis(DaoRedis):
             is_anomaly=self._check_card_is_anomaly(move_id),
             terrain=self._fetch_card_terrain(move_id),
             additional_terrain=self._fetch_card_additional_terrain(move_id),
-            shape=self._fetch_card_shape(move_id),
+            shape=self._get_card_shape_pretty(move_id),
             additional_shape=self._fetch_card_additional_shape(move_id),
             is_prev_card_ruins=self._fetch_is_prev_card_ruins(move_id),
         )
@@ -605,19 +610,16 @@ class MoveDaoRedis(DaoRedis):
         )
         return id
 
-    def _fetch_card_shape(self,
-                          move_id: int,
-                          ) -> str:
+    def _get_card_shape_pretty(self,
+                               move_id: int,
+                               ) -> str:
         type = self._fetch_discovery_card_type(move_id)
+        card_id = self._fetch_discovery_card_id(move_id)
         match type:
             case 'terrain':
-                shape = TerrainCardDaoRedis(REDIS).get_shape(
-                    self._fetch_discovery_card_id(move_id)
-                )
+                shape = TerrainCardDaoRedis(REDIS).get_shape_pretty(card_id)
             case 'monster':
-                shape = MonsterCardDaoRedis(REDIS).get_shape(
-                    self._fetch_discovery_card_id(move_id)
-                )
+                shape = MonsterCardDaoRedis(REDIS).get_shape_pretty(card_id)
             case _:
                 raise ValueError('type must be either "monster" or "terrain"')
 
@@ -720,7 +722,7 @@ class PlayerDaoRedis(DaoRedis):
         id = self.get_model_field(
             model_id=player_id,
             field_name='seasons_score_id',
-            converter=services.utils.deserialize,
+            converter=int,
         )
         return id
 
@@ -888,6 +890,7 @@ class SeasonsScoreDao(DaoRedis):
         total = self.get_model_field(
             model_id=seasons_score_id,
             field_name='total',
+            converter=int
         )
         return total
 
@@ -897,6 +900,7 @@ class SeasonsScoreDao(DaoRedis):
         coins = self.get_model_field(
             model_id=seasons_score_id,
             field_name='coins',
+            converter=int
         )
         return coins
 
@@ -979,11 +983,11 @@ class SeasonsScoreDao(DaoRedis):
         season_score_id = self.get_model_field(
             model_id=seasons_score_id,
             field_name=f'{season.value}_score_id',
-            converter=services.utils.deserialize,
+            converter=int,
         )
-        season_score: SeasonScoreDC = SeasonScoreDao(REDIS).fetch_dc_model(
-            season_score_id
-        )
+        print(season_score_id)
+        season_score: SeasonScoreDC = SeasonScoreDao(REDIS). \
+            fetch_dc_model(season_score_id)
 
         return season_score
 

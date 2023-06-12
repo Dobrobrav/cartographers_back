@@ -1,3 +1,5 @@
+from enum import Enum, IntEnum
+
 from django.db import models
 
 
@@ -6,6 +8,11 @@ class ETerrainTypeLimited(models.TextChoices):
     FIELD = 'field'
     FOREST = 'forest'
     VILLAGE = 'village'
+
+
+class EShapeUnit(IntEnum):
+    FILLED = 1
+    BLANK = 0
 
 
 class ETerrainCardType(models.TextChoices):

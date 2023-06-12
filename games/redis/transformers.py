@@ -3,7 +3,7 @@ import json
 from django.db.models import Model
 
 from games.models import MonsterCardSQL, DiscoveryCardSQL, ETerrainCardType, ETerrainTypeLimited, ObjectiveCardSQL, \
-    EExchangeOrder, SeasonCardSQL, ShapeSQL
+    EExchangeOrder, SeasonCardSQL, ShapeSQL, EShapeUnit
 from games.redis.dc_models import MonsterCardDC, GameDC, TerrainCardDC, ObjectiveCardDC, MoveDC, PlayerDC, SeasonDC, \
     ESeasonName, SeasonCardDC, EDiscoveryCardType, SeasonsScoreDC, SeasonScoreDC, ShapeDC
 from games.redis.dict_models import SeasonDict, MoveDict, PlayerDict, MonsterCardDict, GameDict, TerrainCardDict, \
@@ -391,30 +391,56 @@ class ShapeTransformer(BaseFullTransformer):
                                ) -> ShapeDict:
         shape_dict = ShapeDict(
             id=dc_model.id,
-            shape_str=dc_model.shape_str,
+            shape_value=utils.serialize(dc_model.shape_value),
             gives_coin=utils.serialize(dc_model.gives_coin),
         )
         return shape_dict
 
-    @staticmethod
-    def hash_model_to_dc_model(hash_model: ShapeHash,
+    def hash_model_to_dc_model(self,
+                               hash_model: ShapeHash,
                                ) -> ShapeDC:
         shape_dc = ShapeDC(
             id=int(hash_model[b'id']),
-            shape_str=utils.decode_bytes(hash_model[b'shape_str']),
+            shape_value=self.deserialize_shape_value(
+                hash_model[b'shape_value']
+            ),
             gives_coin=utils.deserialize(hash_model[b'gives_coin']),
         )
         return shape_dc
 
-    @staticmethod
-    def sql_model_to_dc_model(sql_model: ShapeSQL,
+    def sql_model_to_dc_model(self,
+                              sql_model: ShapeSQL,
                               ) -> ShapeDC:
         shape_dc = ShapeDC(
             id=sql_model.id,
-            shape_str=sql_model.shape_str,
+            shape_value=self._deserialize_shape_value_sql(
+                sql_model.shape_str
+            ),
             gives_coin=sql_model.gives_coin,
         )
         return shape_dc
+
+    @staticmethod
+    def _deserialize_shape_value_sql(shape_value_sql: str,
+                                     ) -> list[list[EShapeUnit]]:
+        res = [
+            [
+                get_enum_by_value(EShapeUnit, int(unit))
+                for unit in list(row)
+            ]
+            for row in shape_value_sql.split()
+        ]
+        return res
+
+    @staticmethod
+    def deserialize_shape_value(shape_value_raw: bytes,
+                                ) -> list[list[EShapeUnit]]:
+        shape_value = utils.deserialize(shape_value_raw)
+        shape_value_formatted = [
+            [get_enum_by_value(EShapeUnit, unit) for unit in row]
+            for row in shape_value
+        ]
+        return shape_value_formatted
 
 
 class SeasonsScoreTransformer(BaseRedisTransformer):

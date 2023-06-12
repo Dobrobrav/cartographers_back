@@ -40,7 +40,7 @@ class TerrainCardHash(HashModel):
 
 
 class ShapeHash(HashModel):
-    shape_str: bytes
+    shape_value: bytes
     gives_coin: bytes
 
 

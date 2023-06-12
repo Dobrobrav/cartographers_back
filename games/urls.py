@@ -1,9 +1,9 @@
 from django.urls import path
 
-from . import utils
+from . import utils_upload
 from .views import GameAPIView, MoveAPIView
 
-utils.save_models_to_redis()
+utils_upload.save_models_to_redis()
 
 urlpatterns = [
     path('game/', GameAPIView.as_view()),

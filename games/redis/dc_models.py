@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import MutableSequence, Optional, TypeAlias
+from typing import MutableSequence, Optional, TypeAlias, Literal
 
-from games.models import ETerrainTypeAll, ETerrainTypeLimited, ETerrainCardType, EExchangeOrder
+from games.models import ETerrainTypeAll, ETerrainTypeLimited, ETerrainCardType, EExchangeOrder, EShapeUnit
 from services.redis.models_base import DataClassModel
 
 Field: TypeAlias = MutableSequence[MutableSequence[ETerrainTypeAll]]
@@ -64,7 +64,7 @@ class TerrainCardDC(DataClassModel):
 
 @dataclass
 class ShapeDC(DataClassModel):
-    shape_str: str
+    shape_value: MutableSequence[MutableSequence[EShapeUnit]]
     gives_coin: bool
 
 

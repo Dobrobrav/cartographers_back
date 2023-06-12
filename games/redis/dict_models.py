@@ -48,7 +48,7 @@ class TerrainCardDict(DictModel):
 
 
 class ShapeDict(DictModel):
-    shape_str: str
+    shape_value: str
     gives_coin: str  # 'true' or 'false' for json parser
 
 

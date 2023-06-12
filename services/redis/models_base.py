@@ -19,7 +19,7 @@ class HashModel(TypedDict):
 
 
 def get_enum_by_value(cls: type[T],
-                      value: str,
+                      value: str | int,
                       ) -> T:
     type = cls.__new__(cls, value)
     return type
