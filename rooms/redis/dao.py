@@ -21,10 +21,37 @@ class RoomDaoRedis(DaoFull):
     _transformer = RoomTransformer()
     _model_class = RoomDC
 
-    def leave_room(self,
-                   user_id: int,
-                   ) -> None:
-        ...
+    def leave(self,
+              user_id: int,
+              ) -> None:
+        room_id = self.get_room_id_by_user_id(user_id)
+        self._delete_user(user_id, room_id)
+
+    def _delete_user(self,
+                     user_id: int,
+                     room_id: int,
+                     ) -> None:
+        user_ids = self.get_model_field(
+            model_id=room_id,
+            field_name='user_ids',
+            converter=services.utils.load_seq,
+        )
+        user_ids.remove(user_id)
+
+        self.set_model_field(
+            model_id=room_id,
+            field_name='user_ids',
+            value=user_ids,
+            converter=services.utils.dump_seq,
+        )
+
+        self._delete_room_id_by_user_id_index(user_id)
+
+    def _delete_room_id_by_user_id_index(self,
+                                         user_id: int,
+                                         ) -> None:
+        key = self._key_schema.room_id_by_user_id_index_key
+        self._redis.hdel(key, user_id)
 
     def check_user_is_admin(self,
                             user_id: int,
@@ -132,7 +159,7 @@ class RoomDaoRedis(DaoFull):
             user_ids=[creator_id],
             is_game_started=False,
         )
-        self._update_room_id_by_user_id_index(
+        self._add_room_id_by_user_id_index(
             user_id=creator_id, room_id=room_id
         )
         self._add_model_id_by_model_name_index(
@@ -152,10 +179,10 @@ class RoomDaoRedis(DaoFull):
                            ) -> None:
         pass
 
-    def _update_room_id_by_user_id_index(self,
-                                         user_id: int,
-                                         room_id: int,
-                                         ) -> None:
+    def _add_room_id_by_user_id_index(self,
+                                      user_id: int,
+                                      room_id: int,
+                                      ) -> None:
         """ score - user_id; member - room_id. room_ids are sorted by user_ids """
         key = self._key_schema.room_id_by_user_id_index_key
         self._redis.hset(key, user_id, room_id)
@@ -165,20 +192,7 @@ class RoomDaoRedis(DaoFull):
                   user_to_kick_id: int,
                   ) -> None:
         room_id = self._ckeck_user_is_admin(kicker_id, user_to_kick_id)
-
-        user_ids = self.get_model_field(
-            model_id=room_id,
-            field_name='user_ids',
-            converter=services.utils.load_seq,
-        )
-        user_ids.remove(user_to_kick_id)
-
-        self.set_model_field(
-            model_id=room_id,
-            field_name='user_ids',
-            value=user_ids,
-            converter=services.utils.dump_seq,
-        )
+        self._delete_user(user_to_kick_id, room_id)
 
     def _ckeck_user_is_admin(self,
                              kicker_id: int,
@@ -242,4 +256,4 @@ class RoomDaoRedis(DaoFull):
             value=user_ids,
             converter=services.utils.dump_seq,
         )
-        self._update_room_id_by_user_id_index(user_id, room_id)
+        self._add_room_id_by_user_id_index(user_id, room_id)

@@ -750,6 +750,7 @@ class PlayerDaoRedis(DaoRedis):
                   player_id: int,
                   ) -> int:
 
+
         key = self._key_schema.get_hash_key(player_id)
         score = int(self._redis.hget(key, 'score'))
         return score

@@ -118,6 +118,7 @@ class User(APIView):
         room_dao.kick_user(kicker_id=kicker_id,
                            user_to_kick_id=user_to_kick_id)
 
+
         return Response(status=status.HTTP_200_OK)
 
 
@@ -146,6 +147,6 @@ class Leave(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        RoomDaoRedis(REDIS).leave_room(user_id)
+        RoomDaoRedis(REDIS).leave(user_id)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
