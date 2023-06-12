@@ -141,6 +141,7 @@ class RoomDaoRedis(DaoFull):
                                ) -> int:
         key = self._key_schema.room_id_by_user_id_index_key
         room_id = int(self._redis.hget(key, user_id))
+        print(room_id)
 
         return room_id
 

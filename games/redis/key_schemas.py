@@ -14,6 +14,10 @@ class GameKeySchema(IKeySchema):
     def game_id_by_room_id_index_key(self) -> str:
         return "game_id_by_room_id_index"
 
+    @property
+    def game_id_by_player_id_index_key(self) -> str:
+        return "game_id_by_player_id_index"
+
 
 class TerrainCardKeySchema(IKeySchema):
     @staticmethod
@@ -76,6 +80,10 @@ class PlayerKeySchema(IKeySchema):
     @property
     def ids_key(self) -> str:
         return "players:ids"
+
+    @property
+    def player_id_by_user_id_index_key(self):
+        return "player_id_by_user_id_index"
 
 
 class SeasonsScoreKeySchema(IKeySchema):

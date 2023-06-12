@@ -89,27 +89,41 @@ class GameDaoRedis(DaoRedis):
         season_ids = SeasonDaoRedis(REDIS).init_seasons(initial_cards)
         room_id, player_ids = self._get_room_and_players(admin_id)
 
-        self._create_game_model(
+        game_id = self._create_game_model(
             initial_cards=initial_cards,
             season_ids=season_ids,
             player_ids=player_ids,
             room_id=room_id,
             admin_id=admin_id,
-        )
+        ).id
+
+        self._add_game_id_by_player_id_index_many(game_id, player_ids)
+
+    def _add_game_id_by_player_id_index_many(self,
+                                             game_id: int,
+                                             player_ids: Iterable[int],
+                                             ) -> None:
+        for player_id in player_ids:
+            self._add_game_id_by_player_id_index(game_id, player_id)
 
     def get_game_pretty(self,
-                        player_id: int,
+                        user_id: int,
                         ) -> GamePretty:
+        player_dao = PlayerDaoRedis(REDIS)
+
+        player_id = player_dao.get_player_id_by_user_id(user_id)
         game_id = self._get_game_id_by_player_id(player_id)
-        print(game_id)
         game: GameDC = self.fetch_dc_model(game_id)
+
+        seasons_score_id = player_dao.get_seasons_score_id(player_id)
+        seasons_score = SeasonsScoreDao(REDIS).get_seasons_score_pretty(
+            seasons_score_id
+        )
 
         game_pretty = GamePretty(
             id=game.id,
             room_name=RoomDaoRedis(REDIS).get_room_name(game.room_id),
-            player_field=(player_dao := PlayerDaoRedis(
-                REDIS
-            )).get_field_pretty(player_id),
+            player_field=player_dao.get_field_pretty(player_id),
             seasons=(season_dao := SeasonDaoRedis(REDIS)).get_seasons_pretty(),
             current_season_name=season_dao.get_season_name(
                 game.current_season_id
@@ -121,20 +135,31 @@ class GameDaoRedis(DaoRedis):
             is_prev_card_ruins=move_dao.fetch_is_prev_card_ruins(
                 season_dao.fetch_move_id(game.current_season_id)
             ),
+            season_scores=seasons_score,
             player_coins=player_dao.get_coins(player_id),
-            player_score=player_dao.get_score(player_id),
-            season_scores=SeasonsScoreDao(REDIS).get_seasons_score_pretty(
-                player_dao.get_seasons_score_id(player_id)
-            ),
+            player_score=self._extract_current_score(seasons_score),
+
         )
 
         return game_pretty
 
+    @staticmethod
+    def _extract_current_score(seasons_score: SeasonsScorePretty,
+                               ) -> int:
+        spring_total = seasons_score['spring_score']['total']
+        summer_total = seasons_score['summer_score']['total']
+        fall_total = seasons_score['fall_score']['total']
+        winter_total = seasons_score['winter_score']['total']
+
+        return spring_total + summer_total + fall_total + winter_total
+
     def _get_game_id_by_player_id(self,
                                   player_id: int,
                                   ) -> int:
-        room_id = RoomDaoRedis(REDIS).get_room_id_by_user_id(player_id)
-        game_id = self._get_game_id_by_room_id(room_id)
+        key = self._key_schema.game_id_by_player_id_index_key
+        game_id = services.utils.deserialize(
+            self._redis.hget(key, player_id)
+        )
         return game_id
 
     def _get_game_id_by_room_id(self,
@@ -184,14 +209,14 @@ class GameDaoRedis(DaoRedis):
             current_season_id=season_ids[0],
         )
         self.insert_dc_model(game)
-        self._update_game_id_by_room_id_index(room_id, game_id)
+        self._add_game_id_by_room_id_index(room_id, game_id)
 
         return game
 
-    def _update_game_id_by_room_id_index(self,
-                                         room_id: int,
-                                         game_id: int,
-                                         ) -> None:
+    def _add_game_id_by_room_id_index(self,
+                                      room_id: int,
+                                      game_id: int,
+                                      ) -> None:
         key = self._key_schema.game_id_by_room_id_index_key
         self._redis.hset(key, room_id, game_id)
 
@@ -204,6 +229,13 @@ class GameDaoRedis(DaoRedis):
         room_id = room_dao.get_room_id_by_user_id(admin_id)
 
         return room_id, player_ids
+
+    def _add_game_id_by_player_id_index(self,
+                                        game_id: int,
+                                        player_id: int,
+                                        ) -> None:
+        key = self._key_schema.game_id_by_player_id_index_key
+        self._redis.hset(key, player_id, game_id)
 
     def _gen_field(self) -> Field:
         blank_field = [[ETerrainTypeAll.BLANK] * 11] * 11
@@ -655,7 +687,7 @@ class MoveDaoRedis(DaoRedis):
         return is_prev_card_ruins
 
 
-# TODO: it will be nice to use deck-type in the future
+# TODO: it will be nice to use deck-type structure for cards in the future
 class PlayerDaoRedis(DaoRedis):
     _key_schema = PlayerKeySchema()
     _transformer = PlayerTransformer()
@@ -684,12 +716,20 @@ class PlayerDaoRedis(DaoRedis):
     def get_seasons_score_id(self,
                              player_id: int,
                              ) -> int:
+        print(player_id)
         id = self.get_model_field(
             model_id=player_id,
             field_name='seasons_score_id',
             converter=services.utils.deserialize,
         )
         return id
+
+    def get_player_id_by_user_id(self,
+                                 user_id: int,
+                                 ) -> int:
+        key = self._key_schema.player_id_by_user_id_index_key
+        player_id = self._redis.hget(key, user_id)
+        return player_id
 
     def _get_neighbors_lst(self,
                            user_ids: Sequence[int],
@@ -722,7 +762,15 @@ class PlayerDaoRedis(DaoRedis):
         seasons_score_id = SeasonsScoreDao(REDIS).init_seasons_score()  # create seasons for players
         player_dc = self._create_model(neighbors, field, seasons_score_id)
         self.insert_dc_model(player_dc)
+        self._add_player_id_by_user_id_index(player_dc.id, neighbors.user_id)
         return player_dc.id
+
+    def _add_player_id_by_user_id_index(self,
+                                        player_id: int,
+                                        user_id: int,
+                                        ) -> None:
+        key = self._key_schema.player_id_by_user_id_index_key
+        self._redis.hset(key, user_id, player_id)
 
     def _create_model(self,
                       neighbors: Neighbors,
@@ -817,6 +865,8 @@ class SeasonsScoreDao(DaoRedis):
             coins=0,
             total=0,
         )
+        self.insert_dc_model(season_score)
+
         return season_score.id
 
     def get_seasons_score_pretty(self,
@@ -952,6 +1002,8 @@ class SeasonScoreDao(DaoRedis):
             monsters=0,
             total=0,
         )
+        self.insert_dc_model(season)
+
         return season.id
 
 
