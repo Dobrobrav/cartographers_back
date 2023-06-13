@@ -50,14 +50,14 @@ class RoomTransformer(BaseRedisTransformer):
         return display_dict_rooms
 
     @staticmethod
-    def make_dict_room_for_page(room_dc: RoomDC,
+    def make_dict_room_for_page(room_dict: RoomDC,
                                 ) -> RoomDictForPage:
-        room_dc = RoomDictForPage(
-            id=room_dc.id,
-            name=room_dc.name,
-            max_users=room_dc.max_users,
-            current_users=len(room_dc.user_ids),
-            contains_password=bool(room_dc.password),
-            is_game_started=bool(room_dc.is_game_started),
+        room_dict = RoomDictForPage(
+            id=room_dict.id,
+            name=room_dict.name,
+            max_users=room_dict.max_users,
+            current_users=len(room_dict.user_ids),
+            contains_password=bool(room_dict.password),
+            is_game_started=bool(room_dict.is_game_started),
         )
-        return room_dc
+        return room_dict

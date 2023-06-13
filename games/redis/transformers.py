@@ -157,20 +157,22 @@ class PlayerTransformer(BaseRedisTransformer):
             field=utils.dump_field(dc_model.field),
             left_player_id=dc_model.left_player_id,
             right_player_id=dc_model.right_player_id,
+            coins=dc_model.coins,
             seasons_score_id=dc_model.seasons_score_id,
         )
         return player_dict
 
     @staticmethod
-    def hash_model_to_dc_model(a: PlayerHash,
+    def hash_model_to_dc_model(hash_model: PlayerHash,
                                ) -> PlayerDC:
         player_dc = PlayerDC(
-            id=int(a[b'id']),
-            user_id=int(a[b'user_id']),
-            field=utils.decode_field(a[b'field']),
-            left_player_id=int(a[b'left_player_id']),
-            right_player_id=int(a[b'right_player_id']),
-            seasons_score_id=int(a[b'seasons_score_id']),
+            id=int(hash_model[b'id']),
+            user_id=int(hash_model[b'user_id']),
+            field=utils.decode_field(hash_model[b'field']),
+            left_player_id=int(hash_model[b'left_player_id']),
+            right_player_id=int(hash_model[b'right_player_id']),
+            coins=int(hash_model[b'coins']),
+            seasons_score_id=int(hash_model[b'seasons_score_id']),
         )
         return player_dc
 

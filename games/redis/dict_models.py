@@ -62,6 +62,7 @@ class PlayerDict(DictModel):
     field: str
     left_player_id: int
     right_player_id: int
+    coins: int
     seasons_score_id: int
 
 
@@ -115,8 +116,8 @@ class GamePretty(TypedDict):
 class DiscoveryCardPretty(TypedDict):
     image: str
     is_anomaly: bool
-    terrain: int
-    additional_terrain: Optional[int]
+    terrain_int: int
+    additional_terrain_int: Optional[int]
     shape: 'ShapePretty'
     additional_shape: Optional['ShapePretty']
     is_prev_card_ruins: bool
@@ -158,5 +159,5 @@ class SeasonsScorePretty(TypedDict):
     summer_score: SummerScorePretty
     fall_score: FallScorePretty
     winter_score: WinterScorePretty
-    coins: int
-    total: int
+    # coins: int
+    # total: int

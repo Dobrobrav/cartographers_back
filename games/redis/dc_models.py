@@ -6,6 +6,7 @@ from games.models import ETerrainTypeAll, ETerrainTypeLimited, ETerrainCardType,
 from services.redis.models_base import DataClassModel
 
 Field: TypeAlias = MutableSequence[MutableSequence[ETerrainTypeAll]]
+FieldPretty: TypeAlias = list[list[int]]
 
 
 class EDiscoveryCardType(str, Enum):
@@ -80,6 +81,7 @@ class PlayerDC(DataClassModel):
     field: Field
     left_player_id: int
     right_player_id: int
+    coins: int
     seasons_score_id: int
 
 

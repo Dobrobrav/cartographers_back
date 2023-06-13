@@ -32,14 +32,14 @@ class RoomDaoRedis(DaoFull):
                      room_id: int,
                      ) -> None:
 
-        user_ids = self.get_model_field(
+        user_ids = self.get_model_attr(
             model_id=room_id,
             field_name='user_ids',
             converter=services.utils.deserialize,
         )
         user_ids.remove(user_id)
 
-        self.set_model_field(
+        self.set_model_attr(
             model_id=room_id,
             field_name='user_ids',
             value=user_ids,
@@ -247,14 +247,14 @@ class RoomDaoRedis(DaoFull):
                  ) -> None:
         # TODO: add NO more than max_users
         # add value to user_ids str -> fetch it change it set it
-        user_ids = self.get_model_field(
+        user_ids = self.get_model_attr(
             model_id=room_id,
             field_name='user_ids',
             converter=services.utils.deserialize,
         )
         user_ids.append(user_id)
 
-        self.set_model_field(
+        self.set_model_attr(
             model_id=room_id,
             field_name='user_ids',
             value=user_ids,

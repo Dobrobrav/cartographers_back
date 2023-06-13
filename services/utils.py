@@ -32,13 +32,13 @@ def dump_field(field: MutableSequence[MutableSequence[ETerrainTypeAll]],
 
 def decode_field(field: bytes,
                  ) -> list[list[ETerrainTypeAll]]:
-    field = decode_bytes(field)
-    res = json.loads(field)
-    res = [
+    field = deserialize(field)
+    print(field)
+    field_formatted = [
         [get_enum_by_value(ETerrainTypeAll, cell) for cell in row]
         for row in field
     ]
-    return res
+    return field_formatted
 
 
 # TODO: load and dump methods must check incoming value type!
