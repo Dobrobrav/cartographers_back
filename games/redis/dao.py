@@ -624,8 +624,7 @@ class MoveDaoRedis(DaoRedis):
                                        ) -> Optional[int]:
         type = self._fetch_discovery_card_type(move_id)
         if type != 'terrain':
-            raise ValueError('discovery card type must be '
-                             'either "terrain" or "monster"')
+            return None
 
         terrain = TerrainCardDaoRedis(REDIS).get_additional_terrain_pretty(
             terrain_card_id=self._fetch_discovery_card_id(move_id)
@@ -921,11 +920,13 @@ class SeasonsScoreDao(DaoRedis):
                                  seasons_score_id: int,
                                  ) -> SeasonsScorePretty:
         ids = self._get_season_score_ids(seasons_score_id)
+        dao = SeasonScoreDao(REDIS)
+
         res = SeasonsScorePretty(
-            spring_score=self._get_spring_score_pretty(ids[0]),
-            summer_score=self._get_summer_score_pretty(ids[1]),
-            fall_score=self._get_fall_score_pretty(ids[2]),
-            winter_score=self._get_winter_score_pretty(ids[3]),
+            spring_score=dao.get_season_score_pretty(ids[0]),
+            summer_score=dao.get_season_score_pretty(ids[1]),
+            fall_score=dao.get_season_score_pretty(ids[2]),
+            winter_score=dao.get_season_score_pretty(ids[3]),
         )
         return res
 
@@ -970,24 +971,6 @@ class SeasonsScoreDao(DaoRedis):
             converter=int
         )
         return coins
-
-    def _get_season_score_pretty(self,
-                                 seasons_score_id: int,
-                                 ) -> SeasonScorePretty:
-        season_score = self._get_generic_season_score(
-            seasons_score_id=seasons_score_id,
-            season=ESeasonName.SPRING,
-        )
-
-        season_score_pretty = SeasonScorePretty(
-            from_coins=season_score.from_coins,
-            monsters=season_score.monsters,
-            total=season_score.total,
-            from_first_task=season_score.from_first_task,
-            from_second_task=season_score.from_second_task,
-        )
-
-        return season_score_pretty
 
     def _get_spring_score_pretty(self,
                                  seasons_score_id: int,
@@ -1061,16 +1044,6 @@ class SeasonsScoreDao(DaoRedis):
 
         return winter_score_pretty
 
-    def _get_generic_season_score(self,
-                                  seasons_score_id: int,
-                                  season: ESeasonName,
-                                  ) -> SeasonScoreDC:
-        season_score_id = self._get_season_score_id(seasons_score_id, season)
-        season_score: SeasonScoreDC = SeasonScoreDao(REDIS). \
-            fetch_dc_model(season_score_id)
-
-        return season_score
-
     def _get_season_score_id(self,
                              seasons_score_id: int,
                              season: ESeasonName):
@@ -1108,6 +1081,21 @@ class SeasonScoreDao(DaoRedis):
             for season_score_id in season_score_ids
         )
         return total
+
+    def get_season_score_pretty(self,
+                                season_score_id: int,
+                                ) -> SeasonScorePretty:
+        season_score: SeasonScoreDC = self.fetch_dc_model(season_score_id)
+
+        season_score_pretty = SeasonScorePretty(
+            from_coins=season_score.from_coins,
+            monsters=season_score.monsters,
+            total=season_score.total,
+            from_first_task=season_score.from_first_task,
+            from_second_task=season_score.from_second_task,
+        )
+
+        return season_score_pretty
 
     def _get_season_score_total(self,
                                 season_score_id: int,

@@ -71,7 +71,7 @@ class ShapeDC(DataClassModel):
 @dataclass
 class ObjectiveCardDC(DataClassModel):
     name: str
-    text: str
+    text: Optional[str]
     image_url: str
 
 

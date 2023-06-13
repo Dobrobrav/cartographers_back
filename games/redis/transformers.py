@@ -232,6 +232,7 @@ class ObjectiveCardTransformer(BaseFullTransformer):
         objective_card_dc = ObjectiveCardDC(
             id=sql_model.pk,
             name=sql_model.name,
+            text=None,
             image_url=sql_model.image.url,
         )
         return objective_card_dc

@@ -167,10 +167,10 @@ class WinterScorePretty(SeasonScorePrettyGen):
 
 
 class SeasonsScorePretty(TypedDict):
-    spring_score: SpringScorePretty
-    summer_score: SummerScorePretty
-    fall_score: FallScorePretty
-    winter_score: WinterScorePretty
+    spring_score: SeasonScorePretty
+    summer_score: SeasonScorePretty
+    fall_score: SeasonScorePretty
+    winter_score: SeasonScorePretty
     # coins: int
     # total: int
 
