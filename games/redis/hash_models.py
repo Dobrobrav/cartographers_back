@@ -56,6 +56,7 @@ class PlayerHash(HashModel):
     right_player_id: bytes
     coins: bytes
     seasons_score_id: bytes
+    finished_move: bytes
 
 
 class SeasonsScoreHash(HashModel):

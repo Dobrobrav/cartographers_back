@@ -154,11 +154,12 @@ class PlayerTransformer(BaseRedisTransformer):
         player_dict = PlayerDict(
             id=dc_model.id,
             user_id=dc_model.user_id,
-            field=utils.dump_field(dc_model.field),
+            field=utils.serialize_field(dc_model.field),
             left_player_id=dc_model.left_player_id,
             right_player_id=dc_model.right_player_id,
             coins=dc_model.coins,
             seasons_score_id=dc_model.seasons_score_id,
+            finished_move=utils.serialize(dc_model.finished_move),
         )
         return player_dict
 
@@ -168,11 +169,12 @@ class PlayerTransformer(BaseRedisTransformer):
         player_dc = PlayerDC(
             id=int(hash_model[b'id']),
             user_id=int(hash_model[b'user_id']),
-            field=utils.decode_field(hash_model[b'field']),
+            field=utils.deserialize_field(hash_model[b'field']),
             left_player_id=int(hash_model[b'left_player_id']),
             right_player_id=int(hash_model[b'right_player_id']),
             coins=int(hash_model[b'coins']),
             seasons_score_id=int(hash_model[b'seasons_score_id']),
+            finished_move=utils.deserialize(hash_model[b'finished_move']),
         )
         return player_dc
 

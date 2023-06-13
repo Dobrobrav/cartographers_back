@@ -66,6 +66,7 @@ class PlayerDict(DictModel):
     right_player_id: int
     coins: int
     seasons_score_id: int
+    finished_move: str  # true or false
 
 
 class PlayerPretty(TypedDict):
@@ -122,7 +123,6 @@ class DiscoveryCardPretty(TypedDict):
     additional_terrain_int: Optional[int]
     shape: 'ShapePretty'
     additional_shape: Optional['ShapePretty']
-    is_prev_card_ruins: bool
 
 
 class ShapePretty(TypedDict):
@@ -130,28 +130,36 @@ class ShapePretty(TypedDict):
     shape_value: MutableSequence[MutableSequence[EShapeUnit]]
 
 
-class SeasonScorePretty(TypedDict):
+class SeasonScorePrettyGen(TypedDict):
     from_coins: int
     monsters: int
     total: int
 
 
-class SpringScorePretty(SeasonScorePretty):
+class SeasonScorePretty(TypedDict):
+    from_coins: int
+    monsters: int
+    total: int
+    from_first_task: int
+    from_second_task: int
+
+
+class SpringScorePretty(SeasonScorePrettyGen):
     A: int
     B: int
 
 
-class SummerScorePretty(SeasonScorePretty):
+class SummerScorePretty(SeasonScorePrettyGen):
     B: int
     C: int
 
 
-class FallScorePretty(SeasonScorePretty):
+class FallScorePretty(SeasonScorePrettyGen):
     C: int
     D: int
 
 
-class WinterScorePretty(SeasonScorePretty):
+class WinterScorePretty(SeasonScorePrettyGen):
     D: int
     A: int
 

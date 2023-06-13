@@ -41,3 +41,11 @@ class MoveAPIView(APIView):
             request: Request,
             ) -> Response:
         """ make move (place figure) """
+        user_id = get_user_id_by_token(request.auth)
+        updated_field = request.data['field']
+
+        GameDaoRedis(REDIS).make_move(user_id, updated_field)
+
+        return Response(status=status.HTTP_205_RESET_CONTENT)
+
+

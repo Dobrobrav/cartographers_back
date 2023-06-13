@@ -4,7 +4,7 @@ from django_redis.serializers import json
 from rest_framework.authtoken.models import Token
 from rest_framework.utils import json
 
-from games.models import ETerrainTypeAll
+from games.models import ETerrainTypeAll, TERRAIN_NUM_TO_STR
 from services.redis.models_base import get_enum_by_value
 
 
@@ -21,8 +21,8 @@ def bytes_to_list(bts: bytes,
     return ids
 
 
-def dump_field(field: MutableSequence[MutableSequence[ETerrainTypeAll]],
-               ) -> str:
+def serialize_field(field: MutableSequence[MutableSequence[ETerrainTypeAll]],
+                    ) -> str:
     res = json.dumps([
         [val.value for val in row]
         for row in field
@@ -30,12 +30,23 @@ def dump_field(field: MutableSequence[MutableSequence[ETerrainTypeAll]],
     return res
 
 
-def decode_field(field: bytes,
-                 ) -> list[list[ETerrainTypeAll]]:
+def deserialize_field(field: bytes,
+                      ) -> list[list[ETerrainTypeAll]]:
     field = deserialize(field)
-    print(field)
     field_formatted = [
         [get_enum_by_value(ETerrainTypeAll, cell) for cell in row]
+        for row in field
+    ]
+    return field_formatted
+
+
+def decode_pretty_field(field: MutableSequence[MutableSequence[int]],
+                        ) -> list[list[ETerrainTypeAll]]:
+    field_formatted = [
+        [
+            get_enum_by_value(ETerrainTypeAll, TERRAIN_NUM_TO_STR[cell])
+            for cell in row
+        ]
         for row in field
     ]
     return field_formatted

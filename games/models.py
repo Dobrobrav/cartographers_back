@@ -43,6 +43,10 @@ TERRAIN_STR_TO_NUM: dict[str, int] = {
     'blank': 0,
 }
 
+TERRAIN_NUM_TO_STR: dict[int, str] = {
+    value: key for key, value in TERRAIN_STR_TO_NUM.items()
+}
+
 
 class EObjectiveCardName(models.TextChoices):
     LAKEFOLK_MAP = 'lakefolk_map'
@@ -134,7 +138,7 @@ class MonsterCardSQL(models.Model):
 
 
 class ShapeSQL(models.Model):
-    DEFAULT_SHAPE = "000000 000000 000000 000000 000000 000000" # костыль
+    DEFAULT_SHAPE = "000000 000000 000000 000000 000000 000000"  # костыль
 
     shape_str = models.CharField(
         max_length=41, default=DEFAULT_SHAPE,

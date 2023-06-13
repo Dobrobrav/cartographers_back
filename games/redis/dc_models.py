@@ -82,6 +82,7 @@ class PlayerDC(DataClassModel):
     right_player_id: int
     coins: int
     seasons_score_id: int
+    finished_move: bool
 
 
 @dataclass
