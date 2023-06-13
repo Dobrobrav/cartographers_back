@@ -1,5 +1,7 @@
 from typing import MutableSequence, TypedDict, TypeAlias, Literal, Optional
 
+from games.models import EShapeUnit
+from games.redis.dc_models import Field
 from services.redis.models_base import DictModel
 
 SeasonName: TypeAlias = str
@@ -125,7 +127,7 @@ class DiscoveryCardPretty(TypedDict):
 
 class ShapePretty(TypedDict):
     gives_coin: bool
-    shape_value: MutableSequence[MutableSequence[Literal[1, 0]]]
+    shape_value: MutableSequence[MutableSequence[EShapeUnit]]
 
 
 class SeasonScorePretty(TypedDict):

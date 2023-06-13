@@ -6,7 +6,6 @@ from games.models import ETerrainTypeAll, ETerrainTypeLimited, ETerrainCardType,
 from services.redis.models_base import DataClassModel
 
 Field: TypeAlias = MutableSequence[MutableSequence[ETerrainTypeAll]]
-FieldPretty: TypeAlias = list[list[int]]
 
 
 class EDiscoveryCardType(str, Enum):

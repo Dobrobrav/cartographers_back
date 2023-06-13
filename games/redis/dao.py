@@ -17,7 +17,7 @@ from .transformers import MonsterCardTransformer, GameTransformer, SeasonTransfo
     TerrainCardTransformer, ObjectiveCardTransformer, PlayerTransformer, SeasonsScoreTransformer, \
     SeasonScoreTransformer, ShapeTransformer
 from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
-    ObjectiveCardDC, PlayerDC, Field, SeasonsScoreDC, SeasonScoreDC, ShapeDC, FieldPretty
+    ObjectiveCardDC, PlayerDC, Field, SeasonsScoreDC, SeasonScoreDC, ShapeDC, Field
 from ..models import SeasonCardSQL, TERRAIN_STR_TO_NUM, ETerrainTypeAll
 
 PlayerID: TypeAlias = int
@@ -124,12 +124,15 @@ class GameDaoRedis(DaoRedis):
         seasons_score = SeasonsScoreDao(REDIS).get_seasons_score_pretty(
             seasons_score_id
         )
+        season_ids = self._fetch_season_ids(game_id)
 
         game_pretty = GamePretty(
-            id=game.id,
+            id=game_id,
             room_name=RoomDaoRedis(REDIS).get_room_name(game.room_id),
             player_field=player_dao.get_field_pretty(player_id),
-            seasons=(season_dao := SeasonDaoRedis(REDIS)).get_seasons_pretty(),
+            seasons=(season_dao := SeasonDaoRedis(REDIS)).get_seasons_pretty(
+                season_ids
+            ),
             current_season_name=season_dao.get_season_name(
                 game.current_season_id
             ),
@@ -147,6 +150,15 @@ class GameDaoRedis(DaoRedis):
         )
 
         return game_pretty
+
+    def _fetch_season_ids(self,
+                          game_id: int,
+                          ) -> list[int]:
+        season_ids = self.get_model_attr(
+            model_id=game_id,
+            field_name='season_ids',
+        )
+        return season_ids
 
     @staticmethod
     def _extract_current_score(seasons_score: SeasonsScorePretty,
@@ -369,7 +381,7 @@ class SeasonDaoRedis(DaoRedis):
             monster_card_ids=[monster_card_ids.pop()],
         ))
         seasons.append(self.init_season(
-            name=ESeasonName.SUMMER,
+            name=ESeasonName.WINTER,
             season_card=season_cards.winter,
             objective_card_ids=[objective_card_ids[0],
                                 objective_card_ids[3]],
@@ -406,9 +418,9 @@ class SeasonDaoRedis(DaoRedis):
 
         return season.id
 
-    def get_seasons_pretty(self) -> dict[SeasonName, URL]:
-        season_ids = self.get_all_ids()
-
+    def get_seasons_pretty(self,
+                           season_ids: Iterable[int],
+                           ) -> dict[SeasonName: SeasonPretty]:
         seasons = {
             (season := self.get_season_pretty(season_id)).name: season.url
             for season_id in season_ids
@@ -815,7 +827,7 @@ class PlayerDaoRedis(DaoRedis):
 
     @staticmethod
     def _make_field_pretty(field: Field,
-                           ) -> FieldPretty:
+                           ) -> Field:
         field_pretty = [
             [TERRAIN_STR_TO_NUM[cell.value] for cell in row]
             for row in field
