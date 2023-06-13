@@ -7,17 +7,17 @@ from django.contrib.auth.models import User
 import services.utils
 from cartographers_back.settings import REDIS
 from rooms.redis.dao import RoomDaoRedis
-from services.redis.transformers_base import DictModel
 from services.redis.redis_dao_base import DaoRedis, DaoFull
 from .dict_models import GamePretty, PlayerPretty, SeasonName, URL, ScoreSource, ScoreValue, DiscoveryCardPretty, \
-    SeasonsScorePretty, SpringScorePretty, SummerScorePretty, FallScorePretty, WinterScorePretty, ShapePretty
+    SeasonsScorePretty, SpringScorePretty, SummerScorePretty, FallScorePretty, WinterScorePretty, ShapePretty, \
+    SeasonScorePretty, TaskPretty
 from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema, \
     TerrainCardKeySchema, ObjectiveCardKeySchema, SeasonsScoreKeySchema, SeasonScoreKeySchema, ShapeKeySchema
 from .transformers import MonsterCardTransformer, GameTransformer, SeasonTransformer, MoveTransformer, \
     TerrainCardTransformer, ObjectiveCardTransformer, PlayerTransformer, SeasonsScoreTransformer, \
     SeasonScoreTransformer, ShapeTransformer
 from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
-    ObjectiveCardDC, PlayerDC, Field, SeasonsScoreDC, SeasonScoreDC, ShapeDC, Field
+    ObjectiveCardDC, PlayerDC, SeasonsScoreDC, SeasonScoreDC, ShapeDC, Field
 from ..models import SeasonCardSQL, TERRAIN_STR_TO_NUM, ETerrainTypeAll
 
 PlayerID: TypeAlias = int
@@ -83,9 +83,6 @@ class GameDaoRedis(DaoRedis):
     _key_schema = GameKeySchema()
     _transformer = GameTransformer()
 
-    # TODO: keep in mind that DictModel is for redis, not necessarily for Response
-    # TODO: can I create a base typed dict class for models and inherit from it?
-    # TODO: point of redis models is that I operate with them and  transform it into other forms to send it somewhere
     def start_new_game(self,
                        admin_id: int,
                        ) -> None:
@@ -103,6 +100,18 @@ class GameDaoRedis(DaoRedis):
         ).id
 
         self._add_game_id_by_player_id_index_many(game_id, player_ids)
+
+    def make_move(self,
+                  user_id: int,
+                  updated_field: MutableSequence[MutableSequence[int]],
+                  ) -> None:
+        # need to put here checks (maybe)
+        self.set_model_attr(
+            model_id=PlayerDaoRedis(REDIS).get_player_id_by_user_id(user_id),
+            field_name='field',
+            value=services.utils.decode_pretty_field(updated_field),
+            converter=services.utils.serialize_field,
+        )
 
     def _add_game_id_by_player_id_index_many(self,
                                              game_id: int,
@@ -133,6 +142,7 @@ class GameDaoRedis(DaoRedis):
             seasons=(season_dao := SeasonDaoRedis(REDIS)).get_seasons_pretty(
                 season_ids
             ),
+            # tasks=season_dao.get_tasks_pretty(game.season_ids),
             current_season_name=season_dao.get_season_name(
                 game.current_season_id
             ),
@@ -143,9 +153,9 @@ class GameDaoRedis(DaoRedis):
             is_prev_card_ruins=move_dao.fetch_is_prev_card_ruins(
                 season_dao.fetch_move_id(game.current_season_id)
             ),
-            season_scores=seasons_score,
             player_coins=player_dao.get_coins(player_id),
             player_score=self._extract_current_score(seasons_score),
+            season_scores=seasons_score,
 
         )
 
@@ -342,6 +352,17 @@ class SeasonDaoRedis(DaoRedis):
         key = self._key_schema.get_hash_key(season_id)
         move_id = int(self._redis.hget(key, 'current_move_id'))
         return move_id
+
+    # def get_tasks_pretty(self,
+    #                      season_ids: Iterable[int],
+    #                      ) -> list[TaskPretty]:
+    #     objective_card_ids = self._get_objective_card_ids(season_ids)
+    #     tasks_pretty = [
+    #
+    #         for
+    #     ]
+    #
+    # def _get_objective_card_ids(self,):
 
     def init_seasons(self,
                      initial_cards: InitialCards,
@@ -571,7 +592,6 @@ class MoveDaoRedis(DaoRedis):
             additional_terrain_int=self._fetch_card_additional_terrain(move_id),
             shape=self._get_card_shape_pretty(move_id),
             additional_shape=self._fetch_card_additional_shape(move_id),
-            is_prev_card_ruins=self._fetch_is_prev_card_ruins(move_id),
         )
         # TODO: replace 'additional_' with extra_
         return discovery_card_pretty
@@ -801,6 +821,7 @@ class PlayerDaoRedis(DaoRedis):
             right_player_id=neighbors.right_player_id,
             coins=0,
             seasons_score_id=seasons_score_id,
+            finished_move=False,
         )
         return player_dc
 
@@ -820,7 +841,7 @@ class PlayerDaoRedis(DaoRedis):
             model_id=player_id,
             field_name='field',
             converter=lambda x: self._make_field_pretty(
-                services.utils.decode_field(x)
+                services.utils.deserialize_field(x)
             ),
         )
         return field_pretty
@@ -899,20 +920,26 @@ class SeasonsScoreDao(DaoRedis):
     def get_seasons_score_pretty(self,
                                  seasons_score_id: int,
                                  ) -> SeasonsScorePretty:
+        ids = self._get_season_score_ids(seasons_score_id)
         res = SeasonsScorePretty(
-            spring_score=self._get_spring_score_pretty(seasons_score_id),
-            summer_score=self._get_summer_score_pretty(seasons_score_id),
-            fall_score=self._get_fall_score_pretty(seasons_score_id),
-            winter_score=self._get_winter_score_pretty(seasons_score_id),
-            # coins=self._get_coins(seasons_score_id),
-            # total=self._get_total(seasons_score_id),
+            spring_score=self._get_spring_score_pretty(ids[0]),
+            summer_score=self._get_summer_score_pretty(ids[1]),
+            fall_score=self._get_fall_score_pretty(ids[2]),
+            winter_score=self._get_winter_score_pretty(ids[3]),
         )
         return res
 
     def get_score(self,
                   seasons_score_id: int,
                   ) -> int:
-        season_ids = [
+        season_score_ids = self._get_season_score_ids(seasons_score_id)
+        total = SeasonScoreDao(REDIS).get_seasons_score_total(season_score_ids)
+        return total
+
+    def _get_season_score_ids(self,
+                              seasons_score_id: int,
+                              ) -> list[int]:
+        season_score_ids = [
             self._get_season_score_id(seasons_score_id,
                                       ESeasonName.SPRING),
             self._get_season_score_id(seasons_score_id,
@@ -922,8 +949,7 @@ class SeasonsScoreDao(DaoRedis):
             self._get_season_score_id(seasons_score_id,
                                       ESeasonName.WINTER),
         ]
-        total = SeasonScoreDao(REDIS).get_seasons_score_total(season_ids)
-        return total
+        return season_score_ids
 
     def _get_total(self,
                    seasons_score_id: int,
@@ -944,6 +970,24 @@ class SeasonsScoreDao(DaoRedis):
             converter=int
         )
         return coins
+
+    def _get_season_score_pretty(self,
+                                 seasons_score_id: int,
+                                 ) -> SeasonScorePretty:
+        season_score = self._get_generic_season_score(
+            seasons_score_id=seasons_score_id,
+            season=ESeasonName.SPRING,
+        )
+
+        season_score_pretty = SeasonScorePretty(
+            from_coins=season_score.from_coins,
+            monsters=season_score.monsters,
+            total=season_score.total,
+            from_first_task=season_score.from_first_task,
+            from_second_task=season_score.from_second_task,
+        )
+
+        return season_score_pretty
 
     def _get_spring_score_pretty(self,
                                  seasons_score_id: int,

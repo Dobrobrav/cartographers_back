@@ -71,6 +71,7 @@ class ShapeDC(DataClassModel):
 @dataclass
 class ObjectiveCardDC(DataClassModel):
     name: str
+    text: str
     image_url: str
 
 
@@ -82,6 +83,7 @@ class PlayerDC(DataClassModel):
     right_player_id: int
     coins: int
     seasons_score_id: int
+    finished_move: bool
 
 
 @dataclass
