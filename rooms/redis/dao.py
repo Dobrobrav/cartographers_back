@@ -9,7 +9,7 @@ from cartographers_back.settings import REDIS
 from services.redis.transformers import UserTransformer
 from services.redis.transformers_base import DictModel
 from services.redis.models_base import DataClassModel
-from .dict_models import RoomDict, RoomDictForPage
+from .dict_models import RoomDict, RoomPrettyForPage, RoomPretty
 from .key_schemas import RoomKeySchema
 from .transformers import RoomTransformer
 from services.redis.redis_dao_base import DaoFull
@@ -74,14 +74,14 @@ class RoomDaoRedis(DaoFull):
     def get_page(self,
                  page: int,
                  limit: int,
-                 ) -> list[RoomDictForPage]:
+                 ) -> list[RoomPrettyForPage]:
         all_ids = self._get_all_ids()
         ids_for_page = self._get_ids_for_page(all_ids, page, limit)
         hash_rooms = self._fetch_hash_models(ids_for_page)
         rooms_dc: list[RoomDC] = self._transformer. \
             hash_models_to_dc_models(hash_rooms)
 
-        page = self._transformer.make_dict_rooms_for_page(rooms_dc)
+        page = self._transformer.make_pretty_rooms_for_page(rooms_dc)
 
         return page
 
@@ -208,36 +208,37 @@ class RoomDaoRedis(DaoFull):
 
     # TODO: implement this
 
-    def get_complete_room(self,
-                          user_id: Optional[int] = None,
-                          room_id: Optional[int] = None,
-                          ) -> dict[str, Any]:
+    def get_room_pretty(self,
+                        user_id: Optional[int] = None,
+                        room_id: Optional[int] = None,
+                        ) -> dict[str, Any]:
         if room_id is not None:
-            return self._get_complete_room_by_room_id(room_id)
+            return self._get_room_pretty_by_room_id(room_id)
         elif user_id is not None:
-            return self._get_complete_room_by_user_id(user_id)
+            return self._get_room_pretty_by_user_id(user_id)
         else:
             raise ValueError()
 
-    def _get_complete_room_by_user_id(self,
-                                      user_id: int,
-                                      ) -> dict[str, Any]:
+    def _get_room_pretty_by_user_id(self,
+                                    user_id: int,
+                                    ) -> dict[str, Any]:
         room_id = self.get_room_id_by_user_id(user_id)
-        room = self._get_complete_room_by_room_id(room_id)
+        room = self._get_room_pretty_by_room_id(room_id)
         return room
 
-    def _get_complete_room_by_room_id(self,
-                                      room_id: int,
-                                      ) -> dict[str, Any]:
+    def _get_room_pretty_by_room_id(self,
+                                    room_id: int,
+                                    ) -> RoomPretty:
         room_dc: RoomDC = self.fetch_dc_model(room_id=room_id)
         user_ids = room_dc.user_ids
 
         sql_users = list(User.objects.filter(id__in=user_ids))
-        dict_users = UserTransformer().sql_models_to_dict_models(sql_users)
+        users_pretty = UserTransformer().sql_models_to_pretty_models(
+            sql_users
+        )
 
-        room_dict: RoomDict = self._transformer. \
-            dc_model_to_dict_model(room_dc)
-        room_dict['users'] = dict_users
+        room_dict: RoomDict = self._transformer.dc_model_to_dict_model(room_dc)
+        room_dict['users'] = users_pretty
 
         return room_dict
 

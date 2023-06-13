@@ -58,7 +58,7 @@ class RoomAPIView(APIView):
         token = request.auth
 
         user_id = get_user_id_by_token(token)
-        room = RoomDaoRedis(REDIS).get_complete_room(user_id=user_id)
+        room = RoomDaoRedis(REDIS).get_room_pretty(user_id=user_id)
 
         return Response(room, status=status.HTTP_200_OK)
 
@@ -134,7 +134,6 @@ class Ready(APIView):
         room_id = room_dao.get_room_id_by_user_id(user_id)
 
         room_dao.change_user_readiness(user_id)
-        room = room_dao.get_complete_room(room_id)
 
         return Response(room, status=status.HTTP_200_OK)
 

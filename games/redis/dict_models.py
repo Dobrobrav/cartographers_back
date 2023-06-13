@@ -2,7 +2,7 @@ from typing import MutableSequence, TypedDict, TypeAlias, Literal, Optional
 
 from games.models import EShapeUnit
 from games.redis.dc_models import Field
-from services.redis.models_base import DictModel
+from services.redis.models_base import DictModel, PrettyModel
 
 SeasonName: TypeAlias = str
 URL: TypeAlias = str
@@ -70,7 +70,7 @@ class PlayerDict(DictModel):
     finished_move: str  # true or false
 
 
-class PlayerPretty(TypedDict):
+class PlayerPretty(PrettyModel):
     id: int
     name: str
     score: int
@@ -166,7 +166,7 @@ class WinterScorePretty(SeasonScorePrettyGen):
     A: int
 
 
-class SeasonsScorePretty(TypedDict):
+class SeasonsScorePretty(PrettyModel):
     spring_score: SeasonScorePretty
     summer_score: SeasonScorePretty
     fall_score: SeasonScorePretty
@@ -175,6 +175,6 @@ class SeasonsScorePretty(TypedDict):
     # total: int
 
 
-class TaskPretty(TypedDict):
+class TaskPretty(PrettyModel):
     text: str
     image: str

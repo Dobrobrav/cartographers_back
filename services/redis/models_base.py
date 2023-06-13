@@ -18,6 +18,10 @@ class HashModel(TypedDict):
     id: bytes
 
 
+class PrettyModel(TypedDict):
+    pass
+
+
 def get_enum_by_value(cls: type[T],
                       value: str | int,
                       ) -> T:

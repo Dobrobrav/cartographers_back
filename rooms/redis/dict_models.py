@@ -1,6 +1,7 @@
-from typing import TypedDict
+from typing import TypedDict, Sequence
 
-from services.redis.models_base import DictModel
+from services.redis.dict_models import UserPretty
+from services.redis.models_base import DictModel, PrettyModel
 
 
 class RoomDict(DictModel):
@@ -9,11 +10,21 @@ class RoomDict(DictModel):
     max_users: int
     admin_id: int
     user_ids: str
-    is_game_started: int
+    is_game_started: str  # true or false
 
 
-# special case
-class RoomDictForPage(TypedDict):
+class RoomPretty(PrettyModel):
+    id: int
+    name: str
+    password: str | None
+    max_users: int
+    admin_id: int
+    user_ids: Sequence[int]
+    is_game_started: bool
+    users: Sequence[UserPretty]
+
+
+class RoomPrettyForPage(TypedDict):
     """ not derived from DictModel """
     id: int
     name: str

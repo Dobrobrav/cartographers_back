@@ -1,8 +1,9 @@
 import json
 from typing import Iterable
 
+import services.utils
 from rooms.redis.dc_models import RoomDC
-from rooms.redis.dict_models import RoomDict, RoomDictForPage
+from rooms.redis.dict_models import RoomDict, RoomPrettyForPage
 from rooms.redis.hash_models import RoomHash
 from services.redis.transformers_base import BaseRedisTransformer
 from services.utils import decode_bytes
@@ -20,7 +21,7 @@ class RoomTransformer(BaseRedisTransformer):
             max_users=dc_model.max_users,
             admin_id=dc_model.admin_id,
             user_ids=json.dumps(dc_model.user_ids),
-            is_game_started=int(dc_model.is_game_started),
+            is_game_started=services.utils.serialize(dc_model.is_game_started),
         )
         return room_dict
 
@@ -33,31 +34,33 @@ class RoomTransformer(BaseRedisTransformer):
             password=hash_model[b'password'].decode('utf-8') or None,
             max_users=int(hash_model[b'max_users']),
             admin_id=int(hash_model[b'admin_id']),
-            user_ids=json.loads(decode_bytes(hash_model[b'user_ids'])),
-            is_game_started=bool(int(hash_model[b'is_game_started'])),
+            user_ids=services.utils.deserialize(hash_model[b'user_ids']),
+            is_game_started=services.utils.deserialize(
+                hash_model[b'is_game_started']
+            ),
         )
 
         return redis_model
 
-    def make_dict_rooms_for_page(self,
-                                 dc_models: Iterable[RoomDC],
-                                 ) -> list[RoomDictForPage]:
+    def make_pretty_rooms_for_page(self,
+                                   dc_models: Iterable[RoomDC],
+                                   ) -> list[RoomPrettyForPage]:
         """ rooms in dict-format for page of rooms """
-        display_dict_rooms = [
-            self.make_dict_room_for_page(room_dc)
+        rooms_pretty = [
+            self.make_pretty_room_for_page(room_dc)
             for room_dc in dc_models
         ]
-        return display_dict_rooms
+        return rooms_pretty
 
     @staticmethod
-    def make_dict_room_for_page(room_dict: RoomDC,
-                                ) -> RoomDictForPage:
-        room_dict = RoomDictForPage(
-            id=room_dict.id,
-            name=room_dict.name,
-            max_users=room_dict.max_users,
-            current_users=len(room_dict.user_ids),
-            contains_password=bool(room_dict.password),
-            is_game_started=bool(room_dict.is_game_started),
+    def make_pretty_room_for_page(room_dc: RoomDC,
+                                  ) -> RoomPrettyForPage:
+        a = RoomPrettyForPage(
+            id=room_dc.id,
+            name=room_dc.name,
+            max_users=room_dc.max_users,
+            current_users=len(room_dc.user_ids),
+            contains_password=bool(room_dc.password),
+            is_game_started=room_dc.is_game_started,
         )
-        return room_dict
+        return a
