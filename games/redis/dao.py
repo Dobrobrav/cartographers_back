@@ -101,23 +101,19 @@ class GameDaoRedis(DaoRedis):
 
         self._add_game_id_by_player_id_index_many(game_id, player_ids)
 
-    # def make_move(self,
-    #               user_id: int,
-    #               updated_field: MutableSequence[MutableSequence[int]],
-    #               ) -> None:
-    #     dao_season = SeasonDaoRedis(REDIS)
-    #
-    #     self._finish_move_for_one_player()
-    #
-    #     if self._check_all_players_made_move():
-    #         if dao_season.ckeck_season_finished():
-    #             if dao_season.check_game_finished():
-    #                 pass # then return game results
-    #             dao_season.start_new_season()
-
-
-
-
+        # def make_move(self,
+        #               user_id: int,
+        #               updated_field: MutableSequence[MutableSequence[int]],
+        #               ) -> None:
+        #     dao_season = SeasonDaoRedis(REDIS)
+        #
+        #     self._finish_move_for_one_player()
+        #
+        #     if self._check_all_players_made_move():
+        #         if dao_season.ckeck_season_finished():
+        #             if dao_season.check_game_finished():
+        #                 pass # then return game results
+        #             dao_season.start_new_season()
 
         self.set_model_attr(
             model_id=PlayerDaoRedis(REDIS).get_player_id_by_user_id(user_id),
@@ -373,7 +369,6 @@ class SeasonDaoRedis(DaoRedis):
             discovery_card = move_dao.start_new_move()
             if not self._check_discovery_card_is_ruins(discovery_card):
                 break
-
 
     # def get_tasks_pretty(self,
     #                      season_ids: Iterable[int],
@@ -681,10 +676,6 @@ class MoveDaoRedis(DaoRedis):
     def _fetch_card_additional_shape(self,
                                      move_id: int,
                                      ) -> Optional[str]:
-        type = self._fetch_discovery_card_type(move_id)
-        if type != 'terrain':
-            raise ValueError('must be terrain type')
-
         additional_shape = TerrainCardDaoRedis(REDIS).get_additional_shape(
             self._fetch_discovery_card_id(move_id)
         )
