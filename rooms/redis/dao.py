@@ -258,62 +258,64 @@ class RoomDaoRedis(DaoFull):
         users_pretty = UserDaoRedis(REDIS).get_users_pretty(user_ids,
                                                             users_readiness)
 
-        room_dict: RoomDict = self._transformer.dc_model_to_dict_model(room_dc)
-        room_dict['users'] = users_pretty
-        print(users_readiness)
-        room_dict['is_ready_for_game'] = all(users_readiness.values())
+        room_dict = self._transformer.make_room_pretty(
+            room_dc, self._check_room_ready_for_game(
+                list(users_readiness.values())
+            ),
+            users_pretty
+        )
 
         return room_dict
 
-    def _check_users_except_admin_ready(self,
-                                        users_readiness: Sequence[bool],
-                                        ) -> bool:
+    def _check_room_ready_for_game(self,
+                                   users_readiness: Sequence[bool],
+                                   ) -> bool:
         return users_readiness.count(True) == len(users_readiness) - 1
 
-        def _get_users_readiness(self,
-                                 room_id: int,
-                                 user_ids: Iterable[int],
-                                 ) -> dict[int, bool]:
-            statuses = {
-                user_id: self._get_user_readiness(room_id, user_id)
-                for user_id in user_ids
-            }
-            return statuses
+    def _get_users_readiness(self,
+                             room_id: int,
+                             user_ids: Iterable[int],
+                             ) -> dict[int, bool]:
+        statuses = {
+            user_id: self._get_user_readiness(room_id, user_id)
+            for user_id in user_ids
+        }
+        return statuses
 
-        def add_user(self,
-                     room_id: int,
-                     user_id: int,
-                     ) -> None:
-            # TODO: add NO more than max_users
-            # add value to user_ids str -> fetch it change it set it
-            user_ids = self.get_model_attr(
-                model_id=room_id,
-                field_name='user_ids',
-                converter=services.utils.deserialize,
-            )
-            user_ids.append(user_id)
+    def add_user(self,
+                 room_id: int,
+                 user_id: int,
+                 ) -> None:
+        # TODO: add NO more than max_users
+        # add value to user_ids str -> fetch it change it set it
+        user_ids = self.get_model_attr(
+            model_id=room_id,
+            field_name='user_ids',
+            converter=services.utils.deserialize,
+        )
+        user_ids.append(user_id)
 
-            self.set_model_attr(
-                model_id=room_id,
-                field_name='user_ids',
-                value=user_ids,
-                converter=services.utils.serialize,
-            )
-            self._add_room_id_by_user_id_index(user_id, room_id)
-            self._set_user_readiness(room_id, user_id, readiness=False)
+        self.set_model_attr(
+            model_id=room_id,
+            field_name='user_ids',
+            value=user_ids,
+            converter=services.utils.serialize,
+        )
+        self._add_room_id_by_user_id_index(user_id, room_id)
+        self._set_user_readiness(room_id, user_id, readiness=False)
 
-        def _set_user_readiness(self,
-                                room_id: int,
-                                user_id: int,
-                                readiness: bool,
-                                ) -> None:
-            key = self._key_schema.user_readiness_key(room_id, user_id)
-            self._redis.set(key, services.utils.serialize(readiness))
+    def _set_user_readiness(self,
+                            room_id: int,
+                            user_id: int,
+                            readiness: bool,
+                            ) -> None:
+        key = self._key_schema.user_readiness_key(room_id, user_id)
+        self._redis.set(key, services.utils.serialize(readiness))
 
-        def _get_user_readiness(self,
-                                room_id: int,
-                                user_id: int,
-                                ) -> bool:
-            key = self._key_schema.user_readiness_key(room_id, user_id)
-            readiness = services.utils.deserialize(self._redis.get(key))
-            return readiness
+    def _get_user_readiness(self,
+                            room_id: int,
+                            user_id: int,
+                            ) -> bool:
+        key = self._key_schema.user_readiness_key(room_id, user_id)
+        readiness = services.utils.deserialize(self._redis.get(key))
+        return readiness
