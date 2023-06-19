@@ -11,6 +11,7 @@ class RoomDict(DictModel):
     admin_id: int
     user_ids: str
     is_game_started: str  # true or false
+    # is_ready_for_game: str  # true or false
 
 
 class RoomPretty(PrettyModel):

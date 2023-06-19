@@ -8,3 +8,4 @@ class RoomHash(HashModel):
     admin_id: bytes
     user_ids: bytes
     is_game_started: bytes
+    # is_ready_for_game: bytes

@@ -117,7 +117,6 @@ class User(APIView):
         room_dao.kick_user(kicker_id=kicker_id,
                            user_to_kick_id=user_to_kick_id)
 
-
         return Response(status=status.HTTP_200_OK)
 
 
