@@ -114,13 +114,13 @@ class GameDaoRedis(DaoRedis):
         #             if dao_season.check_game_finished():
         #                 pass # then return game results
         #             dao_season.start_new_season()
-
-        self.set_model_attr(
-            model_id=PlayerDaoRedis(REDIS).get_player_id_by_user_id(user_id),
-            field_name='field',
-            value=services.utils.decode_pretty_field(updated_field),
-            converter=services.utils.serialize_field,
-        )
+        #
+        #     self.set_model_attr(
+        #         model_id=PlayerDaoRedis(REDIS).get_player_id_by_user_id(user_id),
+        #         field_name='field',
+        #         value=services.utils.decode_pretty_field(updated_field),
+        #         converter=services.utils.serialize_field,
+        #     )
 
     def _add_game_id_by_player_id_index_many(self,
                                              game_id: int,
