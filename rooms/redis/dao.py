@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional
+from typing import Any, Optional, Iterable
 
 from django.contrib.auth.hashers import make_password
 from djoser.conf import User
@@ -147,30 +147,49 @@ class RoomDaoRedis(DaoFull):
 
         return room_id
 
-    def create_room_dc(self,
-                       name: str,
-                       password: Optional[str],
-                       max_users: int,
-                       creator_id: int,
-                       ) -> DataClassModel:
-        room_id = self._gen_new_id()
+    def init_room(self,
+                  name: str,
+                  password: Optional[str],
+                  max_users: int,
+                  creator_id: int,
+                  ) -> None:
         self._check_name_unique(name)
-        model = self._model_class(
-            id=room_id,
+
+        room = self._create_dc_model(name, password, max_users, creator_id)
+        self._set_user_readiness(room.id, creator_id, False)
+        self._init_indexes(creator_id, room.id, name)
+        self.insert_dc_model(room)
+
+    def _create_dc_model(self,
+                         name: str,
+                         password: str,
+                         max_users: int,
+                         admin_id: int,
+                         ) -> RoomDC:
+        room = self._model_class(
+            id=(room_id := self._gen_new_id()),
             name=name,
             password=make_password(password) if password else None,
             max_users=max_users,
-            admin_id=creator_id,
-            user_ids=[creator_id],
+            admin_id=admin_id,
+            user_ids=[admin_id],
             is_game_started=False,
         )
+
+        return room
+
+    def _init_indexes(self,
+                      creator_id: int,
+                      room_id: int,
+                      name: str,
+                      ) -> None:
+
         self._add_room_id_by_user_id_index(
             user_id=creator_id, room_id=room_id
         )
         self._add_model_id_by_model_name_index(
             model_name=name, model_id=room_id
         )
-        return model
 
     def _add_model_id_by_model_name_index(self,
                                           model_name: str,
@@ -196,10 +215,10 @@ class RoomDaoRedis(DaoFull):
                   kicker_id: int,
                   user_to_kick_id: int,
                   ) -> None:
-        room_id = self._ckeck_user_is_admin(kicker_id, user_to_kick_id)
+        room_id = self._check_user_is_admin(kicker_id, user_to_kick_id)
         self._delete_user(user_to_kick_id, room_id)
 
-    def _ckeck_user_is_admin(self,
+    def _check_user_is_admin(self,
                              kicker_id: int,
                              kick_user_id: int,
                              ) -> int:
@@ -233,13 +252,25 @@ class RoomDaoRedis(DaoFull):
         room_dc: RoomDC = self.fetch_dc_model(room_id=room_id)
         user_ids = room_dc.user_ids
 
-        readiness_statuses = self._get_readiness_statuses(room_id,user_ids)
-        users_pretty = UserDaoRedis(REDIS).get_users_pretty(user_ids)
+        users_readiness = self._get_users_readiness(room_id, user_ids)
+        users_pretty = UserDaoRedis(REDIS).get_users_pretty(user_ids,
+                                                            users_readiness)
 
         room_dict: RoomDict = self._transformer.dc_model_to_dict_model(room_dc)
         room_dict['users'] = users_pretty
 
         return room_dict
+
+    def _get_users_readiness(self,
+                             room_id: int,
+                             user_ids: Iterable[int],
+                             ) -> dict[int, bool]:
+
+        statuses = {
+            user_id: self._get_user_readiness(room_id, user_id)
+            for user_id in user_ids
+        }
+        return statuses
 
     def add_user(self,
                  room_id: int,

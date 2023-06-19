@@ -14,11 +14,12 @@ class UserDaoRedis(DaoFull):
 
     def get_users_pretty(self,
                          user_ids: Sequence[int],
+                         users_readiness: dict[int, bool],
                          ) -> list[UserPretty]:
         sql_users = list(User.objects.filter(id__in=user_ids))
 
         users_pretty = self._transformer.sql_users_to_pretty_users(
-            sql_users, self._get_readiness_statuses(user_ids)
+            sql_users, users_readiness.values()
         )
         return users_pretty
 

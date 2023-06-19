@@ -22,4 +22,4 @@ class RoomKeySchema(IKeySchema):
     def user_readiness_key(room_id: int,
                            user_id: int,
                            ) -> str:
-        return f"rooms:{room_id}:users:{user_id}:is_ready"
+        return f"rooms:{room_id}_user_{user_id}_is_ready"

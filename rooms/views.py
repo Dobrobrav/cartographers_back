@@ -41,13 +41,12 @@ class RoomAPIView(APIView):
         creator_id = get_user_id_by_token(token)
 
         # TODO: allow to make a room without a password
-        room_dc = room_dao.create_room_dc(
+        room_dao.init_room(
             name=str(data['name']),
             password=str(pw) if (pw := data['password']) is not None else None,
             max_users=int(data['max_users']),
             creator_id=creator_id,
         )
-        room_dao.insert_dc_model(room_dc)
 
         return Response(status=status.HTTP_201_CREATED)
 
