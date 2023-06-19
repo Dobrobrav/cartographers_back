@@ -1,4 +1,4 @@
-from typing import TypedDict, Sequence
+from typing import TypedDict, Sequence, MutableSequence
 
 from services.redis.dict_models import UserPretty
 from services.redis.models_base import DictModel, PrettyModel
@@ -22,6 +22,7 @@ class RoomPretty(PrettyModel):
     admin_id: int
     user_ids: Sequence[int]
     is_game_started: bool
+    is_ready_for_game: bool
     users: Sequence[UserPretty]
 
 

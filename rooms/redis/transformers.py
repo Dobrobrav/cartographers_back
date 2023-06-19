@@ -1,10 +1,11 @@
 import json
-from typing import Iterable
+from typing import Iterable, MutableSequence
 
 import services.utils
 from rooms.redis.dc_models import RoomDC
-from rooms.redis.dict_models import RoomDict, RoomPrettyForPage
+from rooms.redis.dict_models import RoomDict, RoomPrettyForPage, RoomPretty
 from rooms.redis.hash_models import RoomHash
+from services.redis.dict_models import UserPretty
 from services.redis.transformers_base import BaseRedisTransformer
 from services.utils import decode_bytes
 
@@ -29,6 +30,24 @@ class RoomTransformer(BaseRedisTransformer):
             # ),
         )
         return room_dict
+
+    @staticmethod
+    def make_room_pretty(dc_model: RoomDC,
+                         is_ready_for_game: bool,
+                         users_pretty: MutableSequence[UserPretty]
+                         ) -> RoomPretty:
+        room = RoomPretty(
+            id=dc_model.id,
+            name=dc_model.name,
+            password=dc_model.password,
+            max_users=dc_model.max_users,
+            admin_id=dc_model.admin_id,
+            user_ids=dc_model.user_ids,
+            users=users_pretty,
+            is_game_started=dc_model.is_game_started,
+            is_ready_for_game=is_ready_for_game,
+        )
+        return room
 
     @staticmethod
     def hash_model_to_dc_model(hash_model: RoomHash,
