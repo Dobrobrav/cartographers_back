@@ -174,6 +174,7 @@ class RoomDaoRedis(DaoFull):
             admin_id=admin_id,
             user_ids=[admin_id],
             is_game_started=False,
+            # is_ready_for_game=False,
         )
 
         return room
@@ -249,6 +250,7 @@ class RoomDaoRedis(DaoFull):
     def _get_room_pretty_by_room_id(self,
                                     room_id: int,
                                     ) -> RoomPretty:
+        # костыли. надо прописать отдельный метод вроде make_room_pretty
         room_dc: RoomDC = self.fetch_dc_model(room_id=room_id)
         user_ids = room_dc.user_ids
 
@@ -258,6 +260,8 @@ class RoomDaoRedis(DaoFull):
 
         room_dict: RoomDict = self._transformer.dc_model_to_dict_model(room_dc)
         room_dict['users'] = users_pretty
+        print(users_readiness)
+        room_dict['is_ready_for_game'] = all(users_readiness. values())
 
         return room_dict
 

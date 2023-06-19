@@ -21,7 +21,12 @@ class RoomTransformer(BaseRedisTransformer):
             max_users=dc_model.max_users,
             admin_id=dc_model.admin_id,
             user_ids=json.dumps(dc_model.user_ids),
-            is_game_started=services.utils.serialize(dc_model.is_game_started),
+            is_game_started=services.utils.serialize(
+                dc_model.is_game_started
+            ),
+            # is_ready_for_game=services.utils.serialize(
+            #     dc_model.is_ready_for_game
+            # ),
         )
         return room_dict
 
@@ -38,6 +43,9 @@ class RoomTransformer(BaseRedisTransformer):
             is_game_started=services.utils.deserialize(
                 hash_model[b'is_game_started']
             ),
+            # is_ready_for_game=services.utils.deserialize(
+            #     hash_model[b'is_ready_for_game']
+            # )
         )
 
         return redis_model
@@ -55,12 +63,13 @@ class RoomTransformer(BaseRedisTransformer):
     @staticmethod
     def make_pretty_room_for_page(room_dc: RoomDC,
                                   ) -> RoomPrettyForPage:
-        a = RoomPrettyForPage(
+        room_pretty = RoomPrettyForPage(
             id=room_dc.id,
             name=room_dc.name,
             max_users=room_dc.max_users,
             current_users=len(room_dc.user_ids),
             contains_password=bool(room_dc.password),
             is_game_started=room_dc.is_game_started,
+            # is_ready_for_game=room_dc.is_ready_for_game,
         )
-        return a
+        return room_pretty

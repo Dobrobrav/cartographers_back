@@ -12,6 +12,7 @@ class RoomDC(DataClassModel):
     admin_id: int
     user_ids: MutableSequence[int]
     is_game_started: bool
+    # is_ready_for_game: bool
 
 
 @dataclass
