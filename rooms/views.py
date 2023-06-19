@@ -127,13 +127,11 @@ class Ready(APIView):
             ) -> Response:
         """ change readiness (in room) state """
         token = request.auth
-        room_dao = RoomDaoRedis(REDIS)
 
         user_id = get_user_id_by_token(token)
+        RoomDaoRedis(REDIS).change_user_readiness(user_id)
 
-        room_dao.change_user_readiness(user_id)
-
-        return Response(room, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK)
 
 
 class Leave(APIView):
