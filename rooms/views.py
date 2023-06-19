@@ -131,7 +131,6 @@ class Ready(APIView):
         room_dao = RoomDaoRedis(REDIS)
 
         user_id = get_user_id_by_token(token)
-        room_id = room_dao.get_room_id_by_user_id(user_id)
 
         room_dao.change_user_readiness(user_id)
 

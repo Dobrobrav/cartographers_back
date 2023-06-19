@@ -6,6 +6,7 @@ from djoser.conf import User
 
 import services.utils
 from cartographers_back.settings import REDIS
+from services.redis.dao import UserDaoRedis
 from services.redis.transformers import UserTransformer
 from services.redis.transformers_base import DictModel
 from services.redis.models_base import DataClassModel
@@ -129,12 +130,13 @@ class RoomDaoRedis(DaoFull):
                               user_id: int,
                               ) -> bool:
         room_id = self.get_room_id_by_user_id(user_id)
-        key = self._key_schema.get_user_readiness_key(user_id, room_id)
-        current_state = bool(int(self._redis.get(key)))
-        opposite_state = not current_state
-        self._redis.set(key, int(opposite_state))
 
-        return opposite_state
+        current_readiness = self._get_user_readiness(room_id, user_id)
+        opposite_readiness = not current_readiness
+
+        self._set_user_readiness(room_id, user_id, opposite_readiness)
+
+        return opposite_readiness
 
     def get_room_id_by_user_id(self,
                                user_id: int,
@@ -151,7 +153,6 @@ class RoomDaoRedis(DaoFull):
                        max_users: int,
                        creator_id: int,
                        ) -> DataClassModel:
-        print(password)
         room_id = self._gen_new_id()
         self._check_name_unique(name)
         model = self._model_class(
@@ -232,10 +233,8 @@ class RoomDaoRedis(DaoFull):
         room_dc: RoomDC = self.fetch_dc_model(room_id=room_id)
         user_ids = room_dc.user_ids
 
-        sql_users = list(User.objects.filter(id__in=user_ids))
-        users_pretty = UserTransformer().sql_models_to_pretty_models(
-            sql_users
-        )
+        readiness_statuses = self._get_readiness_statuses(room_id,user_ids)
+        users_pretty = UserDaoRedis(REDIS).get_users_pretty(user_ids)
 
         room_dict: RoomDict = self._transformer.dc_model_to_dict_model(room_dc)
         room_dict['users'] = users_pretty
@@ -262,3 +261,20 @@ class RoomDaoRedis(DaoFull):
             converter=services.utils.serialize,
         )
         self._add_room_id_by_user_id_index(user_id, room_id)
+        self._set_user_readiness(room_id, user_id, readiness=False)
+
+    def _set_user_readiness(self,
+                            room_id: int,
+                            user_id: int,
+                            readiness: bool,
+                            ) -> None:
+        key = self._key_schema.user_readiness_key(room_id, user_id)
+        self._redis.set(key, services.utils.serialize(readiness))
+
+    def _get_user_readiness(self,
+                            room_id: int,
+                            user_id: int,
+                            ) -> bool:
+        key = self._key_schema.user_readiness_key(room_id, user_id)
+        readiness = services.utils.deserialize(self._redis.get(key))
+        return readiness

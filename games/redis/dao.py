@@ -101,11 +101,24 @@ class GameDaoRedis(DaoRedis):
 
         self._add_game_id_by_player_id_index_many(game_id, player_ids)
 
-    def make_move(self,
-                  user_id: int,
-                  updated_field: MutableSequence[MutableSequence[int]],
-                  ) -> None:
-        # need to put here checks (maybe)
+    # def make_move(self,
+    #               user_id: int,
+    #               updated_field: MutableSequence[MutableSequence[int]],
+    #               ) -> None:
+    #     dao_season = SeasonDaoRedis(REDIS)
+    #
+    #     self._finish_move_for_one_player()
+    #
+    #     if self._check_all_players_made_move():
+    #         if dao_season.ckeck_season_finished():
+    #             if dao_season.check_game_finished():
+    #                 pass # then return game results
+    #             dao_season.start_new_season()
+
+
+
+
+
         self.set_model_attr(
             model_id=PlayerDaoRedis(REDIS).get_player_id_by_user_id(user_id),
             field_name='field',
@@ -353,6 +366,15 @@ class SeasonDaoRedis(DaoRedis):
         move_id = int(self._redis.hget(key, 'current_move_id'))
         return move_id
 
+    def start_new_season(self):
+        move_dao = MoveDaoRedis(REDIS)
+
+        while True:
+            discovery_card = move_dao.start_new_move()
+            if not self._check_discovery_card_is_ruins(discovery_card):
+                break
+
+
     # def get_tasks_pretty(self,
     #                      season_ids: Iterable[int],
     #                      ) -> list[TaskPretty]:
@@ -551,22 +573,19 @@ class MoveDaoRedis(DaoRedis):
     _transformer = MoveTransformer()
     _model_class = MoveDC
 
-    def start_new_move(self,
-                       is_prev_card_ruins: bool,
-                       discovery_card_type: EDiscoveryCardType,
-                       discovery_card_id: int,
-                       season_points: Optional[int] = None,
-                       ):
-        id = self._gen_new_id()
-        move = self._model_class(
-            id=id,
-            is_prev_card_ruins=is_prev_card_ruins,
-            discovery_card_type=discovery_card_type,
-            discovery_card_id=discovery_card_id,
-            season_points=season_points,
-        )
-        self.insert_dc_model(move)
-        return move
+    # def start_new_move(self,
+    #
+    #                    ):
+    #     id = self._gen_new_id()
+    #     move = self._model_class(
+    #         id=id,
+    #         is_prev_card_ruins=is_prev_card_ruins,
+    #         discovery_card_type=discovery_card_type,
+    #         discovery_card_id=discovery_card_id,
+    #         season_points=season_points,
+    #     )
+    #     self.insert_dc_model(move)
+    #     return move
 
     def start_first_move(self,
                          discovery_card_id: int,

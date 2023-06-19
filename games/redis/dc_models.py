@@ -13,6 +13,7 @@ class EDiscoveryCardType(str, Enum):
     MONSTER = 'monster'
 
 
+
 class ESeasonName(str, Enum):
     SPRING = 'spring'
     SUMMER = 'summer'

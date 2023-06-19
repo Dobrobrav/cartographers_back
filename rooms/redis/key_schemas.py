@@ -19,7 +19,7 @@ class RoomKeySchema(IKeySchema):
         return "room_id_by_room_name_index"
 
     @staticmethod
-    def get_user_readiness_key(room_id: int,
-                               user_id: int,
-                               ) -> str:
+    def user_readiness_key(room_id: int,
+                           user_id: int,
+                           ) -> str:
         return f"rooms:{room_id}:users:{user_id}:is_ready"
