@@ -1,4 +1,4 @@
-from typing import Any, Optional, Iterable, Sequence
+from typing import Any, Optional, Iterable, Sequence, MutableSequence
 
 from django.contrib.auth.hashers import make_password
 
@@ -84,7 +84,7 @@ class RoomDaoRedis(DaoFull):
 
     def fetch_user_ids(self,
                        user_id: int,
-                       ) -> list[int]:
+                       ) -> MutableSequence[int]:
         room_id = self._fetch_room_id_by_user_id(user_id)
         room = self.fetch_dc_model(room_id=room_id)
         player_ids = room.user_ids
@@ -97,10 +97,10 @@ class RoomDaoRedis(DaoFull):
         all_ids = self._get_all_ids()
         ids_for_page = self._get_ids_for_page(all_ids, page, limit)
         hash_rooms = self._fetch_hash_models(ids_for_page)
-        rooms_dc: list[RoomDC] = self._Converter. \
+        rooms_dc: list[RoomDC] = self._converter. \
             hash_models_to_dc_models(hash_rooms)
 
-        page = self._Converter.make_pretty_rooms_for_page(rooms_dc)
+        page = self._converter.make_pretty_rooms_for_page(rooms_dc)
 
         return page
 
@@ -160,7 +160,7 @@ class RoomDaoRedis(DaoFull):
                          admin_id: int,
                          ) -> RoomDC:
         room = self._model_class(
-            id=(room_id := self._gen_new_id()),
+            id=self._gen_new_id(),
             name=name,
             password=make_password(password) if password else None,
             max_users=max_users,
@@ -298,7 +298,7 @@ class RoomDaoRedis(DaoFull):
         users_pretty = UserDaoRedis(REDIS).get_users_pretty(user_ids,
                                                             users_readiness)
 
-        room_dict = self._Converter.make_room_pretty(
+        room_dict = self._converter.make_room_pretty(
             room_dc, self._check_room_is_ready_for_game(
                 list(users_readiness.values())
             ),
