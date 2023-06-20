@@ -18,7 +18,7 @@ from .converters import MonsterCardConverter, GameConverter, SeasonConverter, Mo
     SeasonScoreConverter, ShapeConverter
 from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
     ObjectiveCardDC, PlayerDC, SeasonsScoreDC, SeasonScoreDC, ShapeDC
-from ..common import ETerrainTypeAll, TERRAIN_STR_TO_NUM, FieldPretty, Field
+from ..common import ETerrainTypeAll, TERRAIN_STR_TO_NUM, FieldPretty, Field, BLANK_FIELD
 from ..models import SeasonCardSQL
 import games.utils
 
@@ -278,8 +278,8 @@ class GameDaoRedis(DaoRedis):
         self._redis.hset(key, player_id, game_id)
 
     def _gen_field(self) -> Field:
-        blank_field = [[ETerrainTypeAll.BLANK] * 11] * 11
-        return blank_field
+        field = BLANK_FIELD
+        return field
 
 
 class ObjectiveCardDaoRedis(DaoFull):
@@ -337,7 +337,6 @@ class TerrainCardDaoRedis(DiscoveryCardDao):
             field_name='additional_shape_id',
             converter=services.utils.deserialize,
         )
-        print(f'{additional_shape_id=}')
         if additional_shape_id is None:
             return None
 
