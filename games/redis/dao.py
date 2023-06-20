@@ -337,6 +337,7 @@ class TerrainCardDaoRedis(DiscoveryCardDao):
             field_name='additional_shape_id',
             converter=services.utils.deserialize,
         )
+        print(f'{additional_shape_id=}')
         if additional_shape_id is None:
             return None
 
