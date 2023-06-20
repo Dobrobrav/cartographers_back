@@ -1,0 +1,2 @@
+class UserNotInRoom(Exception):
+    pass

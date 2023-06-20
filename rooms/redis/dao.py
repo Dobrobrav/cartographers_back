@@ -11,6 +11,7 @@ from .key_schemas import RoomKeySchema
 from .converters import RoomConverter
 from services.redis.base.redis_dao_base import DaoFull
 from .dc_models import RoomDC
+from ..common import UserNotInRoom
 
 
 class RoomDaoRedis(DaoFull):
@@ -148,6 +149,8 @@ class RoomDaoRedis(DaoFull):
                                   ) -> int:
         key = self._key_schema.room_id_by_user_id_index_key
         room_id = self.fetch_hash_value(key, user_id, converter=int)
+        if room_id is None:
+            raise UserNotInRoom()
         return room_id
 
     def _create_dc_model(self,

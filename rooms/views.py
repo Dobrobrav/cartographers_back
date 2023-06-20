@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from rooms.common import UserNotInRoom
 from rooms.redis.dao import RoomDaoRedis
 from cartographers_back.settings import REDIS
 from services.utils import get_user_id_by_token
@@ -55,9 +56,12 @@ class RoomAPIView(APIView):
             ) -> Response:
         """ get room data where user is """
         token = request.auth
-
         user_id = get_user_id_by_token(token)
-        room = RoomDaoRedis(REDIS).fetch_room_pretty(user_id=user_id)
+
+        try:
+            room = RoomDaoRedis(REDIS).fetch_room_pretty(user_id=user_id)
+        except UserNotInRoom:
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
         return Response(room, status=status.HTTP_200_OK)
 
