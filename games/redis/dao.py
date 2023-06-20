@@ -85,20 +85,22 @@ class GameDaoRedis(DaoRedis):
     _key_schema = GameKeySchema()
     _Converter = GameConverter()
 
-    def start_game(self,
-                   admin_id: int,
-                   ) -> None:
+    def try_init_game(self,
+                      initiator_user_id: int,
+                      ) -> None:
         # каждый сезон карты местности перетасовываются, а после хода карта откладывается
+        (room_dao := RoomDaoRedis(REDIS)).check_user_is_admin(initiator_user_id)
         initial_cards = self._get_initial_cards()
         season_ids = SeasonDaoRedis(REDIS).init_seasons(initial_cards)
-        room_id, player_ids = self._get_room_and_players(admin_id)
+        room_id, player_ids = self._get_room_and_players(initiator_user_id)
+        room_dao.set_is_game_started(room_id, True)
 
         game_id = self._create_game_model(
             initial_cards=initial_cards,
             season_ids=season_ids,
             player_ids=player_ids,
             room_id=room_id,
-            admin_id=admin_id,
+            admin_id=initiator_user_id,
         ).id
 
         self._add_game_id_by_player_id_index_many(game_id, player_ids)

@@ -37,12 +37,12 @@ class DaoBase:
         res = response and converter(response)  # assign None or converter
         return res
 
-    def set_model_attr(self,
-                       model_id: int,
-                       field_name: str,
-                       value: T,
-                       converter: Callable[[T], Any],
-                       ) -> None:
+    def _set_model_attr(self,
+                        model_id: int,
+                        field_name: str,
+                        value: T,
+                        converter: Callable[[T], Any],
+                        ) -> None:
         key = self._key_schema.get_hash_key(model_id)
         self._redis.hset(key, field_name, converter(value))
 

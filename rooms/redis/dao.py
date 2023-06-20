@@ -53,7 +53,7 @@ class RoomDaoRedis(DaoFull):
                       kicker_id: int,
                       user_to_kick_id: int,
                       ) -> None:
-        room_id = self._check_user_is_admin(kicker_id, user_to_kick_id)
+        room_id = self.check_user_is_admin(kicker_id, user_to_kick_id)
         self._delete_user(user_to_kick_id, room_id)
 
     def try_leave(self,
@@ -62,9 +62,18 @@ class RoomDaoRedis(DaoFull):
         room_id = self._fetch_room_id_by_user_id(user_id)
         self._delete_user(user_id, room_id)
 
-    def _check_user_is_admin(self,
-                             user_id: int,
-                             ) -> None:
+    def set_is_game_started(self,
+                            room_id: int,
+                            is_game_started: bool,
+                            ) -> None:
+        self._set_model_attr(
+            room_id, 'is_game_started',
+            is_game_started, services.utils.serialize,
+        )
+
+    def check_user_is_admin(self,
+                            user_id: int,
+                            ) -> None:
         room_id = self._fetch_room_id_by_user_id(user_id)
         admin_id = self.fetch_dc_model(room_id=room_id).admin_id
 
@@ -197,7 +206,7 @@ class RoomDaoRedis(DaoFull):
         user_ids = self._fetch_user_ids(room_id)
         user_ids.append(user_id)
 
-        self.set_model_attr(
+        self._set_model_attr(
             model_id=room_id,
             field_name='user_ids',
             value=user_ids,
@@ -247,7 +256,7 @@ class RoomDaoRedis(DaoFull):
                       room_id: int,
                       user_ids: Sequence[int],
                       ) -> None:
-        self.set_model_attr(
+        self._set_model_attr(
             model_id=room_id,
             field_name='user_ids',
             value=user_ids,
