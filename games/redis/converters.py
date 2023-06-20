@@ -403,6 +403,7 @@ class ShapeConverter(BaseFullConverter):
     def hash_model_to_dc_model(self,
                                hash_model: ShapeHash,
                                ) -> ShapeDC:
+        print(hash_model)
         shape_dc = ShapeDC(
             id=int(hash_model[b'id']),
             shape_value=self.deserialize_shape_value(

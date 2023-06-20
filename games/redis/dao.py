@@ -83,7 +83,7 @@ class GameDaoRedis(DaoRedis):
     SEASONS_IN_GAME = 4
 
     _key_schema = GameKeySchema()
-    _Converter = GameConverter()
+    _converter = GameConverter()
 
     def try_init_game(self,
                       initiator_user_id: int,
@@ -286,7 +286,7 @@ class ObjectiveCardDaoRedis(DaoFull):
     OBJECTIVE_CARD_QUANTITY = 4
 
     _key_schema = ObjectiveCardKeySchema()
-    _Converter = ObjectiveCardConverter()
+    _converter = ObjectiveCardConverter()
     _model_class = ObjectiveCardDC
 
     def pick_objective_cards(self) -> list[int]:  # it's copypasta!
@@ -302,7 +302,7 @@ class TerrainCardDaoRedis(DiscoveryCardDao):
     TERRAIN_CARD_QUANTITY = 2
 
     _key_schema = TerrainCardKeySchema()
-    _Converter = TerrainCardConverter()
+    _converter = TerrainCardConverter()
     _model_class = TerrainCardDC
 
     def get_terrain_pretty(self,
@@ -329,15 +329,25 @@ class TerrainCardDaoRedis(DiscoveryCardDao):
                                      and TERRAIN_STR_TO_NUM[additional_terrain])
         return additional_terrain_pretty
 
-    def get_additional_shape(self,
-                             terrain_card_id: int,
-                             ) -> Optional[str]:
-        additional_shape = self._fetch_model_attr(
+    def get_additional_shape_pretty(self,
+                                    terrain_card_id: int,
+                                    ) -> Optional[ShapePretty]:
+        additional_shape_id = self._fetch_model_attr(
             model_id=terrain_card_id,
-            field_name='additional_shape',
-            converter=services.utils.decode_bytes,
+            field_name='additional_shape_id',
+            converter=services.utils.deserialize,
         )
-        return additional_shape
+        if additional_shape_id is None:
+            return None
+
+        additional_shape_dc: ShapeDC = ShapeDaoRedis(REDIS).fetch_dc_model(
+            additional_shape_id
+        )
+        additional_shape_pretty = ShapePretty(
+            shape_value=additional_shape_dc.shape_value,
+            gives_coin=additional_shape_dc.gives_coin,
+        )
+        return additional_shape_pretty
 
     def pick_terrain_cards(self):
         card_ids_key = self._key_schema.ids_key
@@ -350,13 +360,13 @@ class TerrainCardDaoRedis(DiscoveryCardDao):
 
 class ShapeDaoRedis(DaoFull):
     _key_schema = ShapeKeySchema()
-    _Converter = ShapeConverter()
+    _converter = ShapeConverter()
     _model_class = ShapeDC
 
 
 class SeasonDaoRedis(DaoRedis):
     _key_schema = SeasonKeySchema()
-    _Converter = SeasonConverter()
+    _converter = SeasonConverter()
     _model_class = SeasonDC
 
     def fetch_move_id(self,
@@ -569,7 +579,7 @@ class SeasonDaoRedis(DaoRedis):
 
 class MoveDaoRedis(DaoRedis):
     _key_schema = MoveKeySchema()
-    _Converter = MoveConverter()
+    _converter = MoveConverter()
     _model_class = MoveDC
 
     # def start_new_move(self,
@@ -618,8 +628,8 @@ class MoveDaoRedis(DaoRedis):
             is_anomaly=self._check_card_is_anomaly(move_id),
             terrain_int=self._fetch_card_terrain(move_id),
             additional_terrain_int=self._fetch_card_additional_terrain(move_id),
-            shape=self._get_card_shape_pretty(move_id),
-            additional_shape=self._fetch_card_additional_shape(move_id),
+            shape=self._fetch_card_shape_pretty(move_id),
+            additional_shape=self._fetch_card_additional_shape_pretty(move_id),
         )
         # TODO: replace 'additional_' with extra_
         return discovery_card_pretty
@@ -669,9 +679,9 @@ class MoveDaoRedis(DaoRedis):
         )
         return id
 
-    def _get_card_shape_pretty(self,
-                               move_id: int,
-                               ) -> ShapePretty:
+    def _fetch_card_shape_pretty(self,
+                                 move_id: int,
+                                 ) -> ShapePretty:
         type = self._fetch_discovery_card_type(move_id)
         card_id = self._fetch_discovery_card_id(move_id)
 
@@ -687,12 +697,12 @@ class MoveDaoRedis(DaoRedis):
 
         return shape
 
-    def _fetch_card_additional_shape(self,
-                                     move_id: int,
-                                     ) -> Optional[str]:
-        additional_shape = TerrainCardDaoRedis(REDIS).get_additional_shape(
-            self._fetch_discovery_card_id(move_id)
-        )
+    def _fetch_card_additional_shape_pretty(self,
+                                            move_id: int,
+                                            ) -> Optional[str]:
+        card_id = self._fetch_discovery_card_id(move_id)
+        additional_shape = TerrainCardDaoRedis(REDIS). \
+            get_additional_shape_pretty(card_id)
 
         return additional_shape
 
@@ -740,7 +750,7 @@ class MoveDaoRedis(DaoRedis):
 # TODO: it will be nice to use deck-type structure for cards in the future
 class PlayerDaoRedis(DaoRedis):
     _key_schema = PlayerKeySchema()
-    _Converter = PlayerConverter()
+    _converter = PlayerConverter()
     _model_class = PlayerDC
 
     def get_players_pretty(self,
@@ -912,7 +922,7 @@ class PlayerDaoRedis(DaoRedis):
 
 class SeasonsScoreDao(DaoRedis):
     _key_schema = SeasonsScoreKeySchema()
-    _Converter = SeasonsScoreConverter()
+    _converter = SeasonsScoreConverter()
     _model_class = SeasonsScoreDC
 
     def init_seasons_score(self) -> int:
@@ -1071,7 +1081,7 @@ class SeasonsScoreDao(DaoRedis):
 
 class SeasonScoreDao(DaoRedis):
     _key_schema = SeasonScoreKeySchema()
-    _Converter = SeasonScoreConverter()
+    _converter = SeasonScoreConverter()
     _model_class = SeasonScoreDC
 
     def init_season_score(self) -> int:
@@ -1124,7 +1134,7 @@ class SeasonScoreDao(DaoRedis):
 
 class MonsterCardDaoRedis(DiscoveryCardDao):
     _key_schema = MonsterCardKeySchema()
-    _Converter = MonsterCardConverter()
+    _converter = MonsterCardConverter()
     MONSTER_CARD_QUANTITY = 4
 
     def pick_monster_cards(self,

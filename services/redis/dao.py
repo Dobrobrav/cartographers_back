@@ -10,7 +10,7 @@ from services.redis.base.redis_dao_base import DaoFull
 
 class UserDaoRedis(DaoFull):
     _key_schema = UserKeySchema()
-    _Converter = UserConverter()
+    _converter = UserConverter()
 
     def get_users_pretty(self,
                          user_ids: Sequence[int],
@@ -18,7 +18,7 @@ class UserDaoRedis(DaoFull):
                          ) -> list[UserPretty]:
         sql_users = list(User.objects.filter(id__in=user_ids))
 
-        users_pretty = self._Converter.sql_users_to_pretty_users(
+        users_pretty = self._converter.sql_users_to_pretty_users(
             sql_users, users_readiness.values()
         )
         return users_pretty
