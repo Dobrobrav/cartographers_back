@@ -1,10 +1,8 @@
-import services.utils
 from cartographers_back.settings import REDIS
-from games.models import DiscoveryCardSQL, MonsterCardSQL, ObjectiveCardSQL, ShapeSQL, EShapeUnit
+from games.models import DiscoveryCardSQL, MonsterCardSQL, ObjectiveCardSQL, ShapeSQL
 from redis import Redis
 
 from games.redis.dao import MonsterCardDaoRedis, TerrainCardDaoRedis, ObjectiveCardDaoRedis, ShapeDaoRedis
-from services.redis.models_base import get_enum_by_value
 
 
 def save_models_to_redis():

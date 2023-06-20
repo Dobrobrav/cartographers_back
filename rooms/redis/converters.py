@@ -1,16 +1,13 @@
-import json
 from typing import Iterable, MutableSequence
-
-import services.utils
+from services import utils
 from rooms.redis.dc_models import RoomDC
 from rooms.redis.dict_models import RoomDict, RoomPrettyForPage, RoomPretty
 from rooms.redis.hash_models import RoomHash
 from services.redis.dict_models import UserPretty
-from services.redis.transformers_base import BaseRedisTransformer
-from services.utils import decode_bytes
+from services.redis.base.converters_base import BaseRedisConverter
 
 
-class RoomTransformer(BaseRedisTransformer):
+class RoomConverter(BaseRedisConverter):
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: RoomDC,
@@ -21,8 +18,8 @@ class RoomTransformer(BaseRedisTransformer):
             password=dc_model.password or '',
             max_users=dc_model.max_users,
             admin_id=dc_model.admin_id,
-            user_ids=json.dumps(dc_model.user_ids),
-            is_game_started=services.utils.serialize(
+            user_ids=utils.serialize(dc_model.user_ids),
+            is_game_started=utils.serialize(
                 dc_model.is_game_started
             ),
             # is_ready_for_game=services.utils.serialize(
@@ -58,8 +55,8 @@ class RoomTransformer(BaseRedisTransformer):
             password=hash_model[b'password'].decode('utf-8') or None,
             max_users=int(hash_model[b'max_users']),
             admin_id=int(hash_model[b'admin_id']),
-            user_ids=services.utils.deserialize(hash_model[b'user_ids']),
-            is_game_started=services.utils.deserialize(
+            user_ids=utils.deserialize(hash_model[b'user_ids']),
+            is_game_started=utils.deserialize(
                 hash_model[b'is_game_started']
             ),
             # is_ready_for_game=services.utils.deserialize(

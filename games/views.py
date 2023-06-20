@@ -19,8 +19,8 @@ class GameAPIView(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        RoomDaoRedis(REDIS).check_user_is_admin(user_id)
-        GameDaoRedis(REDIS).start_new_game(user_id)
+        RoomDaoRedis(REDIS)._check_user_is_admin(user_id)
+        GameDaoRedis(REDIS).start_game(user_id)
 
         return Response(status=HTTP_201_CREATED)
 

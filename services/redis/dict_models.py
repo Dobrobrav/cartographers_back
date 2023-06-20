@@ -1,6 +1,6 @@
 from typing import TypedDict
 
-from services.redis.models_base import DictModel
+from services.redis.base.models_base import DictModel
 
 
 class UserDict(DictModel):

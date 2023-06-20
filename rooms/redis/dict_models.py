@@ -1,7 +1,7 @@
 from typing import TypedDict, Sequence, MutableSequence
 
 from services.redis.dict_models import UserPretty
-from services.redis.models_base import DictModel, PrettyModel
+from services.redis.base.models_base import DictModel, PrettyModel
 
 
 class RoomDict(DictModel):

@@ -1,4 +1,4 @@
-from services.redis.key_schemas_base import IKeySchema
+from services.redis.base.key_schemas_base import IKeySchema
 
 
 class UserKeySchema(IKeySchema):

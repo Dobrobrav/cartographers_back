@@ -4,10 +4,10 @@ from django.db.models import Model
 from redis.client import Redis
 
 import services.utils
-from services.redis.key_schemas_base import IKeySchema
+from services.redis.base.key_schemas_base import IKeySchema
 
-from .transformers_base import BaseRedisTransformer, DictModel, HashModel, BaseFullTransformer
-from .models_base import DataClassModel
+from services.redis.base.converters_base import BaseRedisConverter, DictModel, HashModel, BaseFullConverter
+from services.redis.base.models_base import DataClassModel
 
 T = TypeVar('T')
 
@@ -27,11 +27,11 @@ class DaoBase:
         ids = (int(id) for id in self._redis.smembers(ids_key))
         return ids
 
-    def get_model_attr(self,
-                       model_id: int,
-                       field_name: str,
-                       converter: Callable[[bytes], T] = services.utils.deserialize,
-                       ) -> Optional[T]:
+    def _fetch_model_attr(self,
+                          model_id: int,
+                          field_name: str,
+                          converter: Callable[[bytes], T] = services.utils.deserialize,
+                          ) -> Optional[T]:
         key = self._key_schema.get_hash_key(model_id)
         response = self._redis.hget(key, field_name)
         res = response and converter(response)  # assign None or converter
@@ -140,9 +140,18 @@ class DaoBase:
 
         return new_id
 
+    def fetch_hash_value(self,
+                         key: str,
+                         field_name: str | int,
+                         converter: Callable[[bytes], T]
+                         ) -> Optional[T]:
+        print(key)
+        response = self._redis.hget(key, field_name)
+        return response and converter(response)  # assign None or converter
+
 
 class DaoRedis(DaoBase):
-    _transformer: BaseRedisTransformer
+    _Converter: BaseRedisConverter
 
     def fetch_dc_models(self,
                         model_ids: Iterable[int],
@@ -157,7 +166,7 @@ class DaoRedis(DaoBase):
                        model_id: int,
                        ) -> DataClassModel:
         hash_model = self._fetch_hash_model(model_id)
-        dc_model = self._transformer.hash_model_to_dc_model(hash_model)
+        dc_model = self._Converter.hash_model_to_dc_model(hash_model)
         return dc_model
 
     def insert_dc_models(self,
@@ -173,20 +182,20 @@ class DaoRedis(DaoBase):
                         model: DataClassModel,
                         ) -> DictModel:
         dict_model = self._insert_single(
-            model, dumper=self._transformer.dc_model_to_dict_model
+            model, dumper=self._Converter.dc_model_to_dict_model
         )
         return dict_model
 
 
 class DaoFull(DaoRedis):
-    _transformer: BaseFullTransformer
+    _Converter: BaseFullConverter
 
     def insert_sql_models(self,
                           models: Iterable[Model],
                           ) -> list[DictModel]:
         hash_models = [
             self._insert_single(
-                model, dumper=self._transformer.sql_model_to_dict_model
+                model, dumper=self._Converter.sql_model_to_dict_model
             )
             for model in models
         ]
@@ -196,6 +205,6 @@ class DaoFull(DaoRedis):
                          model: Model,
                          ) -> DictModel:
         hash_model = self._insert_single(
-            model, dumper=self._transformer.sql_model_to_dict_model
+            model, dumper=self._Converter.sql_model_to_dict_model
         )
         return hash_model

@@ -1,14 +1,7 @@
-from typing import MutableSequence, TypedDict, TypeAlias, Literal, Optional
+from typing import MutableSequence, TypedDict, Optional
 
-from games.models import EShapeUnit
-from games.redis.dc_models import Field
-from services.redis.models_base import DictModel, PrettyModel
-
-SeasonName: TypeAlias = str
-URL: TypeAlias = str
-UserID: TypeAlias = int
-ScoreSource: TypeAlias = str
-ScoreValue: TypeAlias = int
+from games.common import SeasonName, URL, EShapeUnit
+from services.redis.base.models_base import DictModel, PrettyModel
 
 
 class GameDict(DictModel):
@@ -26,8 +19,8 @@ class SeasonDict(DictModel):
     image_url: str
     points_to_end: int
     objective_card_ids: str
-    terrain_card_ids: str  # make sure it's a copy of set
-    monster_card_ids: str  # same as above
+    terrain_card_ids: str
+    monster_card_ids: str
     current_move_id: int
 
 
@@ -101,8 +94,6 @@ class MonsterCardDict(DictModel):
     exchange_order: str
 
 
-# create dc as well and the transformers. or it's not necessary
-# create a dict str -> int for Hablak
 class GamePretty(TypedDict):
     id: int
     room_name: str
@@ -171,8 +162,6 @@ class SeasonsScorePretty(PrettyModel):
     summer_score: SeasonScorePretty
     fall_score: SeasonScorePretty
     winter_score: SeasonScorePretty
-    # coins: int
-    # total: int
 
 
 class TaskPretty(PrettyModel):

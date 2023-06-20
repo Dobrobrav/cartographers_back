@@ -1,9 +1,7 @@
-import json
-
-from django.db.models import Model
-
+import services
+from games.common import EShapeUnit
 from games.models import MonsterCardSQL, DiscoveryCardSQL, ETerrainCardType, ETerrainTypeLimited, ObjectiveCardSQL, \
-    EExchangeOrder, SeasonCardSQL, ShapeSQL, EShapeUnit
+    EExchangeOrder, SeasonCardSQL, ShapeSQL
 from games.redis.dc_models import MonsterCardDC, GameDC, TerrainCardDC, ObjectiveCardDC, MoveDC, PlayerDC, SeasonDC, \
     ESeasonName, SeasonCardDC, EDiscoveryCardType, SeasonsScoreDC, SeasonScoreDC, ShapeDC
 from games.redis.dict_models import SeasonDict, MoveDict, PlayerDict, MonsterCardDict, GameDict, TerrainCardDict, \
@@ -13,15 +11,16 @@ from games.redis.hash_models import GameHash, SeasonHash, MonsterCardHash, Terra
     ObjectiveCardHash, SeasonsScoreHash, \
     SeasonScoreHash, ShapeHash
 from services import utils
-from services.redis.transformers_base import BaseRedisTransformer, BaseSQLTransformer, \
-    BaseFullTransformer
-from services.redis.models_base import get_enum_by_value, HashModel, DataClassModel, DictModel
+from services.common import get_enum_by_value
+from services.redis.base.converters_base import BaseRedisConverter, BaseSQLConverter, \
+    BaseFullConverter
+import games.utils
 
 
-# TODO: use Converter instead of Transformer
+# TODO: use Converter instead of Converter
 
 
-class GameTransformer(BaseRedisTransformer):
+class GameConverter(BaseRedisConverter):
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: GameDC,
@@ -54,8 +53,8 @@ class GameTransformer(BaseRedisTransformer):
         return game_dc
 
 
-class SeasonTransformer(BaseRedisTransformer):
-    """ transformer for seasons but not season_cards """
+class SeasonConverter(BaseRedisConverter):
+    """ Converter for seasons but not season_cards """
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: SeasonDC,
@@ -102,7 +101,7 @@ class SeasonTransformer(BaseRedisTransformer):
         return season_dc
 
 
-class SeasonCardTransformer(BaseSQLTransformer):  # А нужен ли он мне вообще???
+class SeasonCardConverter(BaseSQLConverter):  # А нужен ли он мне вообще???
 
     @staticmethod
     def sql_model_to_dc_model(sql_model: SeasonCardSQL,
@@ -116,7 +115,7 @@ class SeasonCardTransformer(BaseSQLTransformer):  # А нужен ли он мн
         return season_card_dc
 
 
-class MoveTransformer(BaseRedisTransformer):
+class MoveConverter(BaseRedisConverter):
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: MoveDC,
@@ -146,7 +145,7 @@ class MoveTransformer(BaseRedisTransformer):
         return move_dc
 
 
-class PlayerTransformer(BaseRedisTransformer):
+class PlayerConverter(BaseRedisConverter):
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: PlayerDC,
@@ -154,7 +153,7 @@ class PlayerTransformer(BaseRedisTransformer):
         player_dict = PlayerDict(
             id=dc_model.id,
             user_id=dc_model.user_id,
-            field=utils.serialize_field(dc_model.field),
+            field=games.utils.serialize_field(dc_model.field),
             left_player_id=dc_model.left_player_id,
             right_player_id=dc_model.right_player_id,
             coins=dc_model.coins,
@@ -169,7 +168,7 @@ class PlayerTransformer(BaseRedisTransformer):
         player_dc = PlayerDC(
             id=int(hash_model[b'id']),
             user_id=int(hash_model[b'user_id']),
-            field=utils.deserialize_field(hash_model[b'field']),
+            field=games.utils.deserialize_field(hash_model[b'field']),
             left_player_id=int(hash_model[b'left_player_id']),
             right_player_id=int(hash_model[b'right_player_id']),
             coins=int(hash_model[b'coins']),
@@ -179,7 +178,7 @@ class PlayerTransformer(BaseRedisTransformer):
         return player_dc
 
 
-class MonsterCardTransformer(BaseFullTransformer):
+class MonsterCardConverter(BaseFullConverter):
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: MonsterCardDC,
@@ -224,7 +223,7 @@ class MonsterCardTransformer(BaseFullTransformer):
         return card
 
 
-class ObjectiveCardTransformer(BaseFullTransformer):
+class ObjectiveCardConverter(BaseFullConverter):
 
     @staticmethod
     def sql_model_to_dc_model(sql_model: ObjectiveCardSQL,
@@ -258,7 +257,7 @@ class ObjectiveCardTransformer(BaseFullTransformer):
         return redis_model
 
 
-class TerrainCardTransformer(BaseFullTransformer):
+class TerrainCardConverter(BaseFullConverter):
     @staticmethod
     def sql_model_to_dc_model(sql_model: DiscoveryCardSQL,
                               ) -> TerrainCardDC:
@@ -389,7 +388,7 @@ class TerrainCardTransformer(BaseFullTransformer):
         return terrain_card_dc
 
 
-class ShapeTransformer(BaseFullTransformer):
+class ShapeConverter(BaseFullConverter):
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: ShapeDC,
@@ -448,7 +447,7 @@ class ShapeTransformer(BaseFullTransformer):
         return shape_value_formatted
 
 
-class SeasonsScoreTransformer(BaseRedisTransformer):
+class SeasonsScoreConverter(BaseRedisConverter):
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: SeasonsScoreDC,
@@ -479,7 +478,7 @@ class SeasonsScoreTransformer(BaseRedisTransformer):
         return season_score_dc
 
 
-class SeasonScoreTransformer(BaseRedisTransformer):
+class SeasonScoreConverter(BaseRedisConverter):
 
     @staticmethod
     def dc_model_to_dict_model(dc_model: SeasonScoreDC,

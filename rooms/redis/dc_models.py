@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional, MutableSequence
 
-from services.redis.models_base import DataClassModel
+from services.redis.base.models_base import DataClassModel
 
 
 @dataclass

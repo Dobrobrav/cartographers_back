@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import TypeAlias, Iterable, Any
+from typing import Iterable
 
 from django.db.models import Model
 
-from services.redis.models_base import DataClassModel, DictModel, HashModel
+from services.redis.base.models_base import DataClassModel, DictModel, HashModel
 
 
 # TODO: add TypeAlias SQLModel for Model
-class BaseRedisTransformer(ABC):
+class BaseRedisConverter(ABC):
     def dc_models_to_dict_models(self,
                                  dc_model: Iterable[DataClassModel],
                                  ) -> list[DictModel]:
@@ -46,7 +46,7 @@ class BaseRedisTransformer(ABC):
         return dict_models
 
 
-class BaseSQLTransformer(ABC):
+class BaseSQLConverter(ABC):
     @staticmethod
     @abstractmethod
     def sql_model_to_dc_model(sql_model: Model,
@@ -63,7 +63,7 @@ class BaseSQLTransformer(ABC):
         return dc_models
 
 
-class BaseFullTransformer(BaseRedisTransformer, BaseSQLTransformer, ABC):
+class BaseFullConverter(BaseRedisConverter, BaseSQLConverter, ABC):
 
     def sql_models_to_dict_models(self,
                                   sql_models: Iterable[Model],

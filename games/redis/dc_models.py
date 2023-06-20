@@ -1,17 +1,14 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import MutableSequence, Optional, TypeAlias, Literal
+from typing import MutableSequence, Optional
 
-from games.models import ETerrainTypeAll, ETerrainTypeLimited, ETerrainCardType, EExchangeOrder, EShapeUnit
-from services.redis.models_base import DataClassModel
-
-Field: TypeAlias = MutableSequence[MutableSequence[ETerrainTypeAll]]
+from games.common import ETerrainCardType, ETerrainTypeLimited, EShapeUnit, EExchangeOrder, Field
+from services.redis.base.models_base import DataClassModel
 
 
 class EDiscoveryCardType(str, Enum):
     TERRAIN = 'terrain'
     MONSTER = 'monster'
-
 
 
 class ESeasonName(str, Enum):

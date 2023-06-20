@@ -1,11 +1,8 @@
-from typing import MutableSequence, Any
+from typing import Any
 
 from django_redis.serializers import json
 from rest_framework.authtoken.models import Token
 from rest_framework.utils import json
-
-from games.models import ETerrainTypeAll, TERRAIN_NUM_TO_STR
-from services.redis.models_base import get_enum_by_value
 
 
 def get_user_id_by_token(token: str) -> int:
@@ -19,37 +16,6 @@ def bytes_to_list(bts: bytes,
                   ) -> list[int]:
     ids = [int(id) for id in bts.decode('utf-8').split()]
     return ids
-
-
-def serialize_field(field: MutableSequence[MutableSequence[ETerrainTypeAll]],
-                    ) -> str:
-    res = json.dumps([
-        [val.value for val in row]
-        for row in field
-    ])
-    return res
-
-
-def deserialize_field(field: bytes,
-                      ) -> list[list[ETerrainTypeAll]]:
-    field = deserialize(field)
-    field_formatted = [
-        [get_enum_by_value(ETerrainTypeAll, cell) for cell in row]
-        for row in field
-    ]
-    return field_formatted
-
-
-def decode_pretty_field(field: MutableSequence[MutableSequence[int]],
-                        ) -> list[list[ETerrainTypeAll]]:
-    field_formatted = [
-        [
-            get_enum_by_value(ETerrainTypeAll, TERRAIN_NUM_TO_STR[cell])
-            for cell in row
-        ]
-        for row in field
-    ]
-    return field_formatted
 
 
 # TODO: load and dump methods must check incoming value type!

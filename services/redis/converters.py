@@ -5,11 +5,11 @@ from django.contrib.auth.models import User
 from rooms.redis.dc_models import UserDC
 from services.redis.dict_models import UserDict, UserPretty
 from services.redis.hash_models import UserHash
-from services.redis.transformers_base import DictModel, BaseFullTransformer
+from services.redis.base.converters_base import BaseFullConverter
 from services.utils import serialize, decode_bytes, deserialize
 
 
-class UserTransformer(BaseFullTransformer):
+class UserConverter(BaseFullConverter):
 
     @staticmethod
     def sql_model_to_dc_model(sql_model: User,
