@@ -18,7 +18,8 @@ from .converters import MonsterCardConverter, GameConverter, SeasonConverter, Mo
     SeasonScoreConverter, ShapeConverter
 from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
     ObjectiveCardDC, PlayerDC, SeasonsScoreDC, SeasonScoreDC, ShapeDC
-from ..common import ETerrainTypeAll, TERRAIN_STR_TO_NUM, FieldPretty, Field
+from .. import utils
+from ..common import ETerrainTypeAll, TERRAIN_STR_TO_NUM, FieldPretty, Field, BLANK_FIELD
 from ..models import SeasonCardSQL
 import games.utils
 
@@ -92,7 +93,8 @@ class GameDaoRedis(DaoRedis):
         initial_cards = self._get_initial_cards()
         season_ids = SeasonDaoRedis(REDIS).init_seasons(initial_cards)
         room_id, player_ids = self._get_room_and_players(initiator_user_id)
-        (room_dao := RoomDaoRedis(REDIS)).check_user_is_admin(room_id, initiator_user_id)
+        (room_dao := RoomDaoRedis(REDIS)).check_user_is_admin(room_id,
+                                                              initiator_user_id)
         room_dao.set_is_game_started(room_id, True)
 
         game_id = self._create_game_model(
@@ -105,33 +107,29 @@ class GameDaoRedis(DaoRedis):
 
         self._add_game_id_by_player_id_index_many(game_id, player_ids)
 
-        # def make_move(self,
-        #               user_id: int,
-        #               updated_field: MutableSequence[MutableSequence[int]],
-        #               ) -> None:
-        #     dao_season = SeasonDaoRedis(REDIS)
-        #
-        #     self._finish_move_for_one_player()
-        #
-        #     if self._check_all_players_made_move():
-        #         if dao_season.ckeck_season_finished():
-        #             if dao_season.check_game_finished():
-        #                 pass # then return game results
-        #             dao_season.start_new_season()
-        #
-        #     self.set_model_attr(
-        #         model_id=PlayerDaoRedis(REDIS).get_player_id_by_user_id(user_id),
-        #         field_name='field',
-        #         value=services.utils.decode_pretty_field(updated_field),
-        #         converter=services.utils.serialize_field,
-        #     )
+    def finish_move_for_player(self,
+                               user_id: int,
+                               updated_field: FieldPretty,
+                               ) -> None:
+        player_dao = PlayerDaoRedis(REDIS)
+
+        player_id = player_dao.fetch_player_id_by_user_id(user_id)
+        player_dao.finish_move_for_player(
+            player_id, utils.decode_pretty_field(updated_field)
+        )
+
+        game_id = self._get_game_id_by_player_id(player_id)
+        if self._check_all_players_made_move(game_id):
+            if self._check_game_finished(game_id):
+                ...
+            self._start_new_move()
 
     def get_game_pretty(self,
                         user_id: int,
                         ) -> GamePretty:
         player_dao = PlayerDaoRedis(REDIS)
 
-        player_id = player_dao.get_player_id_by_user_id(user_id)
+        player_id = player_dao.fetch_player_id_by_user_id(user_id)
         game_id = self._get_game_id_by_player_id(player_id)
         game: GameDC = self.fetch_dc_model(game_id)
 
@@ -209,6 +207,11 @@ class GameDaoRedis(DaoRedis):
         game_id = int(self._redis.hget(key, room_id))
         return game_id
 
+    def _start_new_move(self):
+        dao_season = SeasonDaoRedis(REDIS)
+
+        dao_season.start_new_season()
+
     # TODO: need to store in redis attr indicating if user has finished his move
 
     @staticmethod
@@ -227,6 +230,11 @@ class GameDaoRedis(DaoRedis):
                                      objective_card_ids)
 
         return initial_cards
+
+    def _check_game_finished(self,
+                             game_id: int,
+                             ) -> bool:
+        pass
 
     def _create_game_model(self,
                            initial_cards: InitialCards,
@@ -253,6 +261,18 @@ class GameDaoRedis(DaoRedis):
 
         return game
 
+    def _check_all_players_made_move(self,
+                                     game_id: int,
+                                     ) -> bool:
+        player_ids = self._fetch_player_ids(game_id)
+        return PlayerDaoRedis(REDIS).check_players_made_move(player_ids)
+
+    def _fetch_player_ids(self,
+                          game_id: int,
+                          ) -> list[int]:
+        player_ids = self._fetch_model_attr(game_id, 'player_ids')
+        return player_ids
+
     def _add_game_id_by_room_id_index(self,
                                       room_id: int,
                                       game_id: int,
@@ -278,8 +298,8 @@ class GameDaoRedis(DaoRedis):
         self._redis.hset(key, player_id, game_id)
 
     def _gen_field(self) -> Field:
-        blank_field = [[ETerrainTypeAll.BLANK] * 11] * 11
-        return blank_field
+        field = BLANK_FIELD
+        return field
 
 
 class ObjectiveCardDaoRedis(DaoFull):
@@ -337,7 +357,6 @@ class TerrainCardDaoRedis(DiscoveryCardDao):
             field_name='additional_shape_id',
             converter=services.utils.deserialize,
         )
-        print(f'{additional_shape_id=}')
         if additional_shape_id is None:
             return None
 
@@ -763,6 +782,48 @@ class PlayerDaoRedis(DaoRedis):
         ]
         return players
 
+    def finish_move_for_player(self,
+                               player_id: int,
+                               updated_field: Field):
+        self._update_field(player_id, updated_field)
+        self._set_player_finished_move(player_id, True)
+
+    def check_players_made_move(self,
+                                player_ids: Iterable[int],
+                                ) -> bool:
+        res = all(
+            self._check_player_made_move(player_id)
+            for player_id in player_ids
+        )
+        return res
+
+    def _check_player_made_move(self,
+                                player_id,
+                                ) -> bool:
+        made_move = self._fetch_model_attr(player_id, 'finished_move')
+        return made_move
+
+    def _update_field(self,
+                      player_id: int,
+                      updated_field: Field,
+                      ) -> None:
+        self._set_model_attr(
+            model_id=player_id,
+            field_name='field',
+            value=updated_field,
+            converter=utils.serialize_field,
+        )
+
+    def _set_player_finished_move(self,
+                                  player_id: int,
+                                  finished_move: bool,
+                                  ) -> None:
+        self._set_model_attr(
+            model_id=player_id,
+            field_name='finished_move',
+            value=finished_move,
+        )
+
     def init_players(self,
                      user_ids: Sequence[int],
                      field: Field,
@@ -784,9 +845,9 @@ class PlayerDaoRedis(DaoRedis):
         )
         return id
 
-    def get_player_id_by_user_id(self,
-                                 user_id: int,
-                                 ) -> int:
+    def fetch_player_id_by_user_id(self,
+                                   user_id: int,
+                                   ) -> int:
         key = self._key_schema.player_id_by_user_id_index_key
         player_id = int(self._redis.hget(key, user_id))
         return player_id

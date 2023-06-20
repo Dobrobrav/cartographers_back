@@ -5,6 +5,11 @@ from django.db import models
 
 Field: TypeAlias = MutableSequence[MutableSequence['ETerrainTypeAll']]
 FieldPretty: TypeAlias = list[list[int]]
+SeasonName: TypeAlias = str
+URL: TypeAlias = str
+UserID: TypeAlias = int
+ScoreSource: TypeAlias = str
+ScoreValue: TypeAlias = int
 
 
 class ETerrainTypeLimited(models.TextChoices):
@@ -69,8 +74,18 @@ class EObjectiveCardName(models.TextChoices):
     CALDERAS = 'calderas'
 
 
-SeasonName: TypeAlias = str
-URL: TypeAlias = str
-UserID: TypeAlias = int
-ScoreSource: TypeAlias = str
-ScoreValue: TypeAlias = int
+TT: TypeAlias = ETerrainTypeAll
+
+BLANK_FIELD = [
+    [TT.BLANK] * 11,
+    [TT.BLANK] * 3 + [TT.MOUNTAIN, TT.BLANK, TT.RUINS] + [TT.BLANK] * 5,
+    [TT.BLANK, TT.RUINS] + [TT.BLANK] * 6 + [TT.MOUNTAIN, TT.RUINS, TT.BLANK],
+    [TT.BLANK] * 11,
+    [TT.BLANK] * 11,
+    [TT.BLANK] * 5 + [TT.MOUNTAIN] + [TT.BLANK] * 5,
+    [TT.BLANK] * 11,
+    [TT.BLANK] * 11,
+    [TT.BLANK, TT.RUINS, TT.MOUNTAIN] + [TT.BLANK] * 6 + [TT.RUINS, TT.BLANK],
+    [TT.BLANK] * 5 + [TT.RUINS, TT.BLANK, TT.MOUNTAIN] + [TT.BLANK] * 3,
+    [TT.BLANK] * 11,
+]

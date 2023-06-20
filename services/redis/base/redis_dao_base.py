@@ -4,6 +4,7 @@ from django.db.models import Model
 from redis.client import Redis
 
 import services.utils
+from services import utils
 from services.redis.base.key_schemas_base import IKeySchema
 
 from services.redis.base.converters_base import BaseRedisConverter, DictModel, HashModel, BaseFullConverter
@@ -41,7 +42,7 @@ class DaoBase:
                         model_id: int,
                         field_name: str,
                         value: T,
-                        converter: Callable[[T], Any],
+                        converter: Callable[[T], Any] = utils.serialize,
                         ) -> None:
         key = self._key_schema.get_hash_key(model_id)
         self._redis.hset(key, field_name, converter(value))
