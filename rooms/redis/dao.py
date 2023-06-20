@@ -53,7 +53,8 @@ class RoomDaoRedis(DaoFull):
                       kicker_id: int,
                       user_to_kick_id: int,
                       ) -> None:
-        room_id = self.check_user_is_admin(kicker_id, user_to_kick_id)
+        room_id = self._fetch_room_id_by_user_id(user_to_kick_id)
+        self.check_user_is_admin(room_id, kicker_id)
         self._delete_user(user_to_kick_id, room_id)
 
     def try_leave(self,
@@ -72,10 +73,10 @@ class RoomDaoRedis(DaoFull):
         )
 
     def check_user_is_admin(self,
+                            room_id: int,
                             user_id: int,
                             ) -> None:
-        room_id = self._fetch_room_id_by_user_id(user_id)
-        admin_id = self.fetch_dc_model(room_id=room_id).admin_id
+        admin_id = self._fetch_admin_id(room_id)
 
         if user_id != admin_id:
             raise Exception('Game can only be started by its admin')
@@ -168,6 +169,14 @@ class RoomDaoRedis(DaoFull):
 
         return room
 
+    def _fetch_admin_id(self,
+                        room_id: int,
+                        ) -> int:
+        admin_id = self._fetch_model_attr(
+            room_id, 'admin_id', services.utils.deserialize
+        )
+        return admin_id
+
     def _init_indexes(self,
                       creator_id: int,
                       room_id: int,
@@ -230,7 +239,6 @@ class RoomDaoRedis(DaoFull):
                      user_id: int,
                      room_id: int,
                      ) -> None:
-
         self._remove_user_id(room_id, user_id)
         self._delete_room_id_by_user_id_index(user_id)
 
