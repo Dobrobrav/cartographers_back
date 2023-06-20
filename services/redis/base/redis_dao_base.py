@@ -151,7 +151,7 @@ class DaoBase:
 
 
 class DaoRedis(DaoBase):
-    _Converter: BaseRedisConverter
+    _converter: BaseRedisConverter
 
     def fetch_dc_models(self,
                         model_ids: Iterable[int],
@@ -166,7 +166,7 @@ class DaoRedis(DaoBase):
                        model_id: int,
                        ) -> DataClassModel:
         hash_model = self._fetch_hash_model(model_id)
-        dc_model = self._Converter.hash_model_to_dc_model(hash_model)
+        dc_model = self._converter.hash_model_to_dc_model(hash_model)
         return dc_model
 
     def insert_dc_models(self,
@@ -182,20 +182,20 @@ class DaoRedis(DaoBase):
                         model: DataClassModel,
                         ) -> DictModel:
         dict_model = self._insert_single(
-            model, dumper=self._Converter.dc_model_to_dict_model
+            model, dumper=self._converter.dc_model_to_dict_model
         )
         return dict_model
 
 
 class DaoFull(DaoRedis):
-    _Converter: BaseFullConverter
+    _converter: BaseFullConverter
 
     def insert_sql_models(self,
                           models: Iterable[Model],
                           ) -> list[DictModel]:
         hash_models = [
             self._insert_single(
-                model, dumper=self._Converter.sql_model_to_dict_model
+                model, dumper=self._converter.sql_model_to_dict_model
             )
             for model in models
         ]
@@ -205,6 +205,6 @@ class DaoFull(DaoRedis):
                          model: Model,
                          ) -> DictModel:
         hash_model = self._insert_single(
-            model, dumper=self._Converter.sql_model_to_dict_model
+            model, dumper=self._converter.sql_model_to_dict_model
         )
         return hash_model

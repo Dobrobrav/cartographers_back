@@ -10,7 +10,7 @@ from services.redis.base.redis_dao_base import DaoFull
 
 class UserDaoRedis(DaoFull):
     _key_schema = UserKeySchema()
-    _Converter = UserConverter()
+    _converter = UserConverter()
 
     def get_users_pretty(self,
                          user_ids: Sequence[int],

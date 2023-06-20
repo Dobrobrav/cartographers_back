@@ -16,7 +16,7 @@ from ..common import UserNotInRoom
 
 class RoomDaoRedis(DaoFull):
     _key_schema = RoomKeySchema()
-    _Converter = RoomConverter()
+    _converter = RoomConverter()
     _model_class = RoomDC
 
     def try_init_room(self,
