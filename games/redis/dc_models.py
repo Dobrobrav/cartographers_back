@@ -27,17 +27,20 @@ class GameDC(DataClassModel):
     terrain_card_ids: MutableSequence[int]
     season_ids: MutableSequence[int]
     current_season_id: Optional[int]  # should not be optional
+    last_season_id: int
 
 
 @dataclass
 class SeasonDC(DataClassModel):
     name: ESeasonName
     image_url: str
-    points_to_end: int
+    current_points: int
+    max_points: int
     objective_card_ids: MutableSequence[int]
     terrain_card_ids: MutableSequence[int]  # make sure it's a copy of set
     monster_card_ids: MutableSequence[int]  # same as above
     current_move_id: Optional[int]
+    is_finished: bool
 
 
 @dataclass
@@ -45,7 +48,6 @@ class MoveDC(DataClassModel):
     is_prev_card_ruins: bool
     discovery_card_type: EDiscoveryCardType
     discovery_card_id: int
-    season_points: int
 
 
 @dataclass
@@ -81,7 +83,7 @@ class PlayerDC(DataClassModel):
     right_player_id: int
     coins: int
     seasons_score_id: int
-    finished_move: bool
+    is_move_finished: bool
 
 
 @dataclass

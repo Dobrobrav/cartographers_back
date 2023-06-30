@@ -9,23 +9,25 @@ class GameHash(HashModel):
     terrain_card_ids: bytes
     season_ids: bytes
     current_season_id: bytes
+    last_season_id: bytes
 
 
 class SeasonHash(HashModel):
     name: bytes
     image_url: bytes
-    points_to_end: bytes
+    current_points: bytes
+    max_points: bytes
     objective_card_ids: bytes
-    terrain_card_ids: bytes  # make sure it's a copy of set
-    monster_card_ids: bytes  # same as above
+    terrain_card_ids: bytes
+    monster_card_ids: bytes
     current_move_id: bytes
+    is_finished: bytes
 
 
 class MoveHash(HashModel):
     is_prev_card_ruins: bytes
     discovery_card_type: bytes
     discovery_card_id: bytes
-    season_points: bytes
 
 
 class TerrainCardHash(HashModel):
@@ -57,7 +59,7 @@ class PlayerHash(HashModel):
     right_player_id: bytes
     coins: bytes
     seasons_score_id: bytes
-    finished_move: bytes
+    is_move_finished: bytes
 
 
 class SeasonsScoreHash(HashModel):

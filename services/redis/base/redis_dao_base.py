@@ -35,8 +35,7 @@ class DaoBase:
                           ) -> Optional[T]:
         key = self._key_schema.get_hash_key(model_id)
         response = self._redis.hget(key, field_name)
-        res = None if response == b'' else converter(response)
-        return res
+        return None if response == b'' else converter(response)
 
     def _set_model_attr(self,
                         model_id: int,

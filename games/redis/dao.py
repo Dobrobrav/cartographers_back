@@ -1,11 +1,11 @@
 import random
 from copy import copy
-from typing import MutableSequence, NamedTuple, Iterable, Optional, TypeAlias, Sequence
+from typing import MutableSequence, NamedTuple, Iterable, Optional, TypeAlias, Sequence, overload
 
 from django.contrib.auth.models import User
 
 import services.utils
-from cartographers_back.settings import REDIS
+from cartographers_back.settings import R
 from rooms.redis.dao import RoomDaoRedis
 from services.redis.base.redis_dao_base import DaoRedis, DaoFull
 from .dict_models import GamePretty, PlayerPretty, SeasonName, URL, DiscoveryCardPretty, \
@@ -61,7 +61,7 @@ class DiscoveryCardDao(DaoFull):
             field_name='shape_id',
             converter=int,
         )
-        shape_dc: ShapeDC = ShapeDaoRedis(REDIS).fetch_dc_model(shape_id)
+        shape_dc: ShapeDC = ShapeDaoRedis(R).fetch_dc_model(shape_id)
         shape_pretty = ShapePretty(
             shape_value=shape_dc.shape_value,
             gives_coin=shape_dc.gives_coin,
@@ -89,12 +89,13 @@ class GameDaoRedis(DaoRedis):
     def try_init_game(self,
                       initiator_user_id: int,
                       ) -> None:
+        """ try to init game """
         # каждый сезон карты местности перетасовываются, а после хода карта откладывается
         initial_cards = self._get_initial_cards()
-        season_ids = SeasonDaoRedis(REDIS).init_seasons(initial_cards)
+        season_ids = SeasonDaoRedis(R).pre_init_seasons(initial_cards)
         room_id, player_ids = self._get_room_and_players(initiator_user_id)
-        (room_dao := RoomDaoRedis(REDIS)).check_user_is_admin(room_id,
-                                                              initiator_user_id)
+        (room_dao := RoomDaoRedis(R)).check_user_is_admin(room_id,
+                                                          initiator_user_id)
         room_dao.set_is_game_started(room_id, True)
 
         game_id = self._create_game_model(
@@ -107,43 +108,26 @@ class GameDaoRedis(DaoRedis):
 
         self._add_game_id_by_player_id_index_many(game_id, player_ids)
 
-    def finish_move_for_player(self,
-                               user_id: int,
-                               updated_field: FieldPretty,
-                               ) -> None:
-        player_dao = PlayerDaoRedis(REDIS)
-
-        player_id = player_dao.fetch_player_id_by_user_id(user_id)
-        player_dao.finish_move_for_player(
-            player_id, utils.decode_pretty_field(updated_field)
-        )
-
-        game_id = self._get_game_id_by_player_id(player_id)
-        if self._check_all_players_made_move(game_id):
-            if self._check_game_finished(game_id):
-                ...
-            self._start_new_move()
-
     def get_game_pretty(self,
                         user_id: int,
                         ) -> GamePretty:
-        player_dao = PlayerDaoRedis(REDIS)
+        player_dao = PlayerDaoRedis(R)
 
         player_id = player_dao.fetch_player_id_by_user_id(user_id)
         game_id = self._get_game_id_by_player_id(player_id)
         game: GameDC = self.fetch_dc_model(game_id)
 
         seasons_score_id = player_dao.get_seasons_score_id(player_id)
-        seasons_score = SeasonsScoreDao(REDIS).get_seasons_score_pretty(
+        seasons_score = SeasonsScoreDao(R).get_seasons_score_pretty(
             seasons_score_id
         )
         season_ids = self._fetch_season_ids(game_id)
 
         game_pretty = GamePretty(
             id=game_id,
-            room_name=RoomDaoRedis(REDIS).fetch_room_name(game.room_id),
+            room_name=RoomDaoRedis(R).fetch_room_name(game.room_id),
             player_field=player_dao.get_field_pretty(player_id),
-            seasons=(season_dao := SeasonDaoRedis(REDIS)).get_seasons_pretty(
+            seasons=(season_dao := SeasonDaoRedis(R)).get_seasons_pretty(
                 season_ids
             ),
             # tasks=season_dao.get_tasks_pretty(game.season_ids),
@@ -151,8 +135,8 @@ class GameDaoRedis(DaoRedis):
                 game.current_season_id
             ),
             players=player_dao.get_players_pretty(game.player_ids),
-            discovery_card=(move_dao := MoveDaoRedis(
-                REDIS
+            discovery_card=(move_dao := MoveDao(
+                R
             )).get_discovery_card_pretty(game_id),
             is_prev_card_ruins=move_dao.fetch_is_prev_card_ruins(
                 season_dao.fetch_move_id(game.current_season_id)
@@ -164,6 +148,73 @@ class GameDaoRedis(DaoRedis):
         )
 
         return game_pretty
+
+    def process_move(self,
+                     user_id: int,
+                     updated_field: FieldPretty,
+                     ) -> None:
+        player_dao = PlayerDaoRedis(R)
+
+        player_id = player_dao.fetch_player_id_by_user_id(user_id)
+        player_dao.finish_move_for_player(
+            player_id=player_id,
+            updated_field=utils.decode_pretty_field(updated_field),
+        )
+
+        self._prepare_for_next_move(
+            game_id := self._get_game_id_by_player_id(player_id)
+        )
+
+        if not self._check_game_finished(game_id):
+            self._start_next_move(game_id)
+
+    def _check_game_finished(self,
+                             game_id: int,
+                             ) -> bool:
+        is_finished = self._fetch_model_attr(game_id, 'is_finished')
+        return is_finished
+
+    def _prepare_for_next_move(self,
+                               game_id: int,
+                               ) -> None:
+        if self._check_all_players_finished_move(game_id):
+            if self._check_season_points_exceeded(game_id):
+                self._switch_to_next_season(game_id)
+                if self._check_seasons_exceeded(game_id):
+                    self._finish_game(game_id)
+
+    def _check_season_points_exceeded(self,
+                                      game_id: int,
+                                      ) -> bool:
+        current_season_id = self._fetch_current_season_id(game_id)
+        points_exceeded = SeasonDaoRedis(R).check_season_points_exceeded(
+            current_season_id
+        )
+        return points_exceeded
+
+    def _finish_game(self,
+                     game_id: int,
+                     ) -> None:
+        self._set_model_attr(game_id, 'is_finished', True)
+
+    def _fetch_last_season_id(self,
+                              game_id: int,
+                              ) -> int:
+        last_season_id = self._fetch_model_attr(game_id, 'last_season_id')
+        return last_season_id
+
+    # def _switch_to_next_season(self,
+    #                            game_id: int,
+    #                            ) -> None:
+    #     current_season_id = self._fetch_current_season_id(game_id)
+    #     next_season_id = self._fetch_next_season_id(game_id,
+    #                                                 current_season_id)
+    #
+    #     season_dao = SeasonDaoRedis(REDIS)
+    #     unused_monster_cards = season_dao.finish_season(current_season_id)
+    #     season_dao.init_season(next_season_id, unused_monster_cards)
+    #
+    #     self._set_current_season_id(game_id, next_season_id)
 
     def _add_game_id_by_player_id_index_many(self,
                                              game_id: int,
@@ -207,22 +258,67 @@ class GameDaoRedis(DaoRedis):
         game_id = int(self._redis.hget(key, room_id))
         return game_id
 
-    def _start_new_move(self):
-        dao_season = SeasonDaoRedis(REDIS)
+    def _start_next_move(self,
+                         game_id: int,
+                         ) -> None:
+        dao_season = SeasonDaoRedis(R)
+        # TODO: check if I add the season points correctly
 
-        dao_season.start_new_season()
+        current_season_id = self._fetch_current_season_id(game_id)
+        # if season finished, switch to next season
+        if dao_season.check_season_finished(current_season_id):
+            self._switch_to_next_season(game_id)
+            current_season_id = self._fetch_current_season_id(game_id)
+
+        dao_season.start_new_move(current_season_id)
+
+    def _switch_to_next_season(self,
+                               game_id: int,
+                               ) -> None:
+        season_dao = SeasonDaoRedis(R)
+
+        unused_monster_card_ids = season_dao.fetch_monster_card_ids(
+            self._fetch_current_season_id(game_id)
+        )
+        season_dao.finish_init_season(
+            next_season_id := self._fetch_next_season_id(game_id),
+            unused_monster_card_ids,
+        )
+        self._set_current_season_id(game_id, next_season_id)
+
+    def _fetch_current_season_id(self,
+                                 game_id: int,
+                                 ) -> int:
+        current_season_id = self._fetch_model_attr(game_id,
+                                                   'current_season_id')
+        return current_season_id
+
+    def _set_current_season_id(self,
+                               game_id: int,
+                               season_id: int,
+                               ) -> None:
+        self._set_model_attr(game_id, 'current_season_id', season_id)
+
+    def _fetch_next_season_id(self,
+                              game_id: int,
+                              ) -> int:
+        season_ids = self._fetch_season_ids(game_id)
+        current_season_id = self._fetch_current_season_id(game_id)
+        next_season_id_index = season_ids.index(current_season_id) + 1
+        next_season_id = season_ids[next_season_id_index]
+        return next_season_id
 
     # TODO: need to store in redis attr indicating if user has finished his move
 
     @staticmethod
     def _get_initial_cards():
-        terrain_card_ids = TerrainCardDaoRedis(REDIS). \
+        terrain_card_ids = TerrainCardDao(R). \
             pick_terrain_cards()
 
-        monster_card_ids = MonsterCardDaoRedis(REDIS). \
+        monster_card_ids = MonsterCardDaoRedis(R). \
             pick_monster_cards()
 
-        objective_card_ids = ObjectiveCardDaoRedis(REDIS). \
+        objective_card_ids = ObjectiveCardDaoRedis(R). \
             pick_objective_cards()
 
         initial_cards = InitialCards(terrain_card_ids,
@@ -231,10 +327,12 @@ class GameDaoRedis(DaoRedis):
 
         return initial_cards
 
-    def _check_game_finished(self,
-                             game_id: int,
-                             ) -> bool:
-        pass
+    def _check_seasons_exceeded(self,
+                                game_id: int,
+                                ) -> bool:
+        """ Check if game has ended, but it's not indicated in system """
+        last_season_id = self._fetch_last_season_id(game_id)
+        return SeasonDaoRedis(R).check_season_finished(last_season_id)
 
     def _create_game_model(self,
                            initial_cards: InitialCards,
@@ -255,17 +353,18 @@ class GameDaoRedis(DaoRedis):
             player_ids=player_ids,
             admin_id=admin_id,
             current_season_id=season_ids[0],
+            last_season_id=season_ids[3],
         )
         self.insert_dc_model(game)
         self._add_game_id_by_room_id_index(room_id, game_id)
 
         return game
 
-    def _check_all_players_made_move(self,
-                                     game_id: int,
-                                     ) -> bool:
+    def _check_all_players_finished_move(self,
+                                         game_id: int,
+                                         ) -> bool:
         player_ids = self._fetch_player_ids(game_id)
-        return PlayerDaoRedis(REDIS).check_players_made_move(player_ids)
+        return PlayerDaoRedis(R).check_players_finished_move(player_ids)
 
     def _fetch_player_ids(self,
                           game_id: int,
@@ -283,9 +382,9 @@ class GameDaoRedis(DaoRedis):
     def _get_room_and_players(self,
                               admin_id: int,
                               ) -> tuple[int, list[int]]:
-        user_ids = (room_dao := RoomDaoRedis(REDIS)).fetch_user_ids(admin_id)
+        user_ids = (room_dao := RoomDaoRedis(R)).fetch_user_ids(admin_id)
         field = self._gen_field()
-        player_ids = PlayerDaoRedis(REDIS).init_players(user_ids, field)
+        player_ids = PlayerDaoRedis(R).init_players(user_ids, field)
         room_id = room_dao._fetch_room_id_by_user_id(admin_id)
 
         return room_id, player_ids
@@ -318,7 +417,7 @@ class ObjectiveCardDaoRedis(DaoFull):
         return picked_card_ids
 
 
-class TerrainCardDaoRedis(DiscoveryCardDao):
+class TerrainCardDao(DiscoveryCardDao):
     TERRAIN_CARD_QUANTITY = 2
 
     _key_schema = TerrainCardKeySchema()
@@ -360,7 +459,7 @@ class TerrainCardDaoRedis(DiscoveryCardDao):
         if additional_shape_id is None:
             return None
 
-        additional_shape_dc: ShapeDC = ShapeDaoRedis(REDIS).fetch_dc_model(
+        additional_shape_dc: ShapeDC = ShapeDaoRedis(R).fetch_dc_model(
             additional_shape_id
         )
         additional_shape_pretty = ShapePretty(
@@ -376,6 +475,19 @@ class TerrainCardDaoRedis(DiscoveryCardDao):
         picked_card_ids = random.sample(card_ids,
                                         self.TERRAIN_CARD_QUANTITY)
         return picked_card_ids
+
+    def fetch_terrain_card_type(self,
+                                terrain_card_id: int,
+                                ) -> str:
+        card_type = self._fetch_model_attr(terrain_card_id, 'card_type',
+                                           services.utils.decode_bytes)
+        return card_type
+
+    def fetch_regular_card_season_points(self,
+                                         card_id: int,
+                                         ) -> int:
+        points = self._fetch_model_attr(card_id, 'season_points')
+        return points
 
 
 class ShapeDaoRedis(DaoFull):
@@ -397,12 +509,19 @@ class SeasonDaoRedis(DaoRedis):
         return move_id
 
     def start_new_season(self):
-        move_dao = MoveDaoRedis(REDIS)
+        move_dao = MoveDao(R)
 
         while True:
-            discovery_card = move_dao.start_new_move()
+            discovery_card = move_dao.init_move()
             if not self._check_discovery_card_is_ruins(discovery_card):
                 break
+        ...
+
+    def check_season_finished(self,
+                              season_id: int,
+                              ) -> bool:
+        is_finished = self._fetch_model_attr(season_id, 'is_finished')
+        return is_finished
 
     # def get_tasks_pretty(self,
     #                      season_ids: Iterable[int],
@@ -415,9 +534,9 @@ class SeasonDaoRedis(DaoRedis):
     #
     # def _get_objective_card_ids(self,):
 
-    def init_seasons(self,
-                     initial_cards: InitialCards,
-                     ) -> list[int]:
+    def pre_init_seasons(self,
+                         initial_cards: InitialCards,
+                         ) -> list[int]:
         print(initial_cards)
         """ create seasons, insert them into redis
          and return their ids """
@@ -428,8 +547,8 @@ class SeasonDaoRedis(DaoRedis):
 
         season_cards = self._get_season_cards()
 
-        seasons = list()
-        seasons.append(self.init_season(
+        seasons = []
+        seasons.append(self.pre_init_season(
             name=ESeasonName.SPRING,
             season_card=season_cards.spring,
             objective_card_ids=objective_card_ids[0:2],
@@ -437,7 +556,7 @@ class SeasonDaoRedis(DaoRedis):
             monster_card_ids=[monster_card_ids.pop()],
             is_first_season=True,
         ))
-        seasons.append(self.init_season(
+        seasons.append(self.pre_init_season(
             name=ESeasonName.SUMMER,
             season_card=season_cards.summer,
             objective_card_ids=objective_card_ids[1:3],
@@ -445,14 +564,14 @@ class SeasonDaoRedis(DaoRedis):
             monster_card_ids=[monster_card_ids.pop()],
             # then I'll add monster_card(s) from prev season
         ))
-        seasons.append(self.init_season(
+        seasons.append(self.pre_init_season(
             name=ESeasonName.FALL,
             season_card=season_cards.fall,
             objective_card_ids=objective_card_ids[2:4],
             terrain_card_ids=self._shuffle_cards(terrain_card_ids),
             monster_card_ids=[monster_card_ids.pop()],
         ))
-        seasons.append(self.init_season(
+        seasons.append(self.pre_init_season(
             name=ESeasonName.WINTER,
             season_card=season_cards.winter,
             objective_card_ids=[objective_card_ids[0],
@@ -463,32 +582,69 @@ class SeasonDaoRedis(DaoRedis):
 
         return seasons
 
-    def init_season(self,
-                    name: ESeasonName,
-                    season_card: SeasonCardSQL,
-                    objective_card_ids: MutableSequence[int],
-                    terrain_card_ids: MutableSequence[int],
-                    monster_card_ids: MutableSequence[int],
-                    is_first_season: bool = False,
-                    ) -> int:
-        """ create season, insert it and return its id """
-        first_move_id = self._start_first_move(
-            terrain_card_ids, monster_card_ids
+    def pre_init_season(self,
+                        name: ESeasonName,
+                        season_card: SeasonCardSQL,
+                        objective_card_ids: MutableSequence[int],
+                        terrain_card_ids: MutableSequence[int],
+                        monster_card_ids: MutableSequence[int],
+                        is_first_season: bool,
+                        ) -> int:
+        """ create season (not complete monster cards),
+         insert it and return its id """
+        first_move_id = self.start_new_move(
+            terrain_card_ids=terrain_card_ids,
+            monster_card_ids=monster_card_ids,
         ) if is_first_season else None
 
         season = self._model_class(
             id=self._gen_new_id(),
             name=name,
             image_url=season_card.image.url,
-            points_to_end=season_card.points_to_end,
+            current_points=0,
+            max_points=season_card.points_to_end,
             objective_card_ids=objective_card_ids,
             terrain_card_ids=terrain_card_ids,
             monster_card_ids=monster_card_ids,
             current_move_id=first_move_id,
+            is_finished=False,
         )
         self.insert_dc_model(season)
 
         return season.id
+
+    def finish_init_season(self,
+                           season_id: int,
+                           unused_monster_card_ids: Iterable[int],
+                           ) -> None:
+        self._add_monster_card_ids(season_id, unused_monster_card_ids)
+
+    def _set_current_move_id(self,
+                             season_id: int,
+                             move_id: int,
+                             ) -> None:
+        self._set_model_attr(season_id, 'current_move_id', move_id)
+
+    def _add_monster_card_ids(self,
+                              season_id: int,
+                              unused_monster_card_ids: Iterable[int],
+                              ) -> None:
+        current_monster_card_ids = self._fetch_monster_card_ids(season_id)
+        current_monster_card_ids.extend(unused_monster_card_ids)
+        self._set_monster_card_ids(season_id, current_monster_card_ids)
+
+    def _set_monster_card_ids(self,
+                              season_id: int,
+                              monster_card_ids: MutableSequence[int],
+                              ):
+        self._set_model_attr(season_id, 'monster_card_ids', monster_card_ids)
+
+    def _fetch_monster_card_ids(self,
+                                season_id: int,
+                                ) -> list[int]:
+        monster_card_ids = self._fetch_model_attr(season_id,
+                                                  'monster_card_ids')
+        return monster_card_ids
 
     def get_seasons_pretty(self,
                            season_ids: Iterable[int],
@@ -513,6 +669,26 @@ class SeasonDaoRedis(DaoRedis):
         url = self._redis.hget(key, 'image_url').decode('utf-8')
         return url
 
+    def check_season_points_exceeded(self,
+                                     season_id: int,
+                                     ) -> bool:
+        max_points = self._fetch_max_points(season_id)
+        current_points = self._fetch_current_points(season_id)
+        return current_points >= max_points
+
+    def finish_season(self,
+                      season_id: int,
+                      ) -> list[int]:
+        self._set_is_finished(season_id, True)
+        unused_monster_card_ids = self.fetch_monster_card_ids(season_id)
+        return unused_monster_card_ids
+
+    def _set_is_finished(self,
+                         season_id: int,
+                         value: bool,
+                         ) -> None:
+        self._set_model_attr(season_id, 'is_finished', value)
+
     def get_season_name(self,
                         season_id: int,
                         ) -> str:
@@ -531,6 +707,16 @@ class SeasonDaoRedis(DaoRedis):
                                 ):
         ...
 
+    def _fetch_max_points(self,
+                          season_id: int,
+                          ) -> int:
+        return self._fetch_model_attr(season_id, 'max_points')
+
+    def _fetch_current_points(self,
+                              season_id: int,
+                              ) -> int:
+        return self._fetch_model_attr(season_id, 'current_points')
+
     @staticmethod
     def _get_season_cards() -> SeasonCards:
         cards = SeasonCards(
@@ -541,18 +727,73 @@ class SeasonDaoRedis(DaoRedis):
         )
         return cards
 
-    def _start_first_move(self,
-                          terrain_card_ids: MutableSequence[int],
-                          monster_card_ids: MutableSequence[int],
-                          ):
-        discovery_card_id, discovery_card_type = self. \
-            _pick_discovery_card(terrain_card_ids, monster_card_ids)
-
-        first_move_id = MoveDaoRedis(REDIS).start_first_move(
-            discovery_card_id=discovery_card_id,
-            discovery_card_type=discovery_card_type,
+    def start_new_move(self,
+                       season_id: int | None = None,
+                       terrain_card_ids: MutableSequence[int] | None = None,
+                       monster_card_ids: MutableSequence[int] | None = None,
+                       ) -> int:
+        card_id, discovery_card_type = self._pick_discovery_card(
+            terrain_card_ids or self._fetch_terrain_card_ids(season_id),
+            monster_card_ids or self._fetch_monster_card_ids(season_id),
         )
-        return first_move_id
+
+        season_id and self._add_card_season_points(season_id)
+
+        move_id = MoveDao(R).init_move(
+            discovery_card_id=card_id,
+            discovery_card_type=discovery_card_type,
+            is_prev_card_ruins=self._check_card_is_ruins(season_id),
+        )
+        season_id and self._set_current_move_id(move_id)
+
+        return move_id
+
+    def _add_card_season_points(self,
+                                season_id: int,
+                                ) -> None:
+        current_points = self._fetch_current_points(season_id)
+        move_id = self._fetch_current_move_id(season_id)
+        self._set_current_points(
+            season_id,
+            current_points + MoveDao(R).fetch_card_season_points(
+                move_id
+            ),
+        )
+
+    def _set_current_points(self,
+                            season_id: int,
+                            value: int,
+                            ) -> None:
+        self._set_model_attr(season_id, 'current_points', value)
+
+    def _fetch_terrain_card_ids(self,
+                                season_id: int,
+                                ) -> list[int]:
+        card_ids = self._fetch_model_attr(season_id, 'terrain_card_ids')
+        return card_ids
+
+    def fetch_monster_card_ids(self,
+                               season_id: int,
+                               ) -> list[int]:
+        card_ids = self._fetch_model_attr(season_id, 'monster_card_ids')
+        return card_ids
+
+    def _check_card_is_ruins(self,
+                             season_id: int,
+                             ) -> bool:
+        current_move_id = self._fetch_current_move_id(season_id)
+        MoveDao(R)._check_card_is_ruins(current_move_id)
+
+    def _fetch_current_move_id(self,
+                               season_id: int,
+                               ) -> int:
+        return self._fetch_model_attr(season_id, 'current_move_id')
+
+    def _set_current_move_id(self,
+                             season_id: int,
+                             move_id: int,
+                             ) -> None:
+        self._set_model_attr(season_id, 'current_move_id', move_id)
 
     @staticmethod
     def _pick_discovery_card(terrain_card_ids: MutableSequence[int],
@@ -597,35 +838,21 @@ class SeasonDaoRedis(DaoRedis):
         return season_id
 
 
-class MoveDaoRedis(DaoRedis):
+class MoveDao(DaoRedis):
     _key_schema = MoveKeySchema()
     _converter = MoveConverter()
     _model_class = MoveDC
 
-    # def start_new_move(self,
-    #
-    #                    ):
-    #     id = self._gen_new_id()
-    #     move = self._model_class(
-    #         id=id,
-    #         is_prev_card_ruins=is_prev_card_ruins,
-    #         discovery_card_type=discovery_card_type,
-    #         discovery_card_id=discovery_card_id,
-    #         season_points=season_points,
-    #     )
-    #     self.insert_dc_model(move)
-    #     return move
-
-    def start_first_move(self,
-                         discovery_card_id: int,
-                         discovery_card_type: EDiscoveryCardType,
-                         ) -> int:
+    def init_move(self,
+                  discovery_card_id: int,
+                  discovery_card_type: EDiscoveryCardType,
+                  is_prev_card_ruins: bool,
+                  ) -> int:
         move = self._model_class(
             id=self._gen_new_id(),
-            is_prev_card_ruins=False,
+            is_prev_card_ruins=is_prev_card_ruins,
             discovery_card_id=discovery_card_id,
             discovery_card_type=discovery_card_type,
-            season_points=0,
         )
         self.insert_dc_model(move)
         return move.id
@@ -640,13 +867,21 @@ class MoveDaoRedis(DaoRedis):
         )
         return is_prev_card_ruins
 
+    def fetch_card_season_points(self,
+                                 move_id: int,
+                                 ) -> int:
+        if not self._check_card_is_terrain(move_id):
+            return 0
+
+        return self._fetch_terrain_card_season_points(move_id)
+
     def get_discovery_card_pretty(self,
                                   move_id: int,
                                   ) -> DiscoveryCardPretty:
         discovery_card_pretty = DiscoveryCardPretty(
             image=self._fetch_card_image_url(move_id),
             is_anomaly=self._check_card_is_anomaly(move_id),
-            terrain_int=self._fetch_card_terrain(move_id),
+            terrain_int=self._fetch_card_terrain_pretty(move_id),
             additional_terrain_int=self._fetch_card_additional_terrain(move_id),
             shape=self._fetch_card_shape_pretty(move_id),
             additional_shape=self._fetch_card_additional_shape_pretty(move_id),
@@ -654,19 +889,67 @@ class MoveDaoRedis(DaoRedis):
         # TODO: replace 'additional_' with extra_
         return discovery_card_pretty
 
+    def _fetch_terrain_card_season_points(self,
+                                          move_id: int,
+                                          ) -> int:
+        match self._fetch_terrain_card_type(move_id):
+            case 'regular':
+                return self._fetch_regular_card_season_points(move_id)
+            case 'anomaly', 'ruins':
+                return 0
+
+    def _fetch_regular_card_season_points(self,
+                                          move_id: int,
+                                          ) -> int:
+        card_id = self._fetch_discovery_card_id(move_id)
+        return TerrainCardDao(R).fetch_regular_card_season_points(card_id)
+
+    def _fetch_terrain_card_type(self,
+                                 move_id: int,
+                                 ) -> str:
+        card_id = self._fetch_discovery_card_id(move_id)
+        return TerrainCardDao(R).fetch_terrain_card_type(card_id)
+
     def _check_card_is_anomaly(self,
                                move_id: int,
                                ) -> bool:
-        type = self._fetch_discovery_card_type(move_id)
-        return type == 'anomaly'
+        if not self._check_card_is_terrain(move_id):
+            return False
 
-    def _fetch_card_terrain(self,
-                            move_id: int,
-                            ) -> int:
+        return self._check_terrain_card_type_is(move_id, 'anomaly')
+
+    def _check_card_is_ruins(self,
+                             move_id: int,
+                             ) -> bool:
+        if not self._check_card_is_terrain(move_id):
+            return False
+
+        return self._check_terrain_card_type_is(move_id, 'ruins')
+
+    def _check_card_is_terrain(self,
+                               move_id: int,
+                               ) -> bool:
+        discovery_card_type = self._fetch_discovery_card_type(move_id)
+        if discovery_card_type != 'terrain':
+            return False
+
+    def _check_terrain_card_type_is(self,
+                                    move_id: int,
+                                    card_type: str,
+                                    ) -> bool:
+
+        terrain_card_type = TerrainCardDao(R).fetch_terrain_card_type(
+            self._fetch_discovery_card_id(move_id)
+        )
+        return terrain_card_type == card_type
+
+    def _fetch_card_terrain_pretty(self,
+                                   move_id: int,
+                                   ) -> int:
         type = self._fetch_discovery_card_type(move_id)
         match type:
             case 'terrain':
-                terrain = TerrainCardDaoRedis(REDIS).get_terrain_pretty(
+                terrain = TerrainCardDao(R).get_terrain_pretty(
                     terrain_card_id=self._fetch_discovery_card_id(move_id)
                 )
             case 'monster':
@@ -684,7 +967,7 @@ class MoveDaoRedis(DaoRedis):
         if type != 'terrain':
             return None
 
-        terrain = TerrainCardDaoRedis(REDIS).get_additional_terrain_pretty(
+        terrain = TerrainCardDao(R).get_additional_terrain_pretty(
             terrain_card_id=self._fetch_discovery_card_id(move_id)
         )
         return terrain
@@ -707,9 +990,9 @@ class MoveDaoRedis(DaoRedis):
 
         match type:
             case 'terrain':
-                card_dao = TerrainCardDaoRedis(REDIS)
+                card_dao = TerrainCardDao(R)
             case 'monster':
-                card_dao = MonsterCardDaoRedis(REDIS)
+                card_dao = MonsterCardDaoRedis(R)
             case _:
                 raise ValueError('type must be either "monster" or "terrain"')
 
@@ -721,7 +1004,7 @@ class MoveDaoRedis(DaoRedis):
                                             move_id: int,
                                             ) -> Optional[str]:
         card_id = self._fetch_discovery_card_id(move_id)
-        additional_shape = TerrainCardDaoRedis(REDIS). \
+        additional_shape = TerrainCardDao(R). \
             get_additional_shape_pretty(card_id)
 
         return additional_shape
@@ -743,9 +1026,9 @@ class MoveDaoRedis(DaoRedis):
 
         match type:  # why not use Literal for card_type everywhere
             case 'terrain':
-                discovery_card_dao = TerrainCardDaoRedis(REDIS)
+                discovery_card_dao = TerrainCardDao(R)
             case 'monster':
-                discovery_card_dao = MonsterCardDaoRedis(REDIS)
+                discovery_card_dao = MonsterCardDaoRedis(R)
             case _:
                 raise ValueError('Type of discovery card must be either '
                                  '"terrain" or "monster"')
@@ -785,28 +1068,27 @@ class PlayerDaoRedis(DaoRedis):
     def finish_move_for_player(self,
                                player_id: int,
                                updated_field: Field):
-        self._update_field(player_id, updated_field)
-        self._set_player_finished_move(player_id, True)
+        self._set_field(player_id, updated_field)
+        self._set_is_move_finished(player_id, True)
 
-    def check_players_made_move(self,
-                                player_ids: Iterable[int],
-                                ) -> bool:
-        res = all(
-            self._check_player_made_move(player_id)
+    def check_players_finished_move(self,
+                                    player_ids: Iterable[int],
+                                    ) -> bool:
+        return all(
+            self._fetch_is_move_finished(player_id)
             for player_id in player_ids
         )
-        return res
 
-    def _check_player_made_move(self,
+    def _fetch_is_move_finished(self,
                                 player_id,
                                 ) -> bool:
-        made_move = self._fetch_model_attr(player_id, 'finished_move')
+        made_move = self._fetch_model_attr(player_id, 'is_move_finished')
         return made_move
 
-    def _update_field(self,
-                      player_id: int,
-                      updated_field: Field,
-                      ) -> None:
+    def _set_field(self,
+                   player_id: int,
+                   updated_field: Field,
+                   ) -> None:
         self._set_model_attr(
             model_id=player_id,
             field_name='field',
@@ -814,10 +1096,10 @@ class PlayerDaoRedis(DaoRedis):
             converter=utils.serialize_field,
         )
 
-    def _set_player_finished_move(self,
-                                  player_id: int,
-                                  finished_move: bool,
-                                  ) -> None:
+    def _set_is_move_finished(self,
+                              player_id: int,
+                              finished_move: bool,
+                              ) -> None:
         self._set_model_attr(
             model_id=player_id,
             field_name='finished_move',
@@ -875,7 +1157,7 @@ class PlayerDaoRedis(DaoRedis):
                         player_id: int,
                         ) -> int:
         seasons_score_id = self._get_seasons_score_id(player_id)
-        total = SeasonsScoreDao(REDIS).get_score(seasons_score_id)
+        total = SeasonsScoreDao(R).get_score(seasons_score_id)
         return total
 
     def get_name(self,
@@ -923,7 +1205,7 @@ class PlayerDaoRedis(DaoRedis):
                      neighbors: Neighbors,
                      field: Field
                      ) -> int:
-        seasons_score_id = SeasonsScoreDao(REDIS).init_seasons_score()  # create seasons for players
+        seasons_score_id = SeasonsScoreDao(R).init_seasons_score()  # create seasons for players
         player_dc = self._create_model(neighbors, field, seasons_score_id)
         self.insert_dc_model(player_dc)
         self._add_player_id_by_user_id_index(player_dc.id, neighbors.user_id)
@@ -988,7 +1270,7 @@ class SeasonsScoreDao(DaoRedis):
     _model_class = SeasonsScoreDC
 
     def init_seasons_score(self) -> int:
-        season_score_dao = SeasonScoreDao(REDIS)
+        season_score_dao = SeasonScoreDao(R)
         season_score = self._model_class(
             id=self._gen_new_id(),
             spring_score_id=season_score_dao.init_season_score(),
@@ -1006,7 +1288,7 @@ class SeasonsScoreDao(DaoRedis):
                                  seasons_score_id: int,
                                  ) -> SeasonsScorePretty:
         ids = self._get_season_score_ids(seasons_score_id)
-        dao = SeasonScoreDao(REDIS)
+        dao = SeasonScoreDao(R)
 
         res = SeasonsScorePretty(
             spring_score=dao.get_season_score_pretty(ids[0]),
@@ -1020,7 +1302,7 @@ class SeasonsScoreDao(DaoRedis):
                   seasons_score_id: int,
                   ) -> int:
         season_score_ids = self._get_season_score_ids(seasons_score_id)
-        total = SeasonScoreDao(REDIS).get_seasons_score_total(season_score_ids)
+        total = SeasonScoreDao(R).get_seasons_score_total(season_score_ids)
         return total
 
     def _get_season_score_ids(self,

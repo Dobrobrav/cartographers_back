@@ -12,23 +12,25 @@ class GameDict(DictModel):
     terrain_card_ids: str
     season_ids: str
     current_season_id: int
+    last_season_id: int
 
 
 class SeasonDict(DictModel):
     name: str
     image_url: str
-    points_to_end: int
+    current_points: int
+    max_points: int
     objective_card_ids: str
     terrain_card_ids: str
     monster_card_ids: str
     current_move_id: int
+    is_finished: bool
 
 
 class MoveDict(DictModel):
     is_prev_card_ruins: int
     discovery_card_type: str
     discovery_card_id: int
-    season_points: int
 
 
 class TerrainCardDict(DictModel):
@@ -60,7 +62,7 @@ class PlayerDict(DictModel):
     right_player_id: int
     coins: int
     seasons_score_id: int
-    finished_move: str  # true or false
+    is_move_finished: str  # true or false
 
 
 class PlayerPretty(PrettyModel):

@@ -171,7 +171,7 @@ REST_FRAMEWORK = {
 
 # AUTHTOKEN_TOKEN_LIFETIME = 24 * 60 * 60  # token lifespan is 24 hours
 
-REDIS = env.REDIS
+R = env.REDIS
 
 # поправить константу ниже
 # REDIS_EXTERNAL_URL = ''

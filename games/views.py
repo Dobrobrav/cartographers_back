@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_201_CREATED
 from rest_framework.views import APIView
 
-from cartographers_back.settings import REDIS
+from cartographers_back.settings import R
 from games.redis.dao import GameDaoRedis
 from rooms.redis.dao import RoomDaoRedis
 from services.utils import get_user_id_by_token
@@ -19,7 +19,7 @@ class GameAPIView(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        GameDaoRedis(REDIS).try_init_game(user_id)
+        GameDaoRedis(R).try_init_game(user_id)
 
         return Response(status=HTTP_201_CREATED)
 
@@ -30,7 +30,7 @@ class GameAPIView(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        game = GameDaoRedis(REDIS).get_game_pretty(user_id)
+        game = GameDaoRedis(R).get_game_pretty(user_id)
 
         return Response(data=game, status=status.HTTP_200_OK)
 
@@ -43,7 +43,7 @@ class MoveAPIView(APIView):
         user_id = get_user_id_by_token(request.auth)
         updated_field = request.data['field']
 
-        GameDaoRedis(REDIS).make_move(user_id, updated_field)
+        GameDaoRedis(R).make_move(user_id, updated_field)
 
         return Response(status=status.HTTP_205_RESET_CONTENT)
 

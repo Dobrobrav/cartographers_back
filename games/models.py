@@ -62,9 +62,6 @@ class SeasonCardSQL(models.Model):
     image = models.ImageField(upload_to='season_cards/')
 
 
-
-
-
 class MonsterCardSQL(models.Model):
     name = models.CharField(
         max_length=20, default=None, null=True,

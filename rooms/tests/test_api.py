@@ -8,7 +8,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 from rest_framework.utils import json
 
-from cartographers_back.settings import REDIS
+from cartographers_back.settings import R
 from rooms.redis.dao import RoomDaoRedis
 
 

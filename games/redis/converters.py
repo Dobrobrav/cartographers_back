@@ -34,6 +34,7 @@ class GameConverter(BaseRedisConverter):
             terrain_card_ids=utils.serialize(dc_model.terrain_card_ids),
             season_ids=utils.serialize(dc_model.season_ids),
             current_season_id=dc_model.current_season_id,
+            last_season_id=dc_model.last_season_id,
         )
         return game_dict
 
@@ -49,6 +50,7 @@ class GameConverter(BaseRedisConverter):
             terrain_card_ids=utils.deserialize(hash_model[b'terrain_card_ids']),
             season_ids=utils.deserialize(hash_model[b'season_ids']),
             current_season_id=int(hash_model[b'current_season_id']),
+            last_season_id=int(hash_model[b'last_season_id'])
         )
         return game_dc
 
@@ -63,7 +65,8 @@ class SeasonConverter(BaseRedisConverter):
             id=dc_model.id,
             name=dc_model.name.value,
             image_url=dc_model.image_url,
-            points_to_end=dc_model.points_to_end,
+            current_points=dc_model.current_points,
+            max_points=dc_model.max_points,
             objective_card_ids=utils.serialize(
                 dc_model.objective_card_ids
             ),
@@ -74,6 +77,7 @@ class SeasonConverter(BaseRedisConverter):
                 dc_model.monster_card_ids
             ),
             current_move_id=dc_model.current_move_id or '',
+            is_finished=dc_model.is_finished,
         )
         return season_dict
 
@@ -86,7 +90,8 @@ class SeasonConverter(BaseRedisConverter):
                 ESeasonName, hash_model[b'name'].decode('utf-8')
             ),
             image_url=hash_model[b'image_url'].decode('utf-8'),
-            points_to_end=int(hash_model[b'points_to_end']),
+            current_points=int(hash_model[b'current_points']),
+            max_points=int(hash_model[b'max_points']),
             objective_card_ids=utils.bytes_to_list(
                 hash_model[b'objective_card_ids']
             ),
@@ -97,6 +102,7 @@ class SeasonConverter(BaseRedisConverter):
                 hash_model[b'monster_card_ids']
             ),
             current_move_id=int(hash_model[b'current_move_id']),
+            is_finished=bool(hash_model[b'is_finished'])
         )
         return season_dc
 
@@ -125,7 +131,6 @@ class MoveConverter(BaseRedisConverter):
             is_prev_card_ruins=int(dc_model.is_prev_card_ruins),
             discovery_card_type=dc_model.discovery_card_type.value,
             discovery_card_id=dc_model.discovery_card_id,
-            season_points=dc_model.season_points,
         )
         return move_dict
 
@@ -140,7 +145,6 @@ class MoveConverter(BaseRedisConverter):
                 hash_model[b'discovery_card_type'].decode('utf-8'),
             ),
             discovery_card_id=int(hash_model[b'discovery_card_id']),
-            season_points=int(hash_model[b'season_points']),
         )
         return move_dc
 
@@ -158,7 +162,7 @@ class PlayerConverter(BaseRedisConverter):
             right_player_id=dc_model.right_player_id,
             coins=dc_model.coins,
             seasons_score_id=dc_model.seasons_score_id,
-            finished_move=utils.serialize(dc_model.finished_move),
+            is_move_finished=utils.serialize(dc_model.is_move_finished),
         )
         return player_dict
 
@@ -173,7 +177,7 @@ class PlayerConverter(BaseRedisConverter):
             right_player_id=int(hash_model[b'right_player_id']),
             coins=int(hash_model[b'coins']),
             seasons_score_id=int(hash_model[b'seasons_score_id']),
-            finished_move=utils.deserialize(hash_model[b'finished_move']),
+            is_move_finished=utils.deserialize(hash_model[b'is_move_finished']),
         )
         return player_dc
 
@@ -243,6 +247,7 @@ class ObjectiveCardConverter(BaseFullConverter):
             id=dc_model.id,
             name=dc_model.name,
             image_url=dc_model.image_url,
+            text=dc_model.text,
         )
         return objective_card_dict
 
@@ -253,6 +258,7 @@ class ObjectiveCardConverter(BaseFullConverter):
             id=int(hash_model[b'id']),
             name=hash_model[b'name'].decode('utf-8'),
             image_url=hash_model[b'image_url'].decode('utf-8'),
+            text='Lorem ipsum dolor sit amet',
         )
         return redis_model
 

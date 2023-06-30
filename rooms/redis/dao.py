@@ -3,7 +3,7 @@ from typing import Any, Optional, Iterable, Sequence, MutableSequence
 from django.contrib.auth.hashers import make_password
 
 import services.utils
-from cartographers_back.settings import REDIS
+from cartographers_back.settings import R
 from services.redis.dao import UserDaoRedis
 from services.redis.base.models_base import DataClassModel
 from .dict_models import RoomPrettyForPage, RoomPretty
@@ -295,8 +295,8 @@ class RoomDaoRedis(DaoFull):
         user_ids = room_dc.user_ids
 
         users_readiness = self._fetch_user_is_ready_many(room_id, user_ids)
-        users_pretty = UserDaoRedis(REDIS).get_users_pretty(user_ids,
-                                                            users_readiness)
+        users_pretty = UserDaoRedis(R).get_users_pretty(user_ids,
+                                                        users_readiness)
 
         room_dict = self._converter.make_room_pretty(
             room_dc, self._check_room_is_ready_for_game(
