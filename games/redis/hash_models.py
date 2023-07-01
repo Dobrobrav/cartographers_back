@@ -25,7 +25,7 @@ class SeasonHash(HashModel):
 
 
 class MoveHash(HashModel):
-    is_prev_card_ruins: bytes
+    is_on_ruins: bytes
     discovery_card_type: bytes
     discovery_card_id: bytes
 

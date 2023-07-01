@@ -77,7 +77,7 @@ class SeasonConverter(BaseRedisConverter):
                 dc_model.monster_card_ids
             ),
             current_move_id=dc_model.current_move_id or '',
-            is_finished=dc_model.is_finished,
+            is_finished=services.utils.serialize(dc_model.is_finished),
         )
         return season_dict
 
@@ -102,7 +102,9 @@ class SeasonConverter(BaseRedisConverter):
                 hash_model[b'monster_card_ids']
             ),
             current_move_id=int(hash_model[b'current_move_id']),
-            is_finished=bool(hash_model[b'is_finished'])
+            is_finished=services.utils.deserialize(
+                hash_model[b'is_finished']
+            )
         )
         return season_dc
 
@@ -128,7 +130,7 @@ class MoveConverter(BaseRedisConverter):
                                ) -> MoveDict:
         move_dict = MoveDict(
             id=dc_model.id,
-            is_prev_card_ruins=int(dc_model.is_prev_card_ruins),
+            is_on_ruins=services.utils.serialize(dc_model.is_on_ruins),
             discovery_card_type=dc_model.discovery_card_type.value,
             discovery_card_id=dc_model.discovery_card_id,
         )
@@ -139,7 +141,9 @@ class MoveConverter(BaseRedisConverter):
                                ) -> MoveDC:
         move_dc = MoveDC(
             id=int(hash_model[b'id']),
-            is_prev_card_ruins=bool(int(hash_model[b'is_prev_card_ruins'])),
+            is_on_ruins=services.utils.deserialize(
+                hash_model[b'is_on_ruins']
+            ),
             discovery_card_type=get_enum_by_value(
                 EDiscoveryCardType,
                 hash_model[b'discovery_card_type'].decode('utf-8'),
@@ -235,7 +239,7 @@ class ObjectiveCardConverter(BaseFullConverter):
         objective_card_dc = ObjectiveCardDC(
             id=sql_model.pk,
             name=sql_model.name,
-            text=None,
+            text='SOME PLACEHOLDER',
             image_url=sql_model.image.url,
         )
         return objective_card_dc

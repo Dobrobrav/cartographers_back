@@ -1,6 +1,6 @@
 import random
 from copy import copy
-from typing import MutableSequence, NamedTuple, Iterable, Optional, TypeAlias, Sequence, overload
+from typing import MutableSequence, NamedTuple, Iterable, Optional, TypeAlias, Sequence, overload, Literal
 
 from django.contrib.auth.models import User
 
@@ -53,14 +53,16 @@ class Neighbors(NamedTuple):
 
 class DiscoveryCardDao(DaoFull):
 
-    def get_shape_pretty(self,
-                         discovery_card_id: int,
-                         ) -> ShapePretty:
+    def fetch_shape_pretty(self,
+                           discovery_card_id: int,
+                           ) -> ShapePretty:
         shape_id = self._fetch_model_attr(
             model_id=discovery_card_id,
             field_name='shape_id',
             converter=int,
         )
+        services.utils.validate_not_none(shape_id)
+
         shape_dc: ShapeDC = ShapeDaoRedis(R).fetch_dc_model(shape_id)
         shape_pretty = ShapePretty(
             shape_value=shape_dc.shape_value,
@@ -68,15 +70,78 @@ class DiscoveryCardDao(DaoFull):
         )
         return shape_pretty
 
-    def get_image_url(self,
-                      discovery_card_id: int,
-                      ) -> str:
+    def fetch_image_url(self,
+                        discovery_card_id: int,
+                        ) -> str:
         url = self._fetch_model_attr(
             model_id=discovery_card_id,
             field_name='image_url',
             converter=services.utils.decode_bytes,
         )
+        services.utils.validate_not_none(url)
+
         return url
+
+    def pick_discovery_card(self,
+                            terrain_card_ids: MutableSequence[int],
+                            monster_card_ids: MutableSequence[int],
+                            is_ruins_allowed: bool,
+                            ) -> tuple[int, EDiscoveryCardType]:
+        card_type = self._pick_discovery_card_type(
+            terrain_cards_quantity=len(terrain_card_ids),
+            monster_cards_quantity=len(monster_card_ids),
+        )
+
+        if card_type is EDiscoveryCardType.MONSTER:
+            card_id = self._pick_card_id(monster_card_ids)
+        elif card_type is EDiscoveryCardType.TERRAIN:
+            card_id = TerrainCardDao(R).pick_terrain_card_id(
+                terrain_card_ids, is_ruins_allowed,
+            )
+        else:
+            raise ValueError('type of card must be either terrain or monster')
+
+        return card_id, card_type
+
+    def pick_card_and_is_on_ruins(self,
+                                  terrain_card_ids: MutableSequence[int],
+                                  monster_card_ids: MutableSequence[int],
+                                  is_on_ruins_allowed: bool,
+                                  ):
+        is_on_ruins = False
+        card_id, discovery_card_type = self.pick_discovery_card(
+            terrain_card_ids=terrain_card_ids,
+            monster_card_ids=monster_card_ids,
+            is_ruins_allowed=is_on_ruins_allowed,
+        )
+
+        if is_on_ruins_allowed and MoveDao(R).check_card_is_ruins(card_id):
+            is_on_ruins = True
+            card_id, discovery_card_type = self.pick_discovery_card(
+                terrain_card_ids=terrain_card_ids,
+                monster_card_ids=monster_card_ids,
+                is_ruins_allowed=False,
+            )
+        return card_id, discovery_card_type, is_on_ruins
+
+    @staticmethod
+    def _pick_discovery_card_type(terrain_cards_quantity: int,
+                                  monster_cards_quantity: int,
+                                  ) -> ...:
+        random_type = random.choices(
+            population=(EDiscoveryCardType.TERRAIN,
+                        EDiscoveryCardType.MONSTER),
+            weights=(terrain_cards_quantity,
+                     monster_cards_quantity),
+        )[0]
+        return random_type
+
+    @staticmethod
+    def _pick_card_id(card_ids: MutableSequence[int],
+                      ) -> int:
+        random_card_id = random.choice(card_ids)
+        card_ids.remove(random_card_id)
+        return random_card_id
 
 
 class GameDaoRedis(DaoRedis):
@@ -118,7 +183,7 @@ class GameDaoRedis(DaoRedis):
         game: GameDC = self.fetch_dc_model(game_id)
 
         seasons_score_id = player_dao.get_seasons_score_id(player_id)
-        seasons_score = SeasonsScoreDao(R).get_seasons_score_pretty(
+        seasons_score = SeasonsScoreDao(R).fetch_seasons_score_pretty(
             seasons_score_id
         )
         season_ids = self._fetch_season_ids(game_id)
@@ -126,22 +191,22 @@ class GameDaoRedis(DaoRedis):
         game_pretty = GamePretty(
             id=game_id,
             room_name=RoomDaoRedis(R).fetch_room_name(game.room_id),
-            player_field=player_dao.get_field_pretty(player_id),
+            player_field=player_dao.fetch_field_pretty(player_id),
             seasons=(season_dao := SeasonDaoRedis(R)).get_seasons_pretty(
                 season_ids
             ),
             # tasks=season_dao.get_tasks_pretty(game.season_ids),
-            current_season_name=season_dao.get_season_name(
+            current_season_name=season_dao.fetch_season_name(
                 game.current_season_id
             ),
             players=player_dao.get_players_pretty(game.player_ids),
             discovery_card=(move_dao := MoveDao(
                 R
-            )).get_discovery_card_pretty(game_id),
+            )).fetch_discovery_card_pretty(game_id),
             is_prev_card_ruins=move_dao.fetch_is_prev_card_ruins(
                 season_dao.fetch_move_id(game.current_season_id)
             ),
-            player_coins=player_dao.get_coins(player_id),
+            player_coins=player_dao.fetch_coins(player_id),
             player_score=self._extract_current_score(seasons_score),
             season_scores=seasons_score,
 
@@ -166,7 +231,7 @@ class GameDaoRedis(DaoRedis):
         )
 
         if not self._check_game_finished(game_id):
-            self._start_next_move(game_id)
+            self._start_new_move(game_id)
 
     def _check_game_finished(self,
                              game_id: int,
@@ -201,6 +266,8 @@ class GameDaoRedis(DaoRedis):
                               game_id: int,
                               ) -> int:
         last_season_id = self._fetch_model_attr(game_id, 'last_season_id')
+        services.utils.validate_not_none(last_season_id)
+
         return last_season_id
 
     # def _switch_to_next_season(self,
@@ -230,6 +297,8 @@ class GameDaoRedis(DaoRedis):
             model_id=game_id,
             field_name='season_ids',
         )
+        services.utils.validate_not_none(season_ids)
+
         return season_ids
 
     @staticmethod
@@ -258,19 +327,12 @@ class GameDaoRedis(DaoRedis):
         game_id = int(self._redis.hget(key, room_id))
         return game_id
 
-    def _start_next_move(self,
-                         game_id: int,
-                         ) -> None:
-        dao_season = SeasonDaoRedis(R)
-        # TODO: check if I add the season points correctly
-
-        current_season_id = self._fetch_current_season_id(game_id)
-        # if season finished, switch to next season
-        if dao_season.check_season_finished(current_season_id):
-            self._switch_to_next_season(game_id)
-            current_season_id = self._fetch_current_season_id(game_id)
-
-        dao_season.start_new_move(current_season_id)
+    def _start_new_move(self,
+                        game_id: int,
+                        ) -> None:
+        SeasonDaoRedis(R).start_new_move(
+            self._fetch_current_season_id(game_id)
+        )
 
     def _switch_to_next_season(self,
                                game_id: int,
@@ -291,6 +353,8 @@ class GameDaoRedis(DaoRedis):
                                  ) -> int:
         current_season_id = self._fetch_model_attr(game_id,
                                                    'current_season_id')
+        services.utils.validate_not_none(current_season_id)
+
         return current_season_id
 
     def _set_current_season_id(self,
@@ -308,18 +372,13 @@ class GameDaoRedis(DaoRedis):
         next_season_id = season_ids[next_season_id_index]
         return next_season_id
 
-    # TODO: need to store in redis attr indicating if user has finished his move
-
     @staticmethod
     def _get_initial_cards():
-        terrain_card_ids = TerrainCardDao(R). \
-            pick_terrain_cards()
+        terrain_card_ids = TerrainCardDao(R).pick_terrain_cards()
 
-        monster_card_ids = MonsterCardDaoRedis(R). \
-            pick_monster_cards()
+        monster_card_ids = MonsterCardDaoRedis(R).pick_monster_cards()
 
-        objective_card_ids = ObjectiveCardDaoRedis(R). \
-            pick_objective_cards()
+        objective_card_ids = ObjectiveCardDaoRedis(R).pick_objective_cards()
 
         initial_cards = InitialCards(terrain_card_ids,
                                      monster_card_ids,
@@ -370,6 +429,8 @@ class GameDaoRedis(DaoRedis):
                           game_id: int,
                           ) -> list[int]:
         player_ids = self._fetch_model_attr(game_id, 'player_ids')
+        services.utils.validate_not_none(player_ids)
+
         return player_ids
 
     def _add_game_id_by_room_id_index(self,
@@ -383,7 +444,7 @@ class GameDaoRedis(DaoRedis):
                               admin_id: int,
                               ) -> tuple[int, list[int]]:
         user_ids = (room_dao := RoomDaoRedis(R)).fetch_user_ids(admin_id)
-        field = self._gen_field()
+        field = self._gen_game_field()
         player_ids = PlayerDaoRedis(R).init_players(user_ids, field)
         room_id = room_dao._fetch_room_id_by_user_id(admin_id)
 
@@ -396,7 +457,7 @@ class GameDaoRedis(DaoRedis):
         key = self._key_schema.game_id_by_player_id_index_key
         self._redis.hset(key, player_id, game_id)
 
-    def _gen_field(self) -> Field:
+    def _gen_game_field(self) -> Field:
         field = BLANK_FIELD
         return field
 
@@ -424,20 +485,22 @@ class TerrainCardDao(DiscoveryCardDao):
     _converter = TerrainCardConverter()
     _model_class = TerrainCardDC
 
-    def get_terrain_pretty(self,
-                           terrain_card_id: int,
-                           ) -> int:
+    def fetch_terrain_pretty(self,
+                             terrain_card_id: int,
+                             ) -> int:
         terrain = self._fetch_model_attr(
             model_id=terrain_card_id,
             field_name='terrain',
             converter=services.utils.decode_bytes
         )
+        services.utils.validate_not_none(terrain)
+
         terrain_pretty = TERRAIN_STR_TO_NUM[terrain]
         return terrain_pretty
 
-    def get_additional_terrain_pretty(self,
-                                      terrain_card_id: int,
-                                      ) -> Optional[int]:
+    def fetch_additional_terrain_pretty(self,
+                                        terrain_card_id: int,
+                                        ) -> Optional[int]:
         additional_terrain = self._fetch_model_attr(
             model_id=terrain_card_id,
             field_name='additional_terrain',
@@ -448,9 +511,9 @@ class TerrainCardDao(DiscoveryCardDao):
                                      and TERRAIN_STR_TO_NUM[additional_terrain])
         return additional_terrain_pretty
 
-    def get_additional_shape_pretty(self,
-                                    terrain_card_id: int,
-                                    ) -> Optional[ShapePretty]:
+    def fetch_additional_shape_pretty(self,
+                                      terrain_card_id: int,
+                                      ) -> Optional[ShapePretty]:
         additional_shape_id = self._fetch_model_attr(
             model_id=terrain_card_id,
             field_name='additional_shape_id',
@@ -476,18 +539,48 @@ class TerrainCardDao(DiscoveryCardDao):
                                         self.TERRAIN_CARD_QUANTITY)
         return picked_card_ids
 
-    def fetch_terrain_card_type(self,
-                                terrain_card_id: int,
-                                ) -> str:
+    def pick_terrain_card_id(self,
+                             card_ids: MutableSequence[int],
+                             allow_ruins: bool,
+                             ) -> int:
+        while True:
+            card_id = self._pick_card_id(card_ids)
+            if allow_ruins or not self.check_card_is_ruins(card_id):
+                return card_id
+
+    def fetch_card_type(self,
+                        terrain_card_id: int,
+                        ) -> str:
         card_type = self._fetch_model_attr(terrain_card_id, 'card_type',
                                            services.utils.decode_bytes)
+        services.utils.validate_not_none(card_type)
+
         return card_type
 
     def fetch_regular_card_season_points(self,
                                          card_id: int,
                                          ) -> int:
         points = self._fetch_model_attr(card_id, 'season_points')
+        services.utils.validate_not_none(points)
+
         return points
+
+    def check_card_is_ruins(self,
+                            card_id: int,
+                            ) -> bool:
+        return TerrainCardDao(R).check_terrain_card_type(card_id, 'ruins')
+
+    def check_card_is_anomaly(self,
+                              card_id: int,
+                              ) -> bool:
+        return TerrainCardDao(R).check_terrain_card_type(card_id, 'anomaly')
+
+    def check_terrain_card_type(self,
+                                card_id: int,
+                                checked_card_type: str,
+                                ) -> bool:
+        actual_card_type = self.fetch_card_type(card_id)
+        return actual_card_type == checked_card_type
 
 
 class ShapeDaoRedis(DaoFull):
@@ -504,23 +597,17 @@ class SeasonDaoRedis(DaoRedis):
     def fetch_move_id(self,
                       season_id: int,
                       ) -> int:
-        key = self._key_schema.get_hash_key(season_id)
-        move_id = int(self._redis.hget(key, 'current_move_id'))
+        move_id = self._fetch_model_attr(season_id, 'current_move_id')
+        services.utils.validate_not_none(move_id)
+
         return move_id
-
-    def start_new_season(self):
-        move_dao = MoveDao(R)
-
-        while True:
-            discovery_card = move_dao.init_move()
-            if not self._check_discovery_card_is_ruins(discovery_card):
-                break
-        ...
 
     def check_season_finished(self,
                               season_id: int,
                               ) -> bool:
         is_finished = self._fetch_model_attr(season_id, 'is_finished')
+        services.utils.validate_not_none(is_finished)
+
         return is_finished
 
     # def get_tasks_pretty(self,
@@ -562,7 +649,7 @@ class SeasonDaoRedis(DaoRedis):
             objective_card_ids=objective_card_ids[1:3],
             terrain_card_ids=self._shuffle_cards(terrain_card_ids),
             monster_card_ids=[monster_card_ids.pop()],
-            # then I'll add monster_card(s) from prev season
+            is_first_season=False,
         ))
         seasons.append(self.pre_init_season(
             name=ESeasonName.FALL,
@@ -570,6 +657,7 @@ class SeasonDaoRedis(DaoRedis):
             objective_card_ids=objective_card_ids[2:4],
             terrain_card_ids=self._shuffle_cards(terrain_card_ids),
             monster_card_ids=[monster_card_ids.pop()],
+            is_first_season=False,
         ))
         seasons.append(self.pre_init_season(
             name=ESeasonName.WINTER,
@@ -578,6 +666,7 @@ class SeasonDaoRedis(DaoRedis):
                                 objective_card_ids[3]],
             terrain_card_ids=self._shuffle_cards(objective_card_ids),
             monster_card_ids=[monster_card_ids.pop()],
+            is_first_season=False,
         ))
 
         return seasons
@@ -590,11 +679,15 @@ class SeasonDaoRedis(DaoRedis):
                         monster_card_ids: MutableSequence[int],
                         is_first_season: bool,
                         ) -> int:
-        """ create season (not complete monster cards),
-         insert it and return its id """
+        """
+        Create season (not complete monster cards),
+        insert it and return its id.
+        If first season, then it can't be ruins.
+        """
         first_move_id = self.start_new_move(
             terrain_card_ids=terrain_card_ids,
             monster_card_ids=monster_card_ids,
+            is_on_ruins_allowed=False,
         ) if is_first_season else None
 
         season = self._model_class(
@@ -644,29 +737,36 @@ class SeasonDaoRedis(DaoRedis):
                                 ) -> list[int]:
         monster_card_ids = self._fetch_model_attr(season_id,
                                                   'monster_card_ids')
+        services.utils.validate_not_none(monster_card_ids)
+
         return monster_card_ids
 
     def get_seasons_pretty(self,
                            season_ids: Iterable[int],
                            ) -> dict[SeasonName: SeasonPretty]:
         seasons = {
-            (season := self.get_season_pretty(season_id)).name: season.url
+            (season := self.fetch_season_pretty(season_id)).name: season.url
             for season_id in season_ids
         }
+        services.utils.validate_not_none(seasons)
+
         return seasons
 
-    def get_season_pretty(self,
-                          season_id: int,
-                          ) -> SeasonPretty:
-        name = self.get_season_name(season_id)
-        url = self.get_season_url(season_id)
+    def fetch_season_pretty(self,
+                            season_id: int,
+                            ) -> SeasonPretty:
+        name = self.fetch_season_name(season_id)
+        url = self.fetch_image_url(season_id)
         return SeasonPretty(name, url)
 
-    def get_season_url(self,
-                       season_id: int,
-                       ) -> str:
-        key = self._key_schema.get_hash_key(season_id)
-        url = self._redis.hget(key, 'image_url').decode('utf-8')
+    def fetch_image_url(self,
+                        season_id: int,
+                        ) -> str:
+        url = self._fetch_model_attr(season_id,
+                                     'image_url',
+                                     services.utils.decode_bytes)
+        services.utils.validate_not_none(url)
+
         return url
 
     def check_season_points_exceeded(self,
@@ -689,33 +789,33 @@ class SeasonDaoRedis(DaoRedis):
                          ) -> None:
         self._set_model_attr(season_id, 'is_finished', value)
 
-    def get_season_name(self,
-                        season_id: int,
-                        ) -> str:
-        print(season_id)
+    def fetch_season_name(self,
+                          season_id: int,
+                          ) -> str:
         season_name = self._fetch_model_attr(
             model_id=season_id,
             field_name='name',
             converter=services.utils.decode_bytes,
         )
-        if season_name is None:
-            raise ValueError('season_name must not be None')
-        return season_name
+        services.utils.validate_not_none(season_name)
 
-    def get_season_score_pretty(self,
-                                season_id: int,
-                                ):
-        ...
+        return season_name
 
     def _fetch_max_points(self,
                           season_id: int,
                           ) -> int:
-        return self._fetch_model_attr(season_id, 'max_points')
+        points = self._fetch_model_attr(season_id, 'max_points')
+        services.utils.validate_not_none(points)
+
+        return points
 
     def _fetch_current_points(self,
                               season_id: int,
                               ) -> int:
-        return self._fetch_model_attr(season_id, 'current_points')
+        points = self._fetch_model_attr(season_id, 'current_points')
+        services.utils.validate_not_none(points)
+
+        return points
 
     @staticmethod
     def _get_season_cards() -> SeasonCards:
@@ -731,20 +831,24 @@ class SeasonDaoRedis(DaoRedis):
                        season_id: int | None = None,
                        terrain_card_ids: MutableSequence[int] | None = None,
                        monster_card_ids: MutableSequence[int] | None = None,
+                       is_on_ruins_allowed: bool | None = None,
                        ) -> int:
-        card_id, discovery_card_type = self._pick_discovery_card(
+        """ Requires: either season_id or cards.
+        When starting new move, we need to consider if it's on ruins """
+        # if ruins allowed, then it must be skipped and considered for next move.
+        card_id, card_type, is_on_ruins = DiscoveryCardDao(R).pick_card_and_is_on_ruins(
             terrain_card_ids or self._fetch_terrain_card_ids(season_id),
             monster_card_ids or self._fetch_monster_card_ids(season_id),
+            is_on_ruins_allowed,
         )
 
         season_id and self._add_card_season_points(season_id)
-
         move_id = MoveDao(R).init_move(
             discovery_card_id=card_id,
-            discovery_card_type=discovery_card_type,
-            is_prev_card_ruins=self._check_card_is_ruins(season_id),
+            discovery_card_type=card_type,
+            is_on_ruins=is_on_ruins,
         )
-        season_id and self._set_current_move_id(move_id)
+        season_id and self._set_current_move_id(season_id, move_id)
 
         return move_id
 
@@ -770,56 +874,34 @@ class SeasonDaoRedis(DaoRedis):
                                 season_id: int,
                                 ) -> list[int]:
         card_ids = self._fetch_model_attr(season_id, 'terrain_card_ids')
+        services.utils.validate_not_none(card_ids)
+
         return card_ids
 
     def fetch_monster_card_ids(self,
                                season_id: int,
                                ) -> list[int]:
         card_ids = self._fetch_model_attr(season_id, 'monster_card_ids')
+        services.utils.validate_not_none(card_ids)
+
         return card_ids
 
     def _check_card_is_ruins(self,
                              season_id: int,
                              ) -> bool:
         current_move_id = self._fetch_current_move_id(season_id)
-        MoveDao(R)._check_card_is_ruins(current_move_id)
+        if current_move_id is None:
+            return False
+
+        return MoveDao(R).check_card_is_ruins(current_move_id)
 
     def _fetch_current_move_id(self,
                                season_id: int,
                                ) -> int:
-        return self._fetch_model_attr(season_id, 'current_move_id')
+        move_id = self._fetch_model_attr(season_id, 'current_move_id')
+        services.utils.validate_not_none(move_id)
 
-    def _set_current_move_id(self,
-                             season_id: int,
-                             move_id: int,
-                             ) -> None:
-        self._set_model_attr(season_id, 'current_move_id', move_id)
-
-    @staticmethod
-    def _pick_discovery_card(terrain_card_ids: MutableSequence[int],
-                             monster_card_ids: MutableSequence[int],
-                             ) -> tuple[int, EDiscoveryCardType]:
-        terrain_cards_quantity = len(terrain_card_ids)
-        monster_cards_quantity = len(monster_card_ids)
-
-        card_type = random.choices(
-            population=(EDiscoveryCardType.TERRAIN,
-                        EDiscoveryCardType.MONSTER),
-            weights=(terrain_cards_quantity,
-                     monster_cards_quantity),
-        )[0]
-
-        if card_type is EDiscoveryCardType.MONSTER:
-            random_monster_card_id = random.choice(monster_card_ids)
-            monster_card_ids.remove(random_monster_card_id)
-            return random_monster_card_id, card_type
-
-        if card_type is EDiscoveryCardType.TERRAIN:
-            random_terrain_card_id = random.choice(terrain_card_ids)
-            terrain_card_ids.remove(random_terrain_card_id)
-            return random_terrain_card_id, card_type
-
-        raise ValueError('type of card must be either terrain or monster')
+        return move_id
 
     @staticmethod
     def _shuffle_cards(cards: MutableSequence[int],
@@ -846,11 +928,11 @@ class MoveDao(DaoRedis):
     def init_move(self,
                   discovery_card_id: int,
                   discovery_card_type: EDiscoveryCardType,
-                  is_prev_card_ruins: bool,
+                  is_on_ruins: bool,
                   ) -> int:
         move = self._model_class(
             id=self._gen_new_id(),
-            is_prev_card_ruins=is_prev_card_ruins,
+            is_on_ruins=is_on_ruins,
             discovery_card_id=discovery_card_id,
             discovery_card_type=discovery_card_type,
         )
@@ -862,9 +944,10 @@ class MoveDao(DaoRedis):
                                  ) -> bool:
         is_prev_card_ruins = self._fetch_model_attr(
             model_id=move_id,
-            field_name='is_prev_card_ruins',
-            converter=lambda x: bool(int(x)),
+            field_name='is_on_ruins',
         )
+        services.utils.validate_not_none(is_prev_card_ruins)
+
         return is_prev_card_ruins
 
     def fetch_card_season_points(self,
@@ -875,9 +958,9 @@ class MoveDao(DaoRedis):
 
         return self._fetch_terrain_card_season_points(move_id)
 
-    def get_discovery_card_pretty(self,
-                                  move_id: int,
-                                  ) -> DiscoveryCardPretty:
+    def fetch_discovery_card_pretty(self,
+                                    move_id: int,
+                                    ) -> DiscoveryCardPretty:
         discovery_card_pretty = DiscoveryCardPretty(
             image=self._fetch_card_image_url(move_id),
             is_anomaly=self._check_card_is_anomaly(move_id),
@@ -886,7 +969,6 @@ class MoveDao(DaoRedis):
             shape=self._fetch_card_shape_pretty(move_id),
             additional_shape=self._fetch_card_additional_shape_pretty(move_id),
         )
-        # TODO: replace 'additional_' with extra_
         return discovery_card_pretty
 
     def _fetch_terrain_card_season_points(self,
@@ -908,7 +990,9 @@ class MoveDao(DaoRedis):
                                  move_id: int,
                                  ) -> str:
         card_id = self._fetch_discovery_card_id(move_id)
-        return TerrainCardDao(R).fetch_terrain_card_type(card_id)
+        services.utils.validate_not_none(card_id)
+
+        return TerrainCardDao(R).fetch_card_type(card_id)
 
     def _check_card_is_anomaly(self,
                                move_id: int,
@@ -916,15 +1000,20 @@ class MoveDao(DaoRedis):
         if not self._check_card_is_terrain(move_id):
             return False
 
-        return self._check_terrain_card_type_is(move_id, 'anomaly')
+        return TerrainCardDao(R).check_card_is_anomaly(
+            self._fetch_discovery_card_id(move_id)
+        )
 
-    def _check_card_is_ruins(self,
-                             move_id: int,
-                             ) -> bool:
+    def check_card_is_ruins(self,
+                            move_id: int,
+                            ) -> bool:
+        # should I write this method in TerrainCardDao???
         if not self._check_card_is_terrain(move_id):
             return False
 
-        return self._check_terrain_card_type_is(move_id, 'ruins')
+        return TerrainCardDao(R).check_card_is_ruins(
+            self._fetch_discovery_card_id(move_id)
+        )
 
     def _check_card_is_terrain(self,
                                move_id: int,
@@ -933,23 +1022,13 @@ class MoveDao(DaoRedis):
         if discovery_card_type != 'terrain':
             return False
 
-    def _check_terrain_card_type_is(self,
-                                    move_id: int,
-                                    card_type: str,
-                                    ) -> bool:
-
-        terrain_card_type = TerrainCardDao(R).fetch_terrain_card_type(
-            self._fetch_discovery_card_id(move_id)
-        )
-        return terrain_card_type == card_type
-
     def _fetch_card_terrain_pretty(self,
                                    move_id: int,
                                    ) -> int:
-        type = self._fetch_discovery_card_type(move_id)
-        match type:
+        card_type = self._fetch_discovery_card_type(move_id)
+        match card_type:
             case 'terrain':
-                terrain = TerrainCardDao(R).get_terrain_pretty(
+                terrain = TerrainCardDao(R).fetch_terrain_pretty(
                     terrain_card_id=self._fetch_discovery_card_id(move_id)
                 )
             case 'monster':
@@ -967,7 +1046,7 @@ class MoveDao(DaoRedis):
         if type != 'terrain':
             return None
 
-        terrain = TerrainCardDao(R).get_additional_terrain_pretty(
+        terrain = TerrainCardDao(R).fetch_additional_terrain_pretty(
             terrain_card_id=self._fetch_discovery_card_id(move_id)
         )
         return terrain
@@ -975,20 +1054,21 @@ class MoveDao(DaoRedis):
     def _fetch_discovery_card_id(self,
                                  move_id: int,
                                  ) -> int:
-        id = self._fetch_model_attr(
+        card_id = self._fetch_model_attr(
             model_id=move_id,
             field_name='discovery_card_id',
-            converter=int,
         )
-        return id
+        services.utils.validate_not_none(card_id)
+
+        return card_id
 
     def _fetch_card_shape_pretty(self,
                                  move_id: int,
                                  ) -> ShapePretty:
-        type = self._fetch_discovery_card_type(move_id)
+        card_type = self._fetch_discovery_card_type(move_id)
         card_id = self._fetch_discovery_card_id(move_id)
 
-        match type:
+        match card_type:
             case 'terrain':
                 card_dao = TerrainCardDao(R)
             case 'monster':
@@ -996,7 +1076,7 @@ class MoveDao(DaoRedis):
             case _:
                 raise ValueError('type must be either "monster" or "terrain"')
 
-        shape = card_dao.get_shape_pretty(card_id)
+        shape = card_dao.fetch_shape_pretty(card_id)
 
         return shape
 
@@ -1005,26 +1085,27 @@ class MoveDao(DaoRedis):
                                             ) -> Optional[str]:
         card_id = self._fetch_discovery_card_id(move_id)
         additional_shape = TerrainCardDao(R). \
-            get_additional_shape_pretty(card_id)
+            fetch_additional_shape_pretty(card_id)
 
         return additional_shape
 
     def _fetch_is_prev_card_ruins(self,
                                   move_id: int,
                                   ) -> bool:
-        res = self._fetch_model_attr(
+        is_prev_card_ruins = self._fetch_model_attr(
             model_id=move_id,
             field_name='is_prev_card_ruins',
-            converter=lambda x: bool(int(x)),
         )
-        return res
+        services.utils.validate_not_none(is_prev_card_ruins)
+
+        return is_prev_card_ruins
 
     def _fetch_card_image_url(self,
                               move_id: int,
                               ) -> URL:
-        type = self._fetch_discovery_card_type(move_id)
+        card_type = self._fetch_discovery_card_type(move_id)
 
-        match type:  # why not use Literal for card_type everywhere
+        match card_type:  # why not use Literal for card_type everywhere
             case 'terrain':
                 discovery_card_dao = TerrainCardDao(R)
             case 'monster':
@@ -1033,21 +1114,23 @@ class MoveDao(DaoRedis):
                 raise ValueError('Type of discovery card must be either '
                                  '"terrain" or "monster"')
 
-        res = discovery_card_dao.get_image_url(
+        url = discovery_card_dao.fetch_image_url(
             self._fetch_discovery_card_id(move_id)
         )
 
-        return res
+        return url
 
     def _fetch_discovery_card_type(self,
                                    move_id: int,
                                    ) -> str:
-        type = self._fetch_model_attr(
+        card_type = self._fetch_model_attr(
             model_id=move_id,
             field_name='discovery_card_type',
             converter=services.utils.decode_bytes,
         )
-        return type
+        services.utils.validate_not_none(card_type)
+
+        return card_type
 
 
 # TODO: it will be nice to use deck-type structure for cards in the future
@@ -1082,8 +1165,10 @@ class PlayerDaoRedis(DaoRedis):
     def _fetch_is_move_finished(self,
                                 player_id,
                                 ) -> bool:
-        made_move = self._fetch_model_attr(player_id, 'is_move_finished')
-        return made_move
+        is_move_finished = self._fetch_model_attr(player_id, 'is_move_finished')
+        services.utils.validate_not_none(is_move_finished)
+
+        return is_move_finished
 
     def _set_field(self,
                    player_id: int,
@@ -1134,9 +1219,9 @@ class PlayerDaoRedis(DaoRedis):
         player_id = int(self._redis.hget(key, user_id))
         return player_id
 
-    def get_field_pretty(self,
-                         player_id: int,
-                         ) -> list[list[int]]:
+    def fetch_field_pretty(self,
+                           player_id: int,
+                           ) -> list[list[int]]:
         field_pretty = self._fetch_model_attr(
             model_id=player_id,
             field_name='field',
@@ -1144,37 +1229,43 @@ class PlayerDaoRedis(DaoRedis):
                 games.utils.deserialize_field(x)
             ),
         )
+        services.utils.validate_not_none(field_pretty)
+
         return field_pretty
 
-    def get_coins(self,
-                  player_id: int,
-                  ) -> int:
-        key = self._key_schema.get_hash_key(player_id)
-        score = int(self._redis.hget(key, 'coins'))
-        return score
+    def fetch_coins(self,
+                    player_id: int,
+                    ) -> int:
+        coins = self._fetch_model_attr(player_id, 'coins')
+        services.utils.validate_not_none(coins)
+
+        return coins
 
     def get_score_total(self,
                         player_id: int,
                         ) -> int:
-        seasons_score_id = self._get_seasons_score_id(player_id)
-        total = SeasonsScoreDao(R).get_score(seasons_score_id)
+        seasons_score_id = self._fetch_seasons_score_id(player_id)
+        total = SeasonsScoreDao(R).fetch_score(seasons_score_id)
+
         return total
 
-    def get_name(self,
-                 player_id: int,
-                 ) -> str:
-        user_id = self._get_user_id(player_id)
+    def fetch_name(self,
+                   player_id: int,
+                   ) -> str:
+        user_id = self._fetch_user_id(player_id)
         name = User.objects.get(pk=user_id).username
+
         return name
 
-    def _get_seasons_score_id(self,
-                              player_id: int,
-                              ) -> int:
+    def _fetch_seasons_score_id(self,
+                                player_id: int,
+                                ) -> int:
         seasons_score_id = self._fetch_model_attr(
             model_id=player_id,
             field_name='seasons_score_id',
-            converter=int,
         )
+        services.utils.validate_not_none(seasons_score_id)
+
         return seasons_score_id
 
     def _get_neighbors_lst(self,
@@ -1231,7 +1322,7 @@ class PlayerDaoRedis(DaoRedis):
             right_player_id=neighbors.right_player_id,
             coins=0,
             seasons_score_id=seasons_score_id,
-            finished_move=False,
+            is_move_finished=False,
         )
         return player_dc
 
@@ -1240,7 +1331,7 @@ class PlayerDaoRedis(DaoRedis):
                            ) -> PlayerPretty:
         return PlayerPretty(
             id=player_id,
-            name=self.get_name(player_id),
+            name=self.fetch_name(player_id),
             score=self.get_score_total(player_id)
         )
 
@@ -1253,14 +1344,15 @@ class PlayerDaoRedis(DaoRedis):
         ]
         return field_pretty
 
-    def _get_user_id(self,
-                     player_id: int,
-                     ) -> int:
+    def _fetch_user_id(self,
+                       player_id: int,
+                       ) -> int:
         user_id = self._fetch_model_attr(
             model_id=player_id,
             field_name='user_id',
-            converter=int,
         )
+        services.utils.validate_not_none(user_id)
+
         return user_id
 
 
@@ -1284,142 +1376,76 @@ class SeasonsScoreDao(DaoRedis):
 
         return season_score.id
 
-    def get_seasons_score_pretty(self,
-                                 seasons_score_id: int,
-                                 ) -> SeasonsScorePretty:
-        ids = self._get_season_score_ids(seasons_score_id)
+    def fetch_seasons_score_pretty(self,
+                                   seasons_score_id: int,
+                                   ) -> SeasonsScorePretty:
+        ids = self._fetch_season_score_ids(seasons_score_id)
         dao = SeasonScoreDao(R)
 
-        res = SeasonsScorePretty(
-            spring_score=dao.get_season_score_pretty(ids[0]),
-            summer_score=dao.get_season_score_pretty(ids[1]),
-            fall_score=dao.get_season_score_pretty(ids[2]),
-            winter_score=dao.get_season_score_pretty(ids[3]),
+        seasons_score = SeasonsScorePretty(
+            spring_score=dao.fetch_season_score_pretty(ids[0]),
+            summer_score=dao.fetch_season_score_pretty(ids[1]),
+            fall_score=dao.fetch_season_score_pretty(ids[2]),
+            winter_score=dao.fetch_season_score_pretty(ids[3]),
         )
-        return res
+        return seasons_score
 
-    def get_score(self,
-                  seasons_score_id: int,
-                  ) -> int:
-        season_score_ids = self._get_season_score_ids(seasons_score_id)
-        total = SeasonScoreDao(R).get_seasons_score_total(season_score_ids)
+    def fetch_score(self,
+                    seasons_score_id: int,
+                    ) -> int:
+        season_score_ids = self._fetch_season_score_ids(seasons_score_id)
+        total = SeasonScoreDao(R).fetch_seasons_score_total(season_score_ids)
         return total
 
-    def _get_season_score_ids(self,
-                              seasons_score_id: int,
-                              ) -> list[int]:
+    def _fetch_season_score_ids(self,
+                                seasons_score_id: int,
+                                ) -> list[int]:
         season_score_ids = [
-            self._get_season_score_id(seasons_score_id,
-                                      ESeasonName.SPRING),
-            self._get_season_score_id(seasons_score_id,
-                                      ESeasonName.SUMMER),
-            self._get_season_score_id(seasons_score_id,
-                                      ESeasonName.FALL),
-            self._get_season_score_id(seasons_score_id,
-                                      ESeasonName.WINTER),
+            self._fetch_season_score_id(seasons_score_id,
+                                        ESeasonName.SPRING),
+            self._fetch_season_score_id(seasons_score_id,
+                                        ESeasonName.SUMMER),
+            self._fetch_season_score_id(seasons_score_id,
+                                        ESeasonName.FALL),
+            self._fetch_season_score_id(seasons_score_id,
+                                        ESeasonName.WINTER),
         ]
+        if len(season_score_ids) < 4:
+            raise ValueError('must be 4 season score ids')
+
         return season_score_ids
 
-    def _get_total(self,
-                   seasons_score_id: int,
-                   ) -> int:
+    def _fetch_total(self,
+                     seasons_score_id: int,
+                     ) -> int:
         total = self._fetch_model_attr(
             model_id=seasons_score_id,
             field_name='total',
-            converter=int
         )
+        services.utils.validate_not_none(total)
+
         return total
 
-    def _get_coins(self,
-                   seasons_score_id: int,
-                   ) -> int:
+    def _fetch_coins(self,
+                     seasons_score_id: int,
+                     ) -> int:
         coins = self._fetch_model_attr(
             model_id=seasons_score_id,
             field_name='coins',
-            converter=int
         )
+        services.utils.validate_not_none(coins)
+
         return coins
 
-    def _get_spring_score_pretty(self,
-                                 seasons_score_id: int,
-                                 ) -> SpringScorePretty:
-        season_score = self._get_generic_season_score(
-            seasons_score_id=seasons_score_id,
-            season=ESeasonName.SPRING,
-        )
-
-        spring_score_pretty = SpringScorePretty(
-            from_coins=season_score.from_coins,
-            monsters=season_score.monsters,
-            total=season_score.total,
-            A=season_score.from_first_task,
-            B=season_score.from_second_task,
-        )
-
-        return spring_score_pretty
-
-    def _get_summer_score_pretty(self,
-                                 seasons_score_id: int,
-                                 ) -> SummerScorePretty:
-        generic_season_score = self._get_generic_season_score(
-            seasons_score_id=seasons_score_id,
-            season=ESeasonName.SUMMER,
-        )
-
-        summer_score_pretty = SummerScorePretty(
-            from_coins=generic_season_score.from_coins,
-            monsters=generic_season_score.monsters,
-            total=generic_season_score.total,
-            B=generic_season_score.from_first_task,
-            C=generic_season_score.from_second_task,
-        )
-
-        return summer_score_pretty
-
-    def _get_fall_score_pretty(self,
+    def _fetch_season_score_id(self,
                                seasons_score_id: int,
-                               ) -> FallScorePretty:
-        season_score = self._get_generic_season_score(
-            seasons_score_id=seasons_score_id,
-            season=ESeasonName.FALL,
-        )
-
-        fall_score_pretty = FallScorePretty(
-            from_coins=season_score.from_coins,
-            monsters=season_score.monsters,
-            total=season_score.total,
-            C=season_score.from_first_task,
-            D=season_score.from_second_task,
-        )
-
-        return fall_score_pretty
-
-    def _get_winter_score_pretty(self,
-                                 seasons_score_id: int,
-                                 ) -> WinterScorePretty:
-        season_score = self._get_generic_season_score(
-            seasons_score_id=seasons_score_id,
-            season=ESeasonName.WINTER,
-        )
-
-        winter_score_pretty = WinterScorePretty(
-            from_coins=season_score.from_coins,
-            monsters=season_score.monsters,
-            total=season_score.total,
-            D=season_score.from_first_task,
-            A=season_score.from_second_task,
-        )
-
-        return winter_score_pretty
-
-    def _get_season_score_id(self,
-                             seasons_score_id: int,
-                             season: ESeasonName):
+                               season: ESeasonName):
         season_score_id = self._fetch_model_attr(
             model_id=seasons_score_id,
             field_name=f'{season.value}_score_id',
-            converter=int,
         )
+        services.utils.validate_not_none(season_score_id)
+
         return season_score_id
 
 
@@ -1441,18 +1467,18 @@ class SeasonScoreDao(DaoRedis):
 
         return season.id
 
-    def get_seasons_score_total(self,
-                                season_score_ids: Iterable[int],
-                                ) -> int:
+    def fetch_seasons_score_total(self,
+                                  season_score_ids: Iterable[int],
+                                  ) -> int:
         total = sum(
-            self._get_season_score_total(season_score_id)
+            self._fetch_season_score_total(season_score_id)
             for season_score_id in season_score_ids
         )
         return total
 
-    def get_season_score_pretty(self,
-                                season_score_id: int,
-                                ) -> SeasonScorePretty:
+    def fetch_season_score_pretty(self,
+                                  season_score_id: int,
+                                  ) -> SeasonScorePretty:
         season_score: SeasonScoreDC = self.fetch_dc_model(season_score_id)
 
         season_score_pretty = SeasonScorePretty(
@@ -1465,14 +1491,15 @@ class SeasonScoreDao(DaoRedis):
 
         return season_score_pretty
 
-    def _get_season_score_total(self,
-                                season_score_id: int,
-                                ) -> int:
+    def _fetch_season_score_total(self,
+                                  season_score_id: int,
+                                  ) -> int:
         total = self._fetch_model_attr(
             model_id=season_score_id,
             field_name='total',
-            converter=int,
         )
+        services.utils.validate_not_none(total)
+
         return total
 
 

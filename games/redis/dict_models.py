@@ -24,11 +24,11 @@ class SeasonDict(DictModel):
     terrain_card_ids: str
     monster_card_ids: str
     current_move_id: int
-    is_finished: bool
+    is_finished: str
 
 
 class MoveDict(DictModel):
-    is_prev_card_ruins: int
+    is_on_ruins: str
     discovery_card_type: str
     discovery_card_id: int
 

@@ -45,7 +45,7 @@ class SeasonDC(DataClassModel):
 
 @dataclass
 class MoveDC(DataClassModel):
-    is_prev_card_ruins: bool
+    is_on_ruins: bool
     discovery_card_type: EDiscoveryCardType
     discovery_card_id: int
 

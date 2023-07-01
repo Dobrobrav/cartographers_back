@@ -1,8 +1,13 @@
+from json.decoder import JSONDecodeError
 from typing import Any
 
 from django_redis.serializers import json
 from rest_framework.authtoken.models import Token
 from rest_framework.utils import json
+
+
+class NoneNotAllowed(Exception):
+    pass
 
 
 def get_user_id_by_token(token: str) -> int:
@@ -21,7 +26,11 @@ def bytes_to_list(bts: bytes,
 # TODO: load and dump methods must check incoming value type!
 def deserialize(raw: bytes,
                 ) -> Any:
-    return json.loads(decode_bytes(raw))
+    # try:
+    res = json.loads(decode_bytes(raw))
+    return res
+    # except JSONDecodeError:
+    #     print(raw)
 
 
 def serialize(val: Any,
@@ -32,3 +41,8 @@ def serialize(val: Any,
 def decode_bytes(bytes_: bytes,
                  ) -> str:
     return bytes_.decode('utf-8')
+
+
+def validate_not_none(value: Any) -> None:
+    if value is None:
+        raise NoneNotAllowed()
