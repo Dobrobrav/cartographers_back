@@ -176,10 +176,10 @@ class GameDaoRedis(DaoRedis):
     def get_game_pretty(self,
                         user_id: int,
                         ) -> GamePretty:
-        player_dao = PlayerDaoRedis(R)
+        player_dao = PlayerDao(R)
 
         player_id = player_dao.fetch_player_id_by_user_id(user_id)
-        game_id = self._get_game_id_by_player_id(player_id)
+        game_id = self._fetch_game_id_by_player_id(player_id)
         game: GameDC = self.fetch_dc_model(game_id)
 
         seasons_score_id = player_dao.get_seasons_score_id(player_id)
@@ -218,7 +218,7 @@ class GameDaoRedis(DaoRedis):
                      user_id: int,
                      updated_field: FieldPretty,
                      ) -> None:
-        player_dao = PlayerDaoRedis(R)
+        player_dao = PlayerDao(R)
 
         player_id = player_dao.fetch_player_id_by_user_id(user_id)
         player_dao.finish_move_for_player(
@@ -227,11 +227,57 @@ class GameDaoRedis(DaoRedis):
         )
 
         self._prepare_for_next_move(
-            game_id := self._get_game_id_by_player_id(player_id)
+            game_id := self._fetch_game_id_by_player_id(player_id)
         )
 
         if not self._check_game_finished(game_id):
             self._start_new_move(game_id)
+
+    def try_kick_player(self,
+                        kicker_id: int,
+                        player_to_kick_id: int,
+                        ) -> None:
+        pass
+
+    def try_leave(self,
+                  player_id: int,
+                  ) -> None:
+        game_id = self._fetch_game_id_by_player_id(player_id)
+        self._delete_player(game_id, player_id)
+
+    def _delete_player(self,
+                       game_id: int,
+                       player_id: int,
+                       ) -> None:
+        self._remove_player_id(game_id, player_id)
+        self._delete_game_id_by_player_id_index(player_id)
+
+    def _remove_player_id(self,
+                          game_id: int,
+                          player_id: int,
+                          ) -> None:
+        PlayerDao(R).remove_player_id_from_neighbors(player_id)
+        self._remove_player_id_from_player_ids(game_id, player_id)
+
+    def _remove_player_id_from_player_ids(self,
+                                          game_id: int,
+                                          player_id: int,
+                                          ) -> None:
+        player_ids = self._fetch_player_ids(game_id)
+        player_ids.remove(player_id)
+        self._set_player_ids(game_id, player_ids)
+
+    def _set_player_ids(self,
+                        game_id: int,
+                        player_ids: MutableSequence[int],
+                        ) -> None:
+        self._set_model_attr(game_id, 'player_ids', player_ids)
+
+    def _delete_game_id_by_player_id_index(self,
+                                           player_id: int,
+                                           ) -> None:
+        key = self._key_schema.game_id_by_player_id_index_key
+        self._redis.hdel(key, player_id)
 
     def _check_game_finished(self,
                              game_id: int,
@@ -311,9 +357,9 @@ class GameDaoRedis(DaoRedis):
 
         return spring_total + summer_total + fall_total + winter_total
 
-    def _get_game_id_by_player_id(self,
-                                  player_id: int,
-                                  ) -> int:
+    def _fetch_game_id_by_player_id(self,
+                                    player_id: int,
+                                    ) -> int:
         key = self._key_schema.game_id_by_player_id_index_key
         game_id = services.utils.deserialize(
             self._redis.hget(key, player_id)
@@ -423,7 +469,7 @@ class GameDaoRedis(DaoRedis):
                                          game_id: int,
                                          ) -> bool:
         player_ids = self._fetch_player_ids(game_id)
-        return PlayerDaoRedis(R).check_players_finished_move(player_ids)
+        return PlayerDao(R).check_players_finished_move(player_ids)
 
     def _fetch_player_ids(self,
                           game_id: int,
@@ -445,7 +491,7 @@ class GameDaoRedis(DaoRedis):
                               ) -> tuple[int, list[int]]:
         user_ids = (room_dao := RoomDaoRedis(R)).fetch_user_ids(admin_id)
         field = self._gen_game_field()
-        player_ids = PlayerDaoRedis(R).init_players(user_ids, field)
+        player_ids = PlayerDao(R).init_players(user_ids, field)
         room_id = room_dao._fetch_room_id_by_user_id(admin_id)
 
         return room_id, player_ids
@@ -1134,7 +1180,7 @@ class MoveDao(DaoRedis):
 
 
 # TODO: it will be nice to use deck-type structure for cards in the future
-class PlayerDaoRedis(DaoRedis):
+class PlayerDao(DaoRedis):
     _key_schema = PlayerKeySchema()
     _converter = PlayerConverter()
     _model_class = PlayerDC
@@ -1161,6 +1207,24 @@ class PlayerDaoRedis(DaoRedis):
             self._fetch_is_move_finished(player_id)
             for player_id in player_ids
         )
+
+    def remove_player_id_from_neighbors(self,
+                                        player_id: int,
+                                        ) -> None:
+        player_dao = PlayerDao(R)
+
+        player: PlayerDC = player_dao.fetch_dc_model(player_id)
+        left_player: PlayerDC
+        right_player: PlayerDC
+        left_player, right_player = player_dao.fetch_dc_models(
+            (left_player := player.left_player_id,
+             right_player := player.right_player_id)
+        )
+
+        left_player.right_player_id = right_player.id
+        right_player.left_player_id = left_player.id
+
+        self.insert_dc_models((left_player, right_player))
 
     def _fetch_is_move_finished(self,
                                 player_id,

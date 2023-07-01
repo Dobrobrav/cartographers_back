@@ -101,7 +101,6 @@ class DaoBase:
                        dumper: Callable[[Model | DataClassModel], DictModel],
                        ) -> DictModel:
         hash_key = self._key_schema.get_hash_key(id=model.id)
-        ids_key = self._key_schema.ids_key
         # these actually should be a transaction
         dict_model = dumper(model)
         self._redis.hset(hash_key, mapping=dict_model)
