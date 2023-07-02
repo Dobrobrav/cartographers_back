@@ -82,11 +82,11 @@ class DiscoveryCardDao(DaoFull):
 
         return url
 
-    def pick_discovery_card(self,
-                            terrain_card_ids: MutableSequence[int],
-                            monster_card_ids: MutableSequence[int],
-                            is_ruins_allowed: bool,
-                            ) -> tuple[int, EDiscoveryCardType]:
+    def pick_card(self,
+                  terrain_card_ids: MutableSequence[int],
+                  monster_card_ids: MutableSequence[int],
+                  is_ruins_allowed: bool,
+                  ) -> tuple[int, EDiscoveryCardType]:
         card_type = self._pick_discovery_card_type(
             terrain_cards_quantity=len(terrain_card_ids),
             monster_cards_quantity=len(monster_card_ids),
@@ -109,7 +109,7 @@ class DiscoveryCardDao(DaoFull):
                                   is_on_ruins_allowed: bool,
                                   ):
         is_on_ruins = False
-        card_id, discovery_card_type = self.pick_discovery_card(
+        card_id, discovery_card_type = self.pick_card(
             terrain_card_ids=terrain_card_ids,
             monster_card_ids=monster_card_ids,
             is_ruins_allowed=is_on_ruins_allowed,
@@ -117,7 +117,7 @@ class DiscoveryCardDao(DaoFull):
 
         if is_on_ruins_allowed and MoveDao(R).check_card_is_ruins(card_id):
             is_on_ruins = True
-            card_id, discovery_card_type = self.pick_discovery_card(
+            card_id, discovery_card_type = self.pick_card(
                 terrain_card_ids=terrain_card_ids,
                 monster_card_ids=monster_card_ids,
                 is_ruins_allowed=False,
@@ -140,11 +140,11 @@ class DiscoveryCardDao(DaoFull):
     def _pick_card_id(card_ids: MutableSequence[int],
                       ) -> int:
         random_card_id = random.choice(card_ids)
-        card_ids.remove(random_card_id)
+        print('::::::', card_ids, random_card_id)
         return random_card_id
 
 
-class GameDaoRedis(DaoRedis):
+class GameDao(DaoRedis):
     MONSTER_CARDS_AMOUNT = 4
     SEASONS_IN_GAME = 4
 
@@ -244,6 +244,21 @@ class GameDaoRedis(DaoRedis):
                   ) -> None:
         game_id = self._fetch_game_id_by_player_id(player_id)
         self._delete_player(game_id, player_id)
+
+    def check_is_new_move_started(self,
+                                  user_id: int,
+                                  ) -> bool:
+
+        player_ids = self._fetch_player_ids(
+            game_id=self._fetch_game_id_by_user_id(user_id)
+        )
+        return PlayerDao(R).check_all_players_not_finished_move(player_ids)
+
+    def _fetch_game_id_by_user_id(self,
+                                  user_id: int,
+                                  ) -> int:
+        player_id = PlayerDao(R).fetch_player_id_by_user_id(user_id)
+        return self._fetch_game_id_by_player_id(player_id)
 
     def _delete_player(self,
                        game_id: int,
@@ -376,9 +391,17 @@ class GameDaoRedis(DaoRedis):
     def _start_new_move(self,
                         game_id: int,
                         ) -> None:
+
         SeasonDaoRedis(R).start_new_move(
             self._fetch_current_season_id(game_id)
         )
+        self._set_players_move_not_finished(game_id)
+
+    def _set_players_move_not_finished(self,
+                                       game_id: int,
+                                       ) -> None:
+        player_ids = self._fetch_player_ids(game_id)
+        PlayerDao(R).set_players_move_not_finished(player_ids)
 
     def _switch_to_next_season(self,
                                game_id: int,
@@ -593,6 +616,7 @@ class TerrainCardDao(DiscoveryCardDao):
         while True:
             card_id = self._pick_card_id(card_ids)
             if allow_ruins or not self.check_card_is_ruins(card_id):
+                card_ids.remove(card_id)
                 return card_id
 
     def fetch_card_type(self,
@@ -883,21 +907,24 @@ class SeasonDaoRedis(DaoRedis):
         """ Requires: either season_id or cards.
         When starting new move, we need to consider if it's on ruins """
         # if ruins allowed, then it must be skipped and considered for next move.
-        card_id, card_type, is_on_ruins = DiscoveryCardDao(R).pick_card_and_is_on_ruins(
+        (card_id,
+         card_type,
+         is_on_ruins) = DiscoveryCardDao(R).pick_card_and_is_on_ruins(
             terrain_card_ids or self._fetch_terrain_card_ids(season_id),
             monster_card_ids or self._fetch_monster_card_ids(season_id),
             is_on_ruins_allowed,
         )
+        print('-' * 20, ':', card_id, card_type, is_on_ruins)
 
         season_id and self._add_card_season_points(season_id)
-        move_id = MoveDao(R).init_move(
+        new_move_id = MoveDao(R).init_move(
             discovery_card_id=card_id,
             discovery_card_type=card_type,
             is_on_ruins=is_on_ruins,
         )
-        season_id and self._set_current_move_id(season_id, move_id)
+        season_id and self._set_current_move_id(season_id, new_move_id)
 
-        return move_id
+        return new_move_id
 
     def _add_card_season_points(self,
                                 season_id: int,
@@ -1195,6 +1222,22 @@ class PlayerDao(DaoRedis):
         ]
         return players
 
+    def set_players_move_not_finished(self,
+                                      player_ids: Iterable[int],
+                                      ) -> None:
+        for player_id in player_ids:
+            self._set_is_move_finished(player_id, True)
+
+    def check_all_players_not_finished_move(self,
+                                            player_ids: MutableSequence[int],
+                                            ) -> bool:
+        """ affectively checks if new move started
+         if called after at least one player finished move """
+        return all(
+            not self._fetch_is_move_finished(player_id)
+            for player_id in player_ids
+        )
+
     def finish_move_for_player(self,
                                player_id: int,
                                updated_field: Field):
@@ -1248,13 +1291,9 @@ class PlayerDao(DaoRedis):
 
     def _set_is_move_finished(self,
                               player_id: int,
-                              finished_move: bool,
+                              value: bool,
                               ) -> None:
-        self._set_model_attr(
-            model_id=player_id,
-            field_name='finished_move',
-            value=finished_move,
-        )
+        self._set_model_attr(player_id, 'finished_move', value)
 
     def init_players(self,
                      user_ids: Sequence[int],

@@ -74,9 +74,13 @@ class Search(APIView):
     def get(self,
             request: Request,
             ) -> Response:
-        """ get room names containing provided text """
+        """
+        Get room names containing provided text.
+
+        """
         search_value = request.query_params['search_value']
-        RoomDao(R).search_room_names(substr=search_value)
+        limit = request.query_params['limit']
+        RoomDao(R).search_room_names(substr=search_value, limit=limit)
 
 
 class Delete(APIView):

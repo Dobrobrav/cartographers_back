@@ -5,7 +5,7 @@ from rest_framework.status import HTTP_201_CREATED
 from rest_framework.views import APIView
 
 from cartographers_back.settings import R
-from games.redis.dao import GameDaoRedis, PlayerDao
+from games.redis.dao import GameDao, PlayerDao
 from rooms.redis.dao import RoomDao
 from services.utils import get_user_id_by_token
 
@@ -19,7 +19,7 @@ class GameAPIView(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        GameDaoRedis(R).try_init_game(user_id)
+        GameDao(R).try_init_game(user_id)
 
         return Response(status=HTTP_201_CREATED)
 
@@ -30,12 +30,23 @@ class GameAPIView(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        game = GameDaoRedis(R).get_game_pretty(user_id)
+        game = GameDao(R).get_game_pretty(user_id)
 
         return Response(data=game, status=status.HTTP_200_OK)
 
 
 class MoveAPIView(APIView):
+    def get(self,
+            request: Request,
+            ) -> Response:
+        """ check if new move has started """
+        user_id = get_user_id_by_token(request.auth)
+        if GameDao(R).check_is_new_move_started(user_id):
+            return Response(True)
+        else:
+            return Response(False)
+
+
     def put(self,
             request: Request,
             ) -> Response:
@@ -43,7 +54,7 @@ class MoveAPIView(APIView):
         user_id = get_user_id_by_token(request.auth)
         updated_field = request.data
 
-        GameDaoRedis(R).process_move(user_id, updated_field)
+        GameDao(R).process_move(user_id, updated_field)
 
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
@@ -56,7 +67,7 @@ class PlayerAPIView(APIView):
         player_to_kick_id = int(request.query_params['player_to_kick_id'])
         user_to_kick = PlayerDao(R).fetch_player_id_by_user_id(player_to_kick_id)
 
-        GameDaoRedis(R).try_kick_player(kicker_id, player_to_kick_id)
+        GameDao(R).try_kick_player(kicker_id, player_to_kick_id)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -68,7 +79,7 @@ class LeaveAPIView(APIView):
         user_id = get_user_id_by_token(request.auth)
         player_id = PlayerDao(R).fetch_player_id_by_user_id(user_id)
 
-        GameDaoRedis(R).try_leave(player_id)
+        GameDao(R).try_leave(player_id)
         RoomDao(R).try_leave(user_id)
 
         return Response(status=status.HTTP_200_OK)

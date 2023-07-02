@@ -146,6 +146,7 @@ class RoomDao(DaoFull):
 
     def search_room_names(self,
                           substr: str,
+                          limit: int,
                           ) -> set:
         pass
 
