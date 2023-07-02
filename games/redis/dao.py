@@ -1158,10 +1158,12 @@ class MoveDao(DaoRedis):
                                             move_id: int,
                                             ) -> Optional[str]:
         card_id = self._fetch_discovery_card_id(move_id)
-        additional_shape = TerrainCardDao(R). \
-            fetch_additional_shape_pretty(card_id)
+        if not self._check_card_is_terrain(card_id):
+            return None
 
-        return additional_shape
+        return TerrainCardDao(R).fetch_additional_shape_pretty(
+            card_id
+        )
 
     def _fetch_is_prev_card_ruins(self,
                                   move_id: int,
