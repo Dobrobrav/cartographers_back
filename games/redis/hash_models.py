@@ -10,6 +10,7 @@ class GameHash(HashModel):
     season_ids: bytes
     current_season_id: bytes
     last_season_id: bytes
+    is_finished: bytes
 
 
 class SeasonHash(HashModel):

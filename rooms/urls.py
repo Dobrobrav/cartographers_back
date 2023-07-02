@@ -15,4 +15,5 @@ urlpatterns = [
     path('user/', User.as_view(), name='user'),
     path('ready/', Ready.as_view(), name='ready'),
     path('leave/', Leave.as_view(), name='leave'),
+    path('search/', Search.as_view(), name='search'),
 ]

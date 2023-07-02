@@ -9,7 +9,7 @@ from rest_framework.test import APITestCase
 from rest_framework.utils import json
 
 from cartographers_back.settings import R
-from rooms.redis.dao import RoomDaoRedis
+from rooms.redis.dao import RoomDao
 
 
 class RoomsAPITestCase(APITestCase):

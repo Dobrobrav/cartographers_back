@@ -28,6 +28,7 @@ class GameDC(DataClassModel):
     season_ids: MutableSequence[int]
     current_season_id: Optional[int]  # should not be optional
     last_season_id: int
+    is_finished: bool
 
 
 @dataclass

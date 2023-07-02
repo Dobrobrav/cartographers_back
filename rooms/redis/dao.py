@@ -14,7 +14,7 @@ from .dc_models import RoomDC
 from ..common import UserNotInRoom
 
 
-class RoomDaoRedis(DaoFull):
+class RoomDao(DaoFull):
     _key_schema = RoomKeySchema()
     _converter = RoomConverter()
     _model_class = RoomDC
@@ -143,6 +143,12 @@ class RoomDaoRedis(DaoFull):
 
         current_readiness = self._fetch_user_is_ready(room_id, user_id)
         self._set_user_is_ready(room_id, user_id, not current_readiness)
+
+    def search_room_names(self,
+                          substr: str,
+                          ) -> set:
+        pass
+
 
     def _fetch_room_id_by_user_id(self,
                                   user_id: int,

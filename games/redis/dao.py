@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 
 import services.utils
 from cartographers_back.settings import R
-from rooms.redis.dao import RoomDaoRedis
+from rooms.redis.dao import RoomDao
 from services.redis.base.redis_dao_base import DaoRedis, DaoFull
 from .dict_models import GamePretty, PlayerPretty, SeasonName, URL, DiscoveryCardPretty, \
     SeasonsScorePretty, SpringScorePretty, SummerScorePretty, FallScorePretty, WinterScorePretty, ShapePretty, \
@@ -159,8 +159,8 @@ class GameDaoRedis(DaoRedis):
         initial_cards = self._get_initial_cards()
         season_ids = SeasonDaoRedis(R).pre_init_seasons(initial_cards)
         room_id, player_ids = self._get_room_and_players(initiator_user_id)
-        (room_dao := RoomDaoRedis(R)).check_user_is_admin(room_id,
-                                                          initiator_user_id)
+        (room_dao := RoomDao(R)).check_user_is_admin(room_id,
+                                                     initiator_user_id)
         room_dao.set_is_game_started(room_id, True)
 
         game_id = self._create_game_model(
@@ -190,7 +190,7 @@ class GameDaoRedis(DaoRedis):
 
         game_pretty = GamePretty(
             id=game_id,
-            room_name=RoomDaoRedis(R).fetch_room_name(game.room_id),
+            room_name=RoomDao(R).fetch_room_name(game.room_id),
             player_field=player_dao.fetch_field_pretty(player_id),
             seasons=(season_dao := SeasonDaoRedis(R)).get_seasons_pretty(
                 season_ids
@@ -459,6 +459,7 @@ class GameDaoRedis(DaoRedis):
             admin_id=admin_id,
             current_season_id=season_ids[0],
             last_season_id=season_ids[3],
+            is_finished=False,
         )
         self.insert_dc_model(game)
         self._add_game_id_by_room_id_index(room_id, game_id)
@@ -489,7 +490,7 @@ class GameDaoRedis(DaoRedis):
     def _get_room_and_players(self,
                               admin_id: int,
                               ) -> tuple[int, list[int]]:
-        user_ids = (room_dao := RoomDaoRedis(R)).fetch_user_ids(admin_id)
+        user_ids = (room_dao := RoomDao(R)).fetch_user_ids(admin_id)
         field = self._gen_game_field()
         player_ids = PlayerDao(R).init_players(user_ids, field)
         room_id = room_dao._fetch_room_id_by_user_id(admin_id)

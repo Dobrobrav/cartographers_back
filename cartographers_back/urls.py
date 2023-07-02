@@ -26,5 +26,5 @@ urlpatterns = [
     re_path(r'^auth/', include('djoser.urls.authtoken')),
     path('admin/', admin.site.urls),
     path('rooms/', include('rooms.urls')),
-    path('games/', include('games.urls'))
+    path('games/', include('games.urls')),
 ]

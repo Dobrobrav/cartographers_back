@@ -35,6 +35,7 @@ class GameConverter(BaseRedisConverter):
             season_ids=utils.serialize(dc_model.season_ids),
             current_season_id=dc_model.current_season_id,
             last_season_id=dc_model.last_season_id,
+            is_finished=services.utils.serialize(dc_model.is_finished),
         )
         return game_dict
 
@@ -50,7 +51,8 @@ class GameConverter(BaseRedisConverter):
             terrain_card_ids=utils.deserialize(hash_model[b'terrain_card_ids']),
             season_ids=utils.deserialize(hash_model[b'season_ids']),
             current_season_id=int(hash_model[b'current_season_id']),
-            last_season_id=int(hash_model[b'last_season_id'])
+            last_season_id=int(hash_model[b'last_season_id']),
+            is_finished=services.utils.deserialize(hash_model[b'is_finished']),
         )
         return game_dc
 

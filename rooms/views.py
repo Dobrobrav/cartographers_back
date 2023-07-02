@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from rooms.common import UserNotInRoom
-from rooms.redis.dao import RoomDaoRedis
+from rooms.redis.dao import RoomDao
 from cartographers_back.settings import R
 from services.utils import get_user_id_by_token
 
@@ -23,7 +23,7 @@ class DisplayRoomsAPIView(APIView):
         page = int(params['page'])
         limit = int(params['limit'])
 
-        dict_rooms = RoomDaoRedis(R).fetch_page(page, limit)
+        dict_rooms = RoomDao(R).fetch_page(page, limit)
 
         return Response(data=dict_rooms, status=status.HTTP_200_OK)
 
@@ -38,7 +38,7 @@ class RoomAPIView(APIView):
         token = request.auth
         data = request.data
 
-        room_dao = RoomDaoRedis(R)
+        room_dao = RoomDao(R)
         creator_id = get_user_id_by_token(token)
 
         # TODO: allow to make a room without a password
@@ -59,7 +59,7 @@ class RoomAPIView(APIView):
         user_id = get_user_id_by_token(token)
 
         try:
-            room = RoomDaoRedis(R).fetch_room_pretty(user_id=user_id)
+            room = RoomDao(R).fetch_room_pretty(user_id=user_id)
         except UserNotInRoom:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -74,7 +74,9 @@ class Search(APIView):
     def get(self,
             request: Request,
             ) -> Response:
-        """ get rooms by search_value (id or room_name), smart search """
+        """ get room names containing provided text """
+        search_value = request.query_params['search_value']
+        RoomDao(R).search_room_names(substr=search_value)
 
 
 class Delete(APIView):
@@ -85,7 +87,7 @@ class Delete(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        RoomDaoRedis(R).delete_user(user_id)
+        RoomDao(R).delete_user(user_id)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -102,7 +104,7 @@ class User(APIView):
         user_id = get_user_id_by_token(token)
         room_id = data['room_id']
 
-        RoomDaoRedis(R).add_user(room_id, user_id)
+        RoomDao(R).add_user(room_id, user_id)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -116,7 +118,7 @@ class User(APIView):
         kicker_id = get_user_id_by_token(token)
         user_to_kick_id = int(request.query_params['user_to_kick_id'])
 
-        RoomDaoRedis(R).try_kick_user(kicker_id, user_to_kick_id)
+        RoomDao(R).try_kick_user(kicker_id, user_to_kick_id)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -129,7 +131,7 @@ class Ready(APIView):
         token = request.auth
 
         user_id = get_user_id_by_token(token)
-        RoomDaoRedis(R).change_user_is_ready(user_id)
+        RoomDao(R).change_user_is_ready(user_id)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -142,6 +144,6 @@ class Leave(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        RoomDaoRedis(R).try_leave(user_id)
+        RoomDao(R).try_leave(user_id)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

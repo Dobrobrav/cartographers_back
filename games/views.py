@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from cartographers_back.settings import R
 from games.redis.dao import GameDaoRedis, PlayerDao
-from rooms.redis.dao import RoomDaoRedis
+from rooms.redis.dao import RoomDao
 from services.utils import get_user_id_by_token
 
 
@@ -41,7 +41,7 @@ class MoveAPIView(APIView):
             ) -> Response:
         """ make move (place figure) """
         user_id = get_user_id_by_token(request.auth)
-        updated_field = request.data['field']
+        updated_field = request.data
 
         GameDaoRedis(R).process_move(user_id, updated_field)
 
@@ -69,8 +69,17 @@ class LeaveAPIView(APIView):
         player_id = PlayerDao(R).fetch_player_id_by_user_id(user_id)
 
         GameDaoRedis(R).try_leave(player_id)
-        RoomDaoRedis(R).try_leave(user_id)
+        RoomDao(R).try_leave(user_id)
 
+        return Response(status=status.HTTP_200_OK)
+
+
+class ListView(APIView):
+    def post(self,
+             request: Request,
+             ) -> Response:
+        data = request.data
+        print(type(data))
         return Response(status=status.HTTP_200_OK)
 
 

@@ -13,6 +13,7 @@ class GameDict(DictModel):
     season_ids: str
     current_season_id: int
     last_season_id: int
+    is_finished: str
 
 
 class SeasonDict(DictModel):
