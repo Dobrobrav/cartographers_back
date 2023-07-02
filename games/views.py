@@ -30,7 +30,7 @@ class GameAPIView(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        game = GameDao(R).get_game_pretty(user_id)
+        game = GameDao(R).fetch_game_pretty(user_id)
 
         return Response(data=game, status=status.HTTP_200_OK)
 

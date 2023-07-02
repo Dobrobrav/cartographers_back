@@ -173,10 +173,11 @@ class GameDao(DaoRedis):
 
         self._add_game_id_by_player_id_index_many(game_id, player_ids)
 
-    def get_game_pretty(self,
-                        user_id: int,
-                        ) -> GamePretty:
-        player_dao = PlayerDao(R)
+    def fetch_game_pretty(self,
+                          user_id: int,
+                          ) -> GamePretty:
+        player_dao, move_dao = PlayerDao(R), MoveDao(R)
+
 
         player_id = player_dao.fetch_player_id_by_user_id(user_id)
         game_id = self._fetch_game_id_by_player_id(player_id)
@@ -200,9 +201,11 @@ class GameDao(DaoRedis):
                 game.current_season_id
             ),
             players=player_dao.get_players_pretty(game.player_ids),
-            discovery_card=(move_dao := MoveDao(
-                R
-            )).fetch_discovery_card_pretty(game_id),
+            discovery_card=move_dao.fetch_discovery_card_pretty(
+                season_dao.fetch_move_id(
+                    self._fetch_current_season_id(game_id)
+                )
+            ),
             is_prev_card_ruins=move_dao.fetch_is_prev_card_ruins(
                 season_dao.fetch_move_id(game.current_season_id)
             ),
@@ -1158,7 +1161,7 @@ class MoveDao(DaoRedis):
                                             move_id: int,
                                             ) -> Optional[str]:
         card_id = self._fetch_discovery_card_id(move_id)
-        if not self._check_card_is_terrain(card_id):
+        if not self._check_card_is_terrain(move_id):
             return None
 
         return TerrainCardDao(R).fetch_additional_shape_pretty(
@@ -1199,6 +1202,7 @@ class MoveDao(DaoRedis):
     def _fetch_discovery_card_type(self,
                                    move_id: int,
                                    ) -> str:
+        # print(move_id)
         card_type = self._fetch_model_attr(
             model_id=move_id,
             field_name='discovery_card_type',
