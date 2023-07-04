@@ -140,7 +140,6 @@ class DiscoveryCardDao(DaoFull):
     def _pick_card_id(card_ids: MutableSequence[int],
                       ) -> int:
         random_card_id = random.choice(card_ids)
-        print('::::::', card_ids, random_card_id)
         return random_card_id
 
 
@@ -177,7 +176,6 @@ class GameDao(DaoRedis):
                           user_id: int,
                           ) -> GamePretty:
         player_dao, move_dao = PlayerDao(R), MoveDao(R)
-
 
         player_id = player_dao.fetch_player_id_by_user_id(user_id)
         game_id = self._fetch_game_id_by_player_id(player_id)
@@ -229,12 +227,12 @@ class GameDao(DaoRedis):
             updated_field=utils.decode_pretty_field(updated_field),
         )
 
-        self._prepare_for_next_move(
-            game_id := self._fetch_game_id_by_player_id(player_id)
-        )
+        game_id = self._fetch_game_id_by_player_id(player_id)
+        if self._check_all_players_finished_move(game_id):
+            self._prepare_for_next_move(game_id)
 
-        if not self._check_game_finished(game_id):
-            self._start_new_move(game_id)
+            if not self._check_game_finished(game_id):
+                self._start_new_move(game_id)
 
     def try_kick_player(self,
                         kicker_id: int,
@@ -306,11 +304,10 @@ class GameDao(DaoRedis):
     def _prepare_for_next_move(self,
                                game_id: int,
                                ) -> None:
-        if self._check_all_players_finished_move(game_id):
-            if self._check_season_points_exceeded(game_id):
-                self._switch_to_next_season(game_id)
-                if self._check_seasons_exceeded(game_id):
-                    self._finish_game(game_id)
+        if self._check_season_points_exceeded(game_id):
+            self._switch_to_next_season(game_id)
+            if self._check_seasons_exceeded(game_id):
+                self._finish_game(game_id)
 
     def _check_season_points_exceeded(self,
                                       game_id: int,
@@ -1232,7 +1229,7 @@ class PlayerDao(DaoRedis):
                                       player_ids: Iterable[int],
                                       ) -> None:
         for player_id in player_ids:
-            self._set_is_move_finished(player_id, True)
+            self._set_is_move_finished(player_id, False)
 
     def check_all_players_not_finished_move(self,
                                             player_ids: MutableSequence[int],
@@ -1247,6 +1244,7 @@ class PlayerDao(DaoRedis):
     def finish_move_for_player(self,
                                player_id: int,
                                updated_field: Field):
+        print(player_id)
         self._set_field(player_id, updated_field)
         self._set_is_move_finished(player_id, True)
 
@@ -1299,7 +1297,7 @@ class PlayerDao(DaoRedis):
                               player_id: int,
                               value: bool,
                               ) -> None:
-        self._set_model_attr(player_id, 'finished_move', value)
+        self._set_model_attr(player_id, 'is_move_finished', value)
 
     def init_players(self,
                      user_ids: Sequence[int],
