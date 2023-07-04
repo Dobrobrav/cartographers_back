@@ -55,13 +55,14 @@ class DiscoveryCardDao(DaoFull):
 
     def fetch_shape_pretty(self,
                            discovery_card_id: int,
-                           ) -> ShapePretty:
+                           ) -> ShapePretty | None:
         shape_id = self._fetch_model_attr(
             model_id=discovery_card_id,
             field_name='shape_id',
             converter=int,
         )
-        services.utils.validate_not_none(shape_id)
+        if shape_id is None:
+            return None
 
         shape_dc: ShapeDC = ShapeDaoRedis(R).fetch_dc_model(shape_id)
         shape_pretty = ShapePretty(
@@ -566,10 +567,8 @@ class TerrainCardDao(DiscoveryCardDao):
             field_name='terrain',
             converter=services.utils.decode_bytes
         )
-        services.utils.validate_not_none(terrain)
 
-        terrain_pretty = TERRAIN_STR_TO_NUM[terrain]
-        return terrain_pretty
+        return terrain and TERRAIN_STR_TO_NUM[terrain]
 
     def fetch_additional_terrain_pretty(self,
                                         terrain_card_id: int,
@@ -580,9 +579,7 @@ class TerrainCardDao(DiscoveryCardDao):
             converter=services.utils.decode_bytes,
         )
         # if no add_terrain, then return None
-        additional_terrain_pretty = (additional_terrain
-                                     and TERRAIN_STR_TO_NUM[additional_terrain])
-        return additional_terrain_pretty
+        return additional_terrain and TERRAIN_STR_TO_NUM[additional_terrain]
 
     def fetch_additional_shape_pretty(self,
                                       terrain_card_id: int,
@@ -984,12 +981,12 @@ class SeasonDaoRedis(DaoRedis):
     def _shuffle_cards(cards: MutableSequence[int],
                        ) -> MutableSequence[int]:
         """ return shuffled copy of cards """
-        cards = copy(cards)
-        random.shuffle(cards)
+        # cards = copy(cards)
+        # random.shuffle(cards)
+        #
+        # return cards
 
-        return cards
-
-        # return [18] * 14
+        return [18] * 14
 
     @staticmethod
     def _pick_season(season_ids_pull: list[int],
@@ -1106,16 +1103,16 @@ class MoveDao(DaoRedis):
         card_type = self._fetch_discovery_card_type(move_id)
         match card_type:
             case 'terrain':
-                terrain = TerrainCardDao(R).fetch_terrain_pretty(
+                terrain_pretty = TerrainCardDao(R).fetch_terrain_pretty(
                     terrain_card_id=self._fetch_discovery_card_id(move_id)
                 )
             case 'monster':
-                terrain = TERRAIN_STR_TO_NUM['monster']
+                terrain_pretty = TERRAIN_STR_TO_NUM['monster']
             case _:
                 raise ValueError('discovery card type must be '
                                  'either "terrain" or "monster"')
 
-        return terrain
+        return terrain_pretty
 
     def _fetch_card_additional_terrain(self,
                                        move_id: int,
