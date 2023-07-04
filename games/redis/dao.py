@@ -312,10 +312,17 @@ class GameDao(DaoRedis):
     def _prepare_for_next_move(self,
                                game_id: int,
                                ) -> None:
+        self._add_season_points(game_id)
         if self._check_season_points_exceeded(game_id):
             self._switch_to_next_season(game_id)
             if self._check_seasons_exceeded(game_id):
                 self._finish_game(game_id)
+
+    def _add_season_points(self,
+                           game_id: int,
+                           ) -> None:
+        season_id = self._fetch_current_season_id(game_id)
+        SeasonDao(R).add_season_points(season_id)
 
     def _check_season_points_exceeded(self,
                                       game_id: int,
@@ -948,7 +955,6 @@ class SeasonDao(DaoRedis):
                                                 terrain_card_ids,
                                                 monster_card_ids)
 
-        season_id and self._add_card_season_points(season_id)
         new_move_id = MoveDao(R).init_move(
             discovery_card_id=card_id,
             discovery_card_type=card_type,
@@ -958,14 +964,14 @@ class SeasonDao(DaoRedis):
 
         return new_move_id
 
-    def _add_card_season_points(self,
-                                season_id: int,
-                                ) -> None:
+    def add_season_points(self,
+                          season_id: int,
+                          ) -> None:
         current_points = self._fetch_current_points(season_id)
         move_id = self._fetch_current_move_id(season_id)
         self._set_current_points(
             season_id,
-            current_points + MoveDao(R).fetch_card_season_points(move_id),
+            current_points + MoveDao(R).fetch_season_points(move_id),
         )
 
     def _set_current_points(self,
@@ -1054,9 +1060,9 @@ class MoveDao(DaoRedis):
 
         return is_prev_card_ruins
 
-    def fetch_card_season_points(self,
-                                 move_id: int,
-                                 ) -> int:
+    def fetch_season_points(self,
+                            move_id: int,
+                            ) -> int:
         if not self._check_card_is_terrain(move_id):
             return 0
 
