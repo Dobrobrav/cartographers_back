@@ -1093,8 +1093,7 @@ class MoveDao(DaoRedis):
                                move_id: int,
                                ) -> bool:
         discovery_card_type = self._fetch_discovery_card_type(move_id)
-        if discovery_card_type != 'terrain':
-            return False
+        return discovery_card_type == 'terrain'
 
     def _fetch_card_terrain_pretty(self,
                                    move_id: int,
@@ -1161,9 +1160,7 @@ class MoveDao(DaoRedis):
         if not self._check_card_is_terrain(move_id):
             return None
 
-        return TerrainCardDao(R).fetch_additional_shape_pretty(
-            card_id
-        )
+        return TerrainCardDao(R).fetch_additional_shape_pretty(card_id)
 
     def _fetch_is_prev_card_ruins(self,
                                   move_id: int,
