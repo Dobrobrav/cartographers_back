@@ -287,7 +287,7 @@ class TerrainCardConverter(BaseFullConverter):
                     card_type=card_type,
                     shape_id=None,
                     terrain=None,
-                    season_points=None,
+                    season_points=sql_model.season_points,
                     additional_shape_id=None,
                     additional_terrain=None,
                 )
@@ -314,6 +314,7 @@ class TerrainCardConverter(BaseFullConverter):
 
         return terrain_card_dc
 
+    # TODO: rewrite all ''s in redis to 'null's in redis using json.dumps(None)
     @staticmethod
     def dc_model_to_dict_model(dc_model: TerrainCardDC,
                                ) -> TerrainCardDict:
@@ -327,7 +328,7 @@ class TerrainCardConverter(BaseFullConverter):
                 card_type=card_type.value,
                 shape_id='',
                 terrain='',
-                season_points='',
+                season_points=dc_model.season_points,
                 additional_shape_id='',
                 additional_terrain='',
             )
