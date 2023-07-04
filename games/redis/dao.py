@@ -549,7 +549,7 @@ class ObjectiveCardDaoRedis(DaoFull):
 
 
 class TerrainCardDao(DiscoveryCardDao):
-    TERRAIN_CARD_QUANTITY = 2
+    TERRAIN_CARD_QUANTITY = 10
 
     _key_schema = TerrainCardKeySchema()
     _converter = TerrainCardConverter()
