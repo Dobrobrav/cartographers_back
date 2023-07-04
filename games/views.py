@@ -46,12 +46,14 @@ class MoveAPIView(APIView):
         else:
             return Response(False)
 
-
     def put(self,
             request: Request,
             ) -> Response:
         """ make move (place figure) """
         user_id = get_user_id_by_token(request.auth)
+        # if PlayerDao(R).check_move_already_made(user_id):
+        #     return Response(status=status.HTTP_410_GONE)
+
         updated_field = request.data
 
         GameDao(R).process_move(user_id, updated_field)
@@ -92,10 +94,3 @@ class ListView(APIView):
         data = request.data
         print(type(data))
         return Response(status=status.HTTP_200_OK)
-
-
-
-
-
-
-

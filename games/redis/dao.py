@@ -1068,7 +1068,6 @@ class MoveDao(DaoRedis):
 
         return self._fetch_terrain_card_season_points(move_id)
 
-
     def fetch_discovery_card_pretty(self,
                                     move_id: int,
                                     ) -> DiscoveryCardPretty:
@@ -1090,7 +1089,6 @@ class MoveDao(DaoRedis):
                 return self._fetch_regular_card_season_points(move_id)
             case 'anomaly' | 'ruins':
                 return 0
-
 
     def _fetch_regular_card_season_points(self,
                                           move_id: int,
@@ -1258,6 +1256,12 @@ class PlayerDao(DaoRedis):
             for player_id in player_ids
         ]
         return players
+
+    def check_move_already_made(self,
+                                user_id: int,
+                                ) -> bool:
+        player_id = self.fetch_player_id_by_user_id(user_id)
+        return self._fetch_is_move_finished(player_id)
 
     def set_players_move_not_finished(self,
                                       player_ids: Iterable[int],
