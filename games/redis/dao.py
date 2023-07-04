@@ -122,6 +122,9 @@ class DiscoveryCardDao(DaoFull):
                 monster_card_ids=monster_card_ids,
                 is_ruins_allowed=False,
             )
+
+        # self._remove_card_id(...)  # TODO: implement
+
         return card_id, discovery_card_type, is_on_ruins
 
     @staticmethod
@@ -549,7 +552,7 @@ class ObjectiveCardDaoRedis(DaoFull):
 
 
 class TerrainCardDao(DiscoveryCardDao):
-    TERRAIN_CARD_QUANTITY = 10
+    TERRAIN_CARD_QUANTITY = 14
 
     _key_schema = TerrainCardKeySchema()
     _converter = TerrainCardConverter()
@@ -695,7 +698,6 @@ class SeasonDaoRedis(DaoRedis):
     def pre_init_seasons(self,
                          initial_cards: InitialCards,
                          ) -> list[int]:
-        print(initial_cards)
         """ create seasons, insert them into redis
          and return their ids """
 
@@ -735,7 +737,7 @@ class SeasonDaoRedis(DaoRedis):
             season_card=season_cards.winter,
             objective_card_ids=[objective_card_ids[0],
                                 objective_card_ids[3]],
-            terrain_card_ids=self._shuffle_cards(objective_card_ids),
+            terrain_card_ids=self._shuffle_cards(terrain_card_ids),
             monster_card_ids=[monster_card_ids.pop()],
             is_first_season=False,
         ))
@@ -949,6 +951,7 @@ class SeasonDaoRedis(DaoRedis):
                                 ) -> list[int]:
         card_ids = self._fetch_model_attr(season_id, 'terrain_card_ids')
         services.utils.validate_not_none(card_ids)
+        # TODO: need to remove card_id and set it to redis
 
         return card_ids
 
@@ -981,10 +984,12 @@ class SeasonDaoRedis(DaoRedis):
     def _shuffle_cards(cards: MutableSequence[int],
                        ) -> MutableSequence[int]:
         """ return shuffled copy of cards """
-        cards = copy(cards)
-        random.shuffle(cards)
+        # cards = copy(cards)
+        # random.shuffle(cards)
+        #
+        # return cards
 
-        return cards
+        return [18] * 14
 
     @staticmethod
     def _pick_season(season_ids_pull: list[int],
