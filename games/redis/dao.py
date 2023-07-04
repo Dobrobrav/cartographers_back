@@ -1216,7 +1216,7 @@ class MoveDao(DaoRedis):
                     self._fetch_discovery_card_id(move_id)
                 )
             case 'monster':
-                url = MonsterCardDaoRedis.fetch_image_url(
+                url = MonsterCardDaoRedis(R).fetch_image_url(
                     self._fetch_discovery_card_id(move_id)
                 )
             case _:
