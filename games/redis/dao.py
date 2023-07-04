@@ -1062,6 +1062,7 @@ class MoveDao(DaoRedis):
 
         return self._fetch_terrain_card_season_points(move_id)
 
+
     def fetch_discovery_card_pretty(self,
                                     move_id: int,
                                     ) -> DiscoveryCardPretty:
@@ -1081,8 +1082,9 @@ class MoveDao(DaoRedis):
         match self._fetch_terrain_card_type(move_id):
             case 'regular':
                 return self._fetch_regular_card_season_points(move_id)
-            case 'anomaly', 'ruins':
+            case 'anomaly' | 'ruins':
                 return 0
+
 
     def _fetch_regular_card_season_points(self,
                                           move_id: int,
