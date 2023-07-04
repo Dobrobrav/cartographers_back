@@ -984,12 +984,12 @@ class SeasonDaoRedis(DaoRedis):
     def _shuffle_cards(cards: MutableSequence[int],
                        ) -> MutableSequence[int]:
         """ return shuffled copy of cards """
-        # cards = copy(cards)
-        # random.shuffle(cards)
-        #
-        # return cards
+        cards = copy(cards)
+        random.shuffle(cards)
 
-        return [18] * 14
+        return cards
+
+        # return [18] * 14
 
     @staticmethod
     def _pick_season(season_ids_pull: list[int],
