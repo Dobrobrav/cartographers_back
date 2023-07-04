@@ -713,10 +713,10 @@ class SeasonDao(DaoRedis):
             name=ESeasonName.SPRING,
             season_card=season_cards.spring,
             objective_card_ids=objective_card_ids[0:2],
-            # terrain_card_ids=self._shuffle_cards(terrain_card_ids),
-            terrain_card_ids=[18, 9, 18, 9, 18, 9, 18, 9, 18, 9, 18, 9, 18, 9],
-            # monster_card_ids=[monster_card_ids.pop()],
-            monster_card_ids=[],
+            terrain_card_ids=self._shuffle_cards(terrain_card_ids),
+            # terrain_card_ids=[18, 9, 18, 9, 18, 9, 18, 9, 18, 9, 18, 9, 18, 9],
+            monster_card_ids=[monster_card_ids.pop()],
+            # monster_card_ids=[],
             is_first_season=True,
         ))
         seasons.append(self.pre_init_season(
