@@ -287,7 +287,7 @@ class TerrainCardConverter(BaseFullConverter):
                     card_type=card_type,
                     shape_id=None,
                     terrain=None,
-                    season_points=None,
+                    season_points=sql_model.season_points,
                     additional_shape_id=None,
                     additional_terrain=None,
                 )

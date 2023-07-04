@@ -965,9 +965,7 @@ class SeasonDao(DaoRedis):
         move_id = self._fetch_current_move_id(season_id)
         self._set_current_points(
             season_id,
-            current_points + MoveDao(R).fetch_card_season_points(
-                move_id
-            ),
+            current_points + MoveDao(R).fetch_card_season_points(move_id),
         )
 
     def _set_current_points(self,
