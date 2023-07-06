@@ -59,8 +59,8 @@ class ObjectiveCardDict(DictModel):
 class PlayerDict(DictModel):
     user_id: int
     field: str
-    left_player_id: int
-    right_player_id: int
+    clockwise_player_id: int
+    counterclockwise_player_id: int
     coins: int
     seasons_score_id: int
     is_move_finished: str  # true or false
@@ -106,7 +106,7 @@ class GamePretty(TypedDict):
     current_season_name: str
     players: MutableSequence['PlayerPretty']
     discovery_card: 'DiscoveryCardPretty'
-    is_prev_card_ruins: bool
+    is_on_ruins: bool
     player_coins: int
     player_score: int
     season_scores: 'SeasonsScorePretty'

@@ -5,6 +5,7 @@ from typing import MutableSequence, NamedTuple, Iterable, Optional, TypeAlias, S
 from django.contrib.auth.models import User
 
 import services.utils
+import services.common
 from cartographers_back.settings import R
 from rooms.redis.dao import RoomDao
 from services.redis.base.redis_dao_base import DaoRedis, DaoFull
@@ -19,7 +20,7 @@ from .converters import MonsterCardConverter, GameConverter, SeasonConverter, Mo
 from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
     ObjectiveCardDC, PlayerDC, SeasonsScoreDC, SeasonScoreDC, ShapeDC
 from .. import utils
-from ..common import ETerrainTypeAll, TERRAIN_STR_TO_NUM, FieldPretty, Field, BLANK_FIELD
+from ..common import ETerrainTypeAll, TERRAIN_STR_TO_NUM, FieldPretty, FieldRegular, BLANK_FIELD, EExchangeOrder
 from ..models import SeasonCardSQL
 import games.utils
 
@@ -46,9 +47,9 @@ class SeasonPretty(NamedTuple):
 
 class Neighbors(NamedTuple):
     user_id: int
-    left_player_id: int
+    clockwise_player_id: int
     player_id: int
-    right_player_id: int
+    counterclockwise_player_id: int
 
 
 class DiscoveryCardDao(DaoFull):
@@ -198,7 +199,7 @@ class GameDao(DaoRedis):
         game_pretty = GamePretty(
             id=game_id,
             room_name=RoomDao(R).fetch_room_name(game.room_id),
-            player_field=player_dao.fetch_field_pretty(player_id),
+            player_field=self._fetch_field_pretty(game_id, player_id),
             seasons=(season_dao := SeasonDao(R)).get_seasons_pretty(
                 season_ids
             ),
@@ -212,7 +213,7 @@ class GameDao(DaoRedis):
                     self._fetch_current_season_id(game_id)
                 )
             ),
-            is_prev_card_ruins=move_dao.fetch_is_prev_card_ruins(
+            is_on_ruins=move_dao.fetch_is_on_ruins(
                 season_dao.fetch_move_id(game.current_season_id)
             ),
             player_coins=player_dao.fetch_coins(player_id),
@@ -227,18 +228,16 @@ class GameDao(DaoRedis):
                      user_id: int,
                      updated_field: FieldPretty,
                      ) -> None:
-        player_dao = PlayerDao(R)
+        player_id = PlayerDao(R).fetch_player_id_by_user_id(user_id)
+        game_id = self._fetch_game_id_by_player_id(player_id)
 
-        player_id = player_dao.fetch_player_id_by_user_id(user_id)
-        player_dao.finish_move_for_player(
-            player_id=player_id,
-            updated_field=utils.decode_pretty_field(updated_field),
+        self._finish_move_for_player(
+            game_id, player_id,
+            games.utils.field_pretty_to_regular(updated_field),
         )
 
-        game_id = self._fetch_game_id_by_player_id(player_id)
         if self._check_all_players_finished_move(game_id):
             self._prepare_for_next_move(game_id)
-
             if not self._check_game_finished(game_id):
                 self._start_new_move(game_id)
 
@@ -262,6 +261,24 @@ class GameDao(DaoRedis):
             game_id=self._fetch_game_id_by_user_id(user_id)
         )
         return PlayerDao(R).check_all_players_not_finished_move(player_ids)
+
+    def _finish_move_for_player(self,
+                                game_id: int,
+                                player_id: int,
+                                updated_field: FieldRegular,
+                                ) -> None:
+        if self._check_discovery_card_is_monster(game_id):
+            PlayerDao(R).finish_move_for_player(
+                player_id=player_id,
+                updated_field=updated_field,
+                exchange_order=self._fetch_exchange_order(game_id),
+            )
+        else:
+            PlayerDao(R).finish_move_for_player(
+                player_id=player_id,
+                updated_field=updated_field,
+                exchange_order=None,
+            )
 
     def _fetch_game_id_by_user_id(self,
                                   user_id: int,
@@ -290,6 +307,36 @@ class GameDao(DaoRedis):
         player_ids = self._fetch_player_ids(game_id)
         player_ids.remove(player_id)
         self._set_player_ids(game_id, player_ids)
+
+    def _fetch_field_pretty(self,
+                            game_id: int,
+                            player_id: int,
+                            ) -> FieldPretty:
+        if self._check_discovery_card_is_monster(game_id):
+            return PlayerDao(R).fetch_neighbor_field_pretty(
+                player_id,
+                self._fetch_exchange_order(game_id),
+            )
+
+        return PlayerDao(R).fetch_field_pretty(player_id)
+
+    def _fetch_exchange_order(self,
+                              game_id: int,
+                              ) -> EExchangeOrder:
+        season_id = self._fetch_current_season_id(game_id)
+        return SeasonDao(R).fetch_exchange_order(season_id)
+
+    def _fetch_exchange_back_order(self,
+                                   game_id: int,
+                                   ) -> EExchangeOrder:
+        exchange_order = self._fetch_exchange_order(game_id)
+        if exchange_order is EExchangeOrder.CLOCKWISE:
+            return EExchangeOrder.COUNTERCLOCKWISE
+        elif exchange_order is EExchangeOrder.COUNTERCLOCKWISE:
+            return EExchangeOrder.CLOCKWISE
+        else:
+            raise ValueError('Exchange order must be either "CLOCKWISE", '
+                             'or "COUNTERCLOCKWISE"')
 
     def _set_player_ids(self,
                         game_id: int,
@@ -407,10 +454,14 @@ class GameDao(DaoRedis):
                         game_id: int,
                         ) -> None:
 
-        SeasonDao(R).start_new_move(
-            self._fetch_current_season_id(game_id)
-        )
+        SeasonDao(R).start_new_move(self._fetch_current_season_id(game_id))
         self._set_players_move_not_finished(game_id)
+
+    def _check_discovery_card_is_monster(self,
+                                         game_id: int,
+                                         ) -> bool:
+        season_id = self._fetch_current_season_id(game_id)
+        return SeasonDao(R).check_discovery_card_is_monster(season_id)
 
     def _set_players_move_not_finished(self,
                                        game_id: int,
@@ -460,7 +511,7 @@ class GameDao(DaoRedis):
     def _get_initial_cards():
         terrain_card_ids = TerrainCardDao(R).pick_terrain_cards()
 
-        monster_card_ids = MonsterCardDaoRedis(R).pick_monster_cards()
+        monster_card_ids = MonsterCardDao(R).pick_monster_cards()
 
         objective_card_ids = ObjectiveCardDaoRedis(R).pick_objective_cards()
 
@@ -542,7 +593,7 @@ class GameDao(DaoRedis):
         key = self._key_schema.game_id_by_player_id_index_key
         self._redis.hset(key, player_id, game_id)
 
-    def _gen_game_field(self) -> Field:
+    def _gen_game_field(self) -> FieldRegular:
         field = BLANK_FIELD
         return field
 
@@ -692,6 +743,18 @@ class SeasonDao(DaoRedis):
 
         return is_finished
 
+    def fetch_exchange_order(self,
+                             season_id: int,
+                             ) -> EExchangeOrder:
+        move_id = self.fetch_move_id(season_id)
+        return MoveDao(R).fetch_exchange_order(move_id)
+
+    def check_discovery_card_is_monster(self,
+                                        season_id: int,
+                                        ) -> bool:
+        move_id = self.fetch_move_id(season_id)
+        return MoveDao(R).check_discovery_card_is_monster(move_id)
+
     # def get_tasks_pretty(self,
     #                      season_ids: Iterable[int],
     #                      ) -> list[TaskPretty]:
@@ -720,9 +783,9 @@ class SeasonDao(DaoRedis):
             name=ESeasonName.SPRING,
             season_card=season_cards.spring,
             objective_card_ids=objective_card_ids[0:2],
-            terrain_card_ids=self._shuffle_cards(terrain_card_ids),
-            # terrain_card_ids=[18, 9, 18, 9, 18, 9, 18, 9, 18, 9, 18, 9, 18, 9],
-            monster_card_ids=[monster_card_ids.pop()],
+            terrain_card_ids=self._shuffle_cards(terrain_card_ids),  # no need to shuffle
+            # terrain_card_ids=[],
+            monster_card_ids=[monster_card_ids.pop()] * 10,
             # monster_card_ids=[],
             is_first_season=True,
         ))
@@ -950,7 +1013,6 @@ class SeasonDao(DaoRedis):
             monster_card_ids=monster_card_ids,
             is_on_ruins_allowed=is_on_ruins_allowed
         )
-        # if I don't pass season_id, I need to save changed decks in the upper method
         season_id and self._set_discovery_cards(season_id,
                                                 terrain_card_ids,
                                                 monster_card_ids)
@@ -1049,9 +1111,27 @@ class MoveDao(DaoRedis):
         self.insert_dc_model(move)
         return move.id
 
-    def fetch_is_prev_card_ruins(self,
-                                 move_id: int,
-                                 ) -> bool:
+    def fetch_exchange_order(self,
+                             move_id: int,
+                             ) -> EExchangeOrder:
+        self._validate_discovery_card_is_monster(move_id)
+        monster_card_id = self._fetch_discovery_card_id(move_id)
+        return MonsterCardDao(R).fetch_exchange_order(monster_card_id)
+
+    def _validate_discovery_card_is_monster(self,
+                                            move_id: int,
+                                            ) -> None:
+        if self._fetch_discovery_card_type(move_id) != 'monster':
+            raise ValueError("Discovery card must be monster.")
+
+    def check_discovery_card_is_monster(self,
+                                        move_id: int,
+                                        ) -> bool:
+        return self._fetch_discovery_card_type(move_id) == 'monster'
+
+    def fetch_is_on_ruins(self,
+                          move_id: int,
+                          ) -> bool:
         is_prev_card_ruins = self._fetch_model_attr(
             model_id=move_id,
             field_name='is_on_ruins',
@@ -1181,7 +1261,7 @@ class MoveDao(DaoRedis):
             case 'terrain':
                 card_dao = TerrainCardDao(R)
             case 'monster':
-                card_dao = MonsterCardDaoRedis(R)
+                card_dao = MonsterCardDao(R)
             case _:
                 raise ValueError('type must be either "monster" or "terrain"')
 
@@ -1220,7 +1300,7 @@ class MoveDao(DaoRedis):
                     self._fetch_discovery_card_id(move_id)
                 )
             case 'monster':
-                url = MonsterCardDaoRedis(R).fetch_image_url(
+                url = MonsterCardDao(R).fetch_image_url(
                     self._fetch_discovery_card_id(move_id)
                 )
             case _:
@@ -1257,11 +1337,84 @@ class PlayerDao(DaoRedis):
         ]
         return players
 
+    def fetch_neighbor_field_pretty(self,
+                                    player_id: int,
+                                    exchange_order: EExchangeOrder,
+                                    ) -> FieldPretty:
+        if exchange_order is EExchangeOrder.CLOCKWISE:
+            field = self._fetch_counterclockwise_player_field(player_id)
+        elif exchange_order is EExchangeOrder.COUNTERCLOCKWISE:
+            field = self._fetch_clockwise_player_field(player_id)
+        else:
+            raise ValueError("Exchange order must be either 'clockwise' or "
+                             "'counterclockwise'")
+
+        return games.utils.field_regular_to_pretty(field)
+
     def check_move_already_made(self,
                                 user_id: int,
                                 ) -> bool:
         player_id = self.fetch_player_id_by_user_id(user_id)
         return self._fetch_is_move_finished(player_id)
+
+    def _fetch_clockwise_player_field(self,
+                                      player_id: int,
+                                      ) -> FieldRegular:
+        clockwise_player_id = self._fetch_clockwise_player_id(player_id)
+        return self._fetch_field(clockwise_player_id)
+
+    def _fetch_counterclockwise_player_field(self,
+                                             player_id: int,
+                                             ) -> FieldRegular:
+        counterclockwise_player_id = self._fetch_counterclockwise_player_id(
+            player_id
+        )
+        return self._fetch_field(counterclockwise_player_id)
+
+    def _fetch_clockwise_player_id(self,
+                                   player_id: int,
+                                   ) -> int:
+        return self._fetch_model_attr(player_id, 'clockwise_player_id')
+
+    def _fetch_counterclockwise_player_id(self,
+                                          player_id: int,
+                                          ) -> int:
+        return self._fetch_model_attr(player_id, 'counterclockwise_player_id')
+
+    def _fetch_field(self,
+                     player_id: int,
+                     ) -> FieldRegular:
+        return self._fetch_model_attr(
+            model_id=player_id,
+            field_name='field',
+            converter=games.utils.deserialize_field,
+        )
+
+    def _set_clockwise_player_field(self,
+                                    player_id: int,
+                                    field: FieldRegular,
+                                    ) -> None:
+        clockwise_player_id = self._fetch_clockwise_player_id(player_id)
+        self._set_field(clockwise_player_id, field)
+
+    def _set_counterclockwise_player_field(self,
+                                           player_id: int,
+                                           field: FieldRegular,
+                                           ) -> None:
+        counterclockwise_player_id = self._fetch_counterclockwise_player_id(
+            player_id
+        )
+        self._set_field(counterclockwise_player_id, field)
+
+    def _set_neighbor_field(self,
+                            player_id: int,
+                            updated_field: FieldRegular,
+                            exchange_order: EExchangeOrder,
+                            ) -> None:
+        if exchange_order is EExchangeOrder.CLOCKWISE:
+            self._set_counterclockwise_player_field(player_id, updated_field)
+        elif exchange_order is EExchangeOrder.COUNTERCLOCKWISE:
+            self._set_clockwise_player_field(player_id, updated_field)
 
     def set_players_move_not_finished(self,
                                       player_ids: Iterable[int],
@@ -1281,9 +1434,14 @@ class PlayerDao(DaoRedis):
 
     def finish_move_for_player(self,
                                player_id: int,
-                               updated_field: Field):
-        print(player_id)
-        self._set_field(player_id, updated_field)
+                               updated_field: FieldRegular,
+                               exchange_order: EExchangeOrder | None,
+                               ) -> None:
+        if exchange_order:
+            self._set_neighbor_field(player_id, updated_field, exchange_order)
+        else:
+            self._set_field(player_id, updated_field)
+
         self._set_is_move_finished(player_id, True)
 
     def check_players_finished_move(self,
@@ -1300,17 +1458,17 @@ class PlayerDao(DaoRedis):
         player_dao = PlayerDao(R)
 
         player: PlayerDC = player_dao.fetch_dc_model(player_id)
-        left_player: PlayerDC
-        right_player: PlayerDC
-        left_player, right_player = player_dao.fetch_dc_models(
-            (left_player := player.left_player_id,
-             right_player := player.right_player_id)
+        counterclockwise_player: PlayerDC
+        clockwise_player: PlayerDC
+        counterclockwise_player, clockwise_player = player_dao.fetch_dc_models(
+            (counterclockwise_player := player.counterclockwise_player_id,
+             clockwise_player := player.clockwise_player_id)
         )
 
-        left_player.right_player_id = right_player.id
-        right_player.left_player_id = left_player.id
+        counterclockwise_player.clockwise_player_id = clockwise_player.id
+        clockwise_player.counterclockwise_player_id = counterclockwise_player.id
 
-        self.insert_dc_models((left_player, right_player))
+        self.insert_dc_models((counterclockwise_player, clockwise_player))
 
     def _fetch_is_move_finished(self,
                                 player_id,
@@ -1322,7 +1480,7 @@ class PlayerDao(DaoRedis):
 
     def _set_field(self,
                    player_id: int,
-                   updated_field: Field,
+                   updated_field: FieldRegular,
                    ) -> None:
         self._set_model_attr(
             model_id=player_id,
@@ -1339,7 +1497,7 @@ class PlayerDao(DaoRedis):
 
     def init_players(self,
                      user_ids: Sequence[int],
-                     field: Field,
+                     field: FieldRegular,
                      ) -> list[int]:
         neighbors_lst = self._get_neighbors_lst(user_ids)
         player_ids = [
@@ -1371,7 +1529,7 @@ class PlayerDao(DaoRedis):
         field_pretty = self._fetch_model_attr(
             model_id=player_id,
             field_name='field',
-            converter=lambda x: self._make_field_pretty(
+            converter=lambda x: games.utils.field_regular_to_pretty(
                 games.utils.deserialize_field(x)
             ),
         )
@@ -1420,13 +1578,13 @@ class PlayerDao(DaoRedis):
         player_ids = self._gen_new_ids(quantity=len(user_ids))
         neighbors_lst = []
         for user_id, (i, player_id) in zip(user_ids, enumerate(player_ids)):
-            right_player_id_index = (0 if self._is_last_index(player_ids, i)
+            clockwise_player_id_index = (0 if self._is_last_index(player_ids, i)
                                      else i + 1)
             neighbors = Neighbors(
                 user_id=user_id,
-                left_player_id=player_ids[i - 1],
+                clockwise_player_id=player_ids[i - 1],
                 player_id=player_id,
-                right_player_id=player_ids[right_player_id_index],
+                counterclockwise_player_id=player_ids[clockwise_player_id_index],
             )
             neighbors_lst.append(neighbors)
 
@@ -1440,7 +1598,7 @@ class PlayerDao(DaoRedis):
 
     def _init_player(self,
                      neighbors: Neighbors,
-                     field: Field
+                     field: FieldRegular
                      ) -> int:
         seasons_score_id = SeasonsScoreDao(R).init_seasons_score()  # create seasons for players
         player_dc = self._create_model(neighbors, field, seasons_score_id)
@@ -1457,15 +1615,15 @@ class PlayerDao(DaoRedis):
 
     def _create_model(self,
                       neighbors: Neighbors,
-                      field: Field,
+                      field: FieldRegular,
                       seasons_score_id: int,
                       ) -> PlayerDC:
         player_dc = self._model_class(
             id=neighbors.player_id,
             user_id=neighbors.user_id,
             field=field,
-            left_player_id=neighbors.left_player_id,
-            right_player_id=neighbors.right_player_id,
+            clockwise_player_id=neighbors.clockwise_player_id,
+            counterclockwise_player_id=neighbors.counterclockwise_player_id,
             coins=0,
             seasons_score_id=seasons_score_id,
             is_move_finished=False,
@@ -1480,15 +1638,6 @@ class PlayerDao(DaoRedis):
             name=self.fetch_name(player_id),
             score=self.get_score_total(player_id)
         )
-
-    @staticmethod
-    def _make_field_pretty(field: Field,
-                           ) -> FieldPretty:
-        field_pretty = [
-            [TERRAIN_STR_TO_NUM[cell.value] for cell in row]
-            for row in field
-        ]
-        return field_pretty
 
     def _fetch_user_id(self,
                        player_id: int,
@@ -1649,7 +1798,7 @@ class SeasonScoreDao(DaoRedis):
         return total
 
 
-class MonsterCardDaoRedis(DiscoveryCardDao):
+class MonsterCardDao(DiscoveryCardDao):
     _key_schema = MonsterCardKeySchema()
     _converter = MonsterCardConverter()
     MONSTER_CARD_QUANTITY = 4
@@ -1662,3 +1811,16 @@ class MonsterCardDaoRedis(DiscoveryCardDao):
         picked_card_ids = random.sample(card_ids,
                                         self.MONSTER_CARD_QUANTITY)
         return picked_card_ids
+
+    def fetch_exchange_order(self,
+                             card_id: int,
+                             ) -> EExchangeOrder:
+        exchange_order = self._fetch_model_attr(
+            model_id=card_id,
+            field_name='exchange_order',
+            converter=services.utils.decode_bytes,
+        )
+        services.utils.validate_not_none(exchange_order)
+
+        return services.common.get_enum_by_value(EExchangeOrder,
+                                                 exchange_order)

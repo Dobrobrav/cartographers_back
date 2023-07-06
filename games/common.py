@@ -3,8 +3,10 @@ from typing import TypeAlias, MutableSequence
 
 from django.db import models
 
-Field: TypeAlias = MutableSequence[MutableSequence['ETerrainTypeAll']]
+FieldRegular: TypeAlias = MutableSequence[MutableSequence['ETerrainTypeAll']]
+# FieldRedis: TypeAlias = MutableSequence[MutableSequence[str]]
 FieldPretty: TypeAlias = list[list[int]]
+
 SeasonName: TypeAlias = str
 URL: TypeAlias = str
 UserID: TypeAlias = int
