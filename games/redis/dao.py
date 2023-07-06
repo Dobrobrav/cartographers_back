@@ -258,7 +258,7 @@ class GameDao(DaoRedis):
 
         if self._check_all_players_finished_move(game_id):
             self._prepare_for_next_move(game_id)
-            if not self.check_is_game_finished(game_id):
+            if not self.check_game_is_finished(game_id=game_id):
                 self._start_new_move(game_id)
 
     def try_kick_player(self,
@@ -370,7 +370,7 @@ class GameDao(DaoRedis):
         key = self._key_schema.game_id_by_player_id_index_key
         self._redis.hdel(key, player_id)
 
-    def check_is_game_finished(self,
+    def check_game_is_finished(self,
                                user_id: int | None = None,
                                game_id: int | None = None,
                                ) -> bool:
