@@ -56,8 +56,8 @@ class ObjectiveCardHash(HashModel):
 class PlayerHash(HashModel):
     user_id: bytes  # not a substitute of id, it's another attr
     field: bytes
-    left_player_id: bytes
-    right_player_id: bytes
+    clockwise_player_id: bytes
+    counterclockwise_player_id: bytes
     coins: bytes
     seasons_score_id: bytes
     is_move_finished: bytes

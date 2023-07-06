@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import MutableSequence, Optional
 
-from games.common import ETerrainCardType, ETerrainTypeLimited, EShapeUnit, EExchangeOrder, Field
+from games.common import ETerrainCardType, ETerrainTypeLimited, EShapeUnit, EExchangeOrder, FieldRegular
 from services.redis.base.models_base import DataClassModel
 
 
@@ -79,9 +79,9 @@ class ObjectiveCardDC(DataClassModel):
 @dataclass
 class PlayerDC(DataClassModel):
     user_id: int
-    field: Field
-    left_player_id: int
-    right_player_id: int
+    field: FieldRegular
+    counterclockwise_player_id: int
+    clockwise_player_id: int
     coins: int
     seasons_score_id: int
     is_move_finished: bool
