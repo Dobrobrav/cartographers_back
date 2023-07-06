@@ -243,7 +243,6 @@ class GameDao(DaoRedis):
         game_id = self._fetch_game_id_by_user_id(user_id)
         raise NotImplementedError()
 
-
     def process_move(self,
                      user_id: int,
                      updated_field: FieldPretty,
@@ -498,12 +497,13 @@ class GameDao(DaoRedis):
     def _switch_to_next_season(self,
                                game_id: int,
                                ) -> None:
-        season_dao = SeasonDao(R)
-
-        unused_monster_card_ids = season_dao.fetch_monster_card_ids(
-            self._fetch_current_season_id(game_id)
+        SeasonDao(R).finish_season(
+            current_season_id := self._fetch_current_season_id(game_id)
         )
-        season_dao.finish_init_season(
+        unused_monster_card_ids = SeasonDao(R).fetch_monster_card_ids(
+            current_season_id
+        )
+        SeasonDao(R).finish_init_season(
             next_season_id := self._fetch_next_season_id(game_id),
             unused_monster_card_ids,
         )
