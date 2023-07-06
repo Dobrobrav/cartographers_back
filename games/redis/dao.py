@@ -72,6 +72,15 @@ class DiscoveryCardDao(DaoFull):
         )
         return shape_pretty
 
+    def check_card_is_ruins(self,
+                            card_id: int,
+                            discovery_card_type: EDiscoveryCardType,
+                            ) -> bool:
+        if discovery_card_type is not EDiscoveryCardType.TERRAIN:
+            return False
+
+        return TerrainCardDao(R).check_card_is_ruins(card_id)
+
     def fetch_image_url(self,
                         discovery_card_id: int,
                         ) -> str:
@@ -113,14 +122,19 @@ class DiscoveryCardDao(DaoFull):
                                   monster_card_ids: MutableSequence[int],
                                   is_on_ruins_allowed: bool,
                                   ):
+        services.utils.validate_not_none(is_on_ruins_allowed)
+
         is_on_ruins = False
         card_id, discovery_card_type = self.pick_card(
             terrain_card_ids=terrain_card_ids,
             monster_card_ids=monster_card_ids,
             is_ruins_allowed=is_on_ruins_allowed,
         )
+        print(f"{card_id=}")
 
-        if is_on_ruins_allowed and MoveDao(R).check_card_is_ruins(card_id):
+        if is_on_ruins_allowed and DiscoveryCardDao(R).check_card_is_ruins(
+                card_id, discovery_card_type,
+        ):
             is_on_ruins = True
             card_id, discovery_card_type = self.pick_card(
                 terrain_card_ids=terrain_card_ids,
@@ -453,8 +467,11 @@ class GameDao(DaoRedis):
     def _start_new_move(self,
                         game_id: int,
                         ) -> None:
-
-        SeasonDao(R).start_new_move(self._fetch_current_season_id(game_id))
+        # if there's only place for anomaly, then 'is_on_ruins_allowed' is False
+        SeasonDao(R).start_new_move(
+            season_id=self._fetch_current_season_id(game_id),
+            is_on_ruins_allowed=True,
+        )
         self._set_players_move_not_finished(game_id)
 
     def _check_discovery_card_is_monster(self,
@@ -1312,6 +1329,7 @@ class MoveDao(DaoRedis):
     def _fetch_discovery_card_type(self,
                                    move_id: int,
                                    ) -> str:
+        print(f"{move_id=}")
         card_type = self._fetch_model_attr(
             model_id=move_id,
             field_name='discovery_card_type',
