@@ -783,8 +783,8 @@ class SeasonDao(DaoRedis):
             name=ESeasonName.SPRING,
             season_card=season_cards.spring,
             objective_card_ids=objective_card_ids[0:2],
-            terrain_card_ids=self._shuffle_cards(terrain_card_ids),  # no need to shuffle
-            # terrain_card_ids=[],
+            # terrain_card_ids=self._shuffle_cards(terrain_card_ids),  # no need to shuffle
+            terrain_card_ids=[6] * 10 + self._shuffle_cards(terrain_card_ids),
             monster_card_ids=[monster_card_ids.pop()] * 10,
             # monster_card_ids=[],
             is_first_season=True,
@@ -1579,7 +1579,7 @@ class PlayerDao(DaoRedis):
         neighbors_lst = []
         for user_id, (i, player_id) in zip(user_ids, enumerate(player_ids)):
             clockwise_player_id_index = (0 if self._is_last_index(player_ids, i)
-                                     else i + 1)
+                                         else i + 1)
             neighbors = Neighbors(
                 user_id=user_id,
                 clockwise_player_id=player_ids[i - 1],
