@@ -130,7 +130,6 @@ class DiscoveryCardDao(DaoFull):
             monster_card_ids=monster_card_ids,
             is_ruins_allowed=is_on_ruins_allowed,
         )
-        print(f"{card_id=}")
 
         if is_on_ruins_allowed and DiscoveryCardDao(R).check_card_is_ruins(
                 card_id, discovery_card_type,
@@ -700,7 +699,6 @@ class TerrainCardDao(DiscoveryCardDao):
     def fetch_card_type(self,
                         terrain_card_id: int,
                         ) -> str:
-        print(terrain_card_id)
         card_type = self._fetch_model_attr(terrain_card_id, 'card_type',
                                            services.utils.decode_bytes)
         services.utils.validate_not_none(card_type)
@@ -800,10 +798,10 @@ class SeasonDao(DaoRedis):
             name=ESeasonName.SPRING,
             season_card=season_cards.spring,
             objective_card_ids=objective_card_ids[0:2],
-            # terrain_card_ids=self._shuffle_cards(terrain_card_ids),  # no need to shuffle
-            terrain_card_ids=[6] * 10 + [15, 15, 15],
-            # monster_card_ids=[monster_card_ids.pop()],
-            monster_card_ids=[],
+            terrain_card_ids=self._shuffle_cards(terrain_card_ids),  # no need to shuffle
+            # terrain_card_ids=[6] * 10 + [15, 15, 15],
+            monster_card_ids=[monster_card_ids.pop()],
+            # monster_card_ids=[],
             is_first_season=True,
         ))
         seasons.append(self.pre_init_season(
@@ -1329,7 +1327,6 @@ class MoveDao(DaoRedis):
     def _fetch_discovery_card_type(self,
                                    move_id: int,
                                    ) -> str:
-        print(f"{move_id=}")
         card_type = self._fetch_model_attr(
             model_id=move_id,
             field_name='discovery_card_type',
