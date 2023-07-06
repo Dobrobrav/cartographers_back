@@ -383,9 +383,17 @@ class GameDao(DaoRedis):
                                ) -> None:
         self._add_season_points(game_id)
         if self._check_season_points_exceeded(game_id):
-            self._switch_to_next_season(game_id)
-            if self._check_seasons_exceeded(game_id):
+            self._finish_season(game_id)
+            if self._check_last_season_finished(game_id):
                 self._finish_game(game_id)
+            else:  # finished season is not last
+                self._switch_to_next_season(game_id)
+
+    def _finish_season(self,
+                       game_id: int,
+                       ) -> None:
+        season_id = self._fetch_current_season_id(game_id)
+        SeasonDao(R).finish_season(season_id)
 
     def _add_season_points(self,
                            game_id: int,
@@ -497,11 +505,8 @@ class GameDao(DaoRedis):
     def _switch_to_next_season(self,
                                game_id: int,
                                ) -> None:
-        SeasonDao(R).finish_season(
-            current_season_id := self._fetch_current_season_id(game_id)
-        )
         unused_monster_card_ids = SeasonDao(R).fetch_monster_card_ids(
-            current_season_id
+            self._fetch_current_season_id(game_id)
         )
         SeasonDao(R).finish_init_season(
             next_season_id := self._fetch_next_season_id(game_id),
@@ -547,9 +552,9 @@ class GameDao(DaoRedis):
 
         return initial_cards
 
-    def _check_seasons_exceeded(self,
-                                game_id: int,
-                                ) -> bool:
+    def _check_last_season_finished(self,
+                                    game_id: int,
+                                    ) -> bool:
         """ Check if game has ended, but it's not indicated in system """
         last_season_id = self._fetch_last_season_id(game_id)
         return SeasonDao(R).check_season_finished(last_season_id)
