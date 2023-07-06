@@ -1,6 +1,6 @@
 import random
 from copy import copy
-from typing import MutableSequence, NamedTuple, Iterable, Optional, TypeAlias, Sequence, overload, Literal
+from typing import MutableSequence, NamedTuple, Iterable, Optional, TypeAlias, Sequence, overload, Literal, Any
 
 from django.contrib.auth.models import User
 
@@ -236,6 +236,13 @@ class GameDao(DaoRedis):
         )
 
         return game_pretty
+
+    def fetch_game_results(self,
+                           user_id: int,
+                           ) -> Any:
+        game_id = self._fetch_game_id_by_user_id(user_id)
+        raise NotImplementedError()
+
 
     def process_move(self,
                      user_id: int,

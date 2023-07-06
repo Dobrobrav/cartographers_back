@@ -46,11 +46,11 @@ class MoveAPIView(APIView):
         """
         user_id = get_user_id_by_token(request.auth)
         if GameDao(R).check_is_game_finished(user_id=user_id):
-            return Response("Game finished")
+            return Response("GAME_FINISHED")
         elif GameDao(R).check_is_new_move_started(user_id):
-            return Response("New move started")
+            return Response("NEW_MOVE_STARTED")
         else:
-            return Response("New move not started")
+            return Response("NEW_MOVE_NOT_STARTED")
 
     def put(self,
             request: Request,
@@ -93,10 +93,11 @@ class LeaveAPIView(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class ListView(APIView):
-    def post(self,
-             request: Request,
-             ) -> Response:
-        data = request.data
-        print(type(data))
-        return Response(status=status.HTTP_200_OK)
+
+
+class Result(APIView):
+    def get(self,
+            request: Request,
+            ) -> Response:
+
+
