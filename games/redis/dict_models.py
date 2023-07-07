@@ -1,6 +1,6 @@
 from typing import MutableSequence, TypedDict, Optional
 
-from games.common import SeasonName, URL, EShapeUnit
+from games.common import SeasonName, URL, EShapeUnit, FieldPretty
 from services.redis.base.models_base import DictModel, PrettyModel
 
 
@@ -102,7 +102,7 @@ class GamePretty(TypedDict):
     room_name: str
     player_field: MutableSequence[MutableSequence[int]]
     seasons: dict[SeasonName, URL]
-    # tasks: MutableSequence['TaskPretty']
+    tasks: MutableSequence['ObjectiveCardPretty']
     current_season_name: str
     players: MutableSequence['PlayerPretty']
     discovery_card: 'DiscoveryCardPretty'
@@ -167,6 +167,18 @@ class SeasonsScorePretty(PrettyModel):
     winter_score: SeasonScorePretty
 
 
-class TaskPretty(PrettyModel):
+class ObjectiveCardPretty(PrettyModel):
+    name: str
     text: str
-    image: str
+    image_url: str
+
+
+class PlayerResultPretty(PrettyModel):
+    player: PlayerPretty  # ok
+    player_field: FieldPretty  # ok
+    seasons_score: SeasonsScorePretty  # ok
+
+
+class GameResultsPretty(PrettyModel):
+    tasks: MutableSequence[ObjectiveCardPretty]
+    player_results: MutableSequence[PlayerResultPretty]

@@ -10,5 +10,5 @@ urlpatterns = [
     path('move/', MoveAPIView.as_view()),
     path('player/', PlayerAPIView.as_view()),
     path('leave/', LeaveAPIView.as_view()),
-    path('result/', Result.as_view())
+    path('results/', Result.as_view()),
 ]

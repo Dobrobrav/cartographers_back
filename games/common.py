@@ -5,7 +5,7 @@ from django.db import models
 
 FieldRegular: TypeAlias = MutableSequence[MutableSequence['ETerrainTypeAll']]
 # FieldRedis: TypeAlias = MutableSequence[MutableSequence[str]]
-FieldPretty: TypeAlias = list[list[int]]
+FieldPretty: TypeAlias = MutableSequence[MutableSequence[int]]
 
 SeasonName: TypeAlias = str
 URL: TypeAlias = str

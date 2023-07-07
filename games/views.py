@@ -87,8 +87,8 @@ class LeaveAPIView(APIView):
         user_id = get_user_id_by_token(request.auth)
         player_id = PlayerDao(R).fetch_player_id_by_user_id(user_id)
 
-        GameDao(R).try_leave(player_id)
-        RoomDao(R).try_leave(user_id)
+        GameDao(R).leave(player_id)
+        RoomDao(R).leave(user_id)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -97,4 +97,9 @@ class Result(APIView):
     def get(self,
             request: Request,
             ) -> Response:
-        pass
+        user_id = get_user_id_by_token(request.auth)
+        results = GameDao(R).fetch_game_results(user_id=user_id)
+
+        return Response(results)
+
+

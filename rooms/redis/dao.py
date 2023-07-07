@@ -58,9 +58,9 @@ class RoomDao(DaoFull):
         self.check_user_is_admin(room_id, kicker_id)
         self._delete_user(user_to_kick_id, room_id)
 
-    def try_leave(self,
-                  user_id: int,
-                  ) -> None:
+    def leave(self,
+              user_id: int,
+              ) -> None:
         room_id = self._fetch_room_id_by_user_id(user_id)
         self._delete_user(user_id, room_id)
 

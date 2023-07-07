@@ -6,7 +6,7 @@ from games.redis.dc_models import MonsterCardDC, GameDC, TerrainCardDC, Objectiv
     ESeasonName, SeasonCardDC, EDiscoveryCardType, SeasonsScoreDC, SeasonScoreDC, ShapeDC
 from games.redis.dict_models import SeasonDict, MoveDict, PlayerDict, MonsterCardDict, GameDict, TerrainCardDict, \
     ObjectiveCardDict, SeasonsScoreDict, \
-    SeasonScoreDict, ShapeDict
+    SeasonScoreDict, ShapeDict, ObjectiveCardPretty
 from games.redis.hash_models import GameHash, SeasonHash, MonsterCardHash, TerrainCardHash, MoveHash, PlayerHash, \
     ObjectiveCardHash, SeasonsScoreHash, \
     SeasonScoreHash, ShapeHash
@@ -267,6 +267,15 @@ class ObjectiveCardConverter(BaseFullConverter):
             text='Lorem ipsum dolor sit amet',
         )
         return redis_model
+
+    @staticmethod
+    def dc_model_to_pretty_model(dc_model: ObjectiveCardDC,
+                                 ) -> ObjectiveCardPretty:
+        return ObjectiveCardPretty(
+            name=dc_model.name,
+            text=dc_model.text,
+            image_url=dc_model.image_url,
+        )
 
 
 class TerrainCardConverter(BaseFullConverter):

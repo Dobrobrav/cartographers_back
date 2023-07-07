@@ -11,7 +11,7 @@ from rooms.redis.dao import RoomDao
 from services.redis.base.redis_dao_base import DaoRedis, DaoFull
 from .dict_models import GamePretty, PlayerPretty, SeasonName, URL, DiscoveryCardPretty, \
     SeasonsScorePretty, SpringScorePretty, SummerScorePretty, FallScorePretty, WinterScorePretty, ShapePretty, \
-    SeasonScorePretty
+    SeasonScorePretty, ObjectiveCardPretty, GameResultsPretty, PlayerResultPretty
 from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema, \
     TerrainCardKeySchema, ObjectiveCardKeySchema, SeasonsScoreKeySchema, SeasonScoreKeySchema, ShapeKeySchema
 from .converters import MonsterCardConverter, GameConverter, SeasonConverter, MoveConverter, \
@@ -203,7 +203,7 @@ class GameDao(DaoRedis):
         game_id = self._fetch_game_id_by_player_id(player_id)
         game: GameDC = self.fetch_dc_model(game_id)
 
-        seasons_score_id = player_dao.get_seasons_score_id(player_id)
+        seasons_score_id = player_dao.fetch_seasons_score_id(player_id)
         seasons_score = SeasonsScoreDao(R).fetch_seasons_score_pretty(
             seasons_score_id
         )
@@ -216,11 +216,11 @@ class GameDao(DaoRedis):
             seasons=(season_dao := SeasonDao(R)).get_seasons_pretty(
                 season_ids
             ),
-            # tasks=season_dao.get_tasks_pretty(game.season_ids),
+            tasks=season_dao.fetch_objective_cards_pretty(game.season_ids),
             current_season_name=season_dao.fetch_season_name(
                 game.current_season_id
             ),
-            players=player_dao.get_players_pretty(game.player_ids),
+            players=player_dao.fetch_players_pretty(game.player_ids),
             discovery_card=move_dao.fetch_discovery_card_pretty(
                 season_dao.fetch_move_id(
                     self._fetch_current_season_id(game_id)
@@ -239,9 +239,25 @@ class GameDao(DaoRedis):
 
     def fetch_game_results(self,
                            user_id: int,
-                           ) -> Any:
+                           ) -> GameResultsPretty:
         game_id = self._fetch_game_id_by_user_id(user_id)
-        raise NotImplementedError()
+        game_results = GameResultsPretty(
+            tasks=self._fetch_objective_cards_pretty(game_id),
+            player_results=self._fetch_player_results_pretty(game_id),
+        )
+        return game_results
+
+    def _fetch_objective_cards_pretty(self,
+                                      game_id: int,
+                                      ) -> list[ObjectiveCardPretty]:
+        season_ids = self._fetch_season_ids(game_id)
+        return SeasonDao(R).fetch_objective_cards_pretty(season_ids)
+
+    def _fetch_player_results_pretty(self,
+                                     game_id: int,
+                                     ) -> list[PlayerResultPretty]:
+        player_ids = self._fetch_player_ids(game_id)
+        return PlayerDao(R).fetch_player_results_pretty(player_ids)
 
     def process_move(self,
                      user_id: int,
@@ -266,9 +282,9 @@ class GameDao(DaoRedis):
                         ) -> None:
         pass
 
-    def try_leave(self,
-                  player_id: int,
-                  ) -> None:
+    def leave(self,
+              player_id: int,
+              ) -> None:
         game_id = self._fetch_game_id_by_player_id(player_id)
         self._delete_player(game_id, player_id)
 
@@ -544,7 +560,7 @@ class GameDao(DaoRedis):
 
         monster_card_ids = MonsterCardDao(R).pick_monster_cards()
 
-        objective_card_ids = ObjectiveCardDaoRedis(R).pick_objective_cards()
+        objective_card_ids = ObjectiveCardDao(R).pick_objective_cards()
 
         initial_cards = InitialCards(terrain_card_ids,
                                      monster_card_ids,
@@ -629,7 +645,7 @@ class GameDao(DaoRedis):
         return field
 
 
-class ObjectiveCardDaoRedis(DaoFull):
+class ObjectiveCardDao(DaoFull):
     OBJECTIVE_CARD_QUANTITY = 4
 
     _key_schema = ObjectiveCardKeySchema()
@@ -643,6 +659,22 @@ class ObjectiveCardDaoRedis(DaoFull):
         picked_card_ids = random.sample(card_ids,
                                         self.OBJECTIVE_CARD_QUANTITY)
         return picked_card_ids
+
+    def fetch_objective_cards_pretty(self,
+                                     objective_card_ids: Iterable[int],
+                                     ) -> list[ObjectiveCardPretty]:
+        return [
+            self._fetch_objective_card_pretty(objective_card_id)
+            for objective_card_id in objective_card_ids
+        ]
+
+    def _fetch_objective_card_pretty(self,
+                                     objective_card_id: int,
+                                     ) -> ObjectiveCardPretty:
+        objective_card_dc: ObjectiveCardDC = self.fetch_dc_model(
+            objective_card_id
+        )
+        return self._converter.dc_model_to_pretty_model(objective_card_dc)
 
 
 class TerrainCardDao(DiscoveryCardDao):
@@ -764,6 +796,28 @@ class SeasonDao(DaoRedis):
         services.utils.validate_not_none(move_id)
 
         return move_id
+
+    def fetch_objective_cards_pretty(self,
+                                     season_ids: MutableSequence[int],
+                                     ) -> list[ObjectiveCardPretty]:
+        objective_card_ids = self._fetch_objective_card_ids(season_ids)
+        return ObjectiveCardDao(R).fetch_objective_cards_pretty(
+            objective_card_ids
+        )
+
+    def _fetch_objective_card_ids(self,
+                                  season_ids: Iterable,
+                                  ) -> list[int]:
+        objective_card_ids = [
+            self._fetch_first_objective_card_id(season_id)
+            for season_id in season_ids
+        ]
+        return objective_card_ids
+
+    def _fetch_first_objective_card_id(self,
+                                       season_id: int,
+                                       ) -> int:
+        return self._fetch_model_attr(season_id, 'objective_card_ids')[0]
 
     def check_season_finished(self,
                               season_id: int,
@@ -1358,14 +1412,39 @@ class PlayerDao(DaoRedis):
     _converter = PlayerConverter()
     _model_class = PlayerDC
 
-    def get_players_pretty(self,
-                           player_ids: Iterable[int],
-                           ) -> list[PlayerPretty]:
+    def fetch_players_pretty(self,
+                             player_ids: Iterable[int],
+                             ) -> list[PlayerPretty]:
         players = [
-            self._get_player_pretty(player_id)
+            self._fetch_player_pretty(player_id)
             for player_id in player_ids
         ]
         return players
+
+    def fetch_player_results_pretty(self,
+                                    player_ids: Iterable[int],
+                                    ) -> list[PlayerResultPretty]:
+        return [
+            self._fetch_player_result_pretty(player_id)
+            for player_id in player_ids
+        ]
+
+    def _fetch_player_result_pretty(self,
+                                    player_id: int,
+                                    ) -> PlayerResultPretty:
+        return PlayerResultPretty(
+            player=self._fetch_player_pretty(player_id),
+            player_field=self.fetch_field_pretty(player_id),
+            seasons_score=self.fetch_seasons_score_pretty(player_id=player_id),
+        )
+
+    def fetch_seasons_score_pretty(self,
+                                   user_id: int | None = None,
+                                   player_id: int | None = None,
+                                   ) -> SeasonsScorePretty:
+        player_id = player_id or self.fetch_player_id_by_user_id(user_id)
+        score_id = self._fetch_seasons_score_id(player_id)
+        return SeasonsScoreDao(R).fetch_seasons_score_pretty(score_id)
 
     def fetch_neighbor_field_pretty(self,
                                     player_id: int,
@@ -1536,9 +1615,9 @@ class PlayerDao(DaoRedis):
         ]
         return player_ids
 
-    def get_seasons_score_id(self,
-                             player_id: int,
-                             ) -> int:
+    def fetch_seasons_score_id(self,
+                               player_id: int,
+                               ) -> int:
         id = self._fetch_model_attr(
             model_id=player_id,
             field_name='seasons_score_id',
@@ -1660,9 +1739,9 @@ class PlayerDao(DaoRedis):
         )
         return player_dc
 
-    def _get_player_pretty(self,
-                           player_id: int,
-                           ) -> PlayerPretty:
+    def _fetch_player_pretty(self,
+                             player_id: int,
+                             ) -> PlayerPretty:
         return PlayerPretty(
             id=player_id,
             name=self.fetch_name(player_id),

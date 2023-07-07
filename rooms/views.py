@@ -148,6 +148,6 @@ class Leave(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        RoomDao(R).try_leave(user_id)
+        RoomDao(R).leave(user_id)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

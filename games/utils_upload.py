@@ -2,7 +2,7 @@ from cartographers_back.settings import R
 from games.models import DiscoveryCardSQL, MonsterCardSQL, ObjectiveCardSQL, ShapeSQL
 from redis import Redis
 
-from games.redis.dao import MonsterCardDao, TerrainCardDao, ObjectiveCardDaoRedis, ShapeDaoRedis
+from games.redis.dao import MonsterCardDao, TerrainCardDao, ObjectiveCardDao, ShapeDaoRedis
 
 
 def save_models_to_redis():
@@ -20,7 +20,7 @@ def _upload_shapes(redis: Redis,
 
 def _upload_objective_cards(redis: Redis,
                             ) -> None:
-    dao = ObjectiveCardDaoRedis(redis)
+    dao = ObjectiveCardDao(redis)
     objective_cards_sql = ObjectiveCardSQL.objects.all()
     dao.insert_sql_models(objective_cards_sql)
 
