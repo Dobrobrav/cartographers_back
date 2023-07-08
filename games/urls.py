@@ -3,7 +3,7 @@ from django.urls import path
 from . import utils_upload
 from .views import GameAPIView, MoveAPIView, PlayerAPIView, LeaveAPIView, Result
 
-# utils_upload.save_models_to_redis()
+utils_upload.save_models_to_redis()
 
 urlpatterns = [
     path('game/', GameAPIView.as_view()),
