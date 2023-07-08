@@ -98,8 +98,8 @@ DATABASES = {
     #     # 'PORT': 5433,
     # },
 
-    'default': env.RELATIONAL_DB,
-    'new': {
+    # 'default': env.RELATIONAL_DB,
+    'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'kalyaktu_carts',
         'USER': 'kalyaktu_carts',
