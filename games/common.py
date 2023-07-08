@@ -14,6 +14,13 @@ ScoreSource: TypeAlias = str
 ScoreValue: TypeAlias = int
 
 
+class EObjectiveCardCategory(models.TextChoices):
+    VILLAGE = 'village'
+    FOREST = 'forest'
+    FIELD_AND_WATER = 'field_and_water'
+    FORMATION = 'formation'
+
+
 class ETerrainTypeLimited(models.TextChoices):
     WATER = 'water'
     FIELD = 'field'

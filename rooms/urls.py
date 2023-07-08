@@ -4,7 +4,7 @@ from . import utils
 from .views import RoomAPIView, EnterDetails, Search, Delete, \
     User, Ready, Leave, DisplayRoomsAPIView
 
-utils.save_models_to_redis()
+# utils.save_models_to_redis()
 
 urlpatterns = [
     path('', DisplayRoomsAPIView.as_view(), name='rooms'),

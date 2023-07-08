@@ -2,7 +2,8 @@ from enum import Enum, IntEnum
 
 from django.db import models
 
-from games.common import EObjectiveCardName, ETerrainCardType, ETerrainTypeLimited, EExchangeOrder
+from .common import EObjectiveCardName, ETerrainCardType, ETerrainTypeLimited, EExchangeOrder, \
+    EObjectiveCardCategory
 
 
 # Create your models here.
@@ -10,18 +11,21 @@ class ObjectiveCardSQL(models.Model):
     name = models.CharField(
         max_length=30, choices=EObjectiveCardName.choices,
     )
-    # text = models.TextField(
-    #     blank=True, null=True, default=None,
-    # )
+    text = models.TextField(
+        blank=True, null=True, default=None,
+    )
     image = models.ImageField(
         upload_to='objective_cards/',
+    )
+    category = models.CharField(
+        max_length=20, choices=EObjectiveCardCategory.choices,
     )
 
     def __str__(self) -> str:
         return str(self.name)
 
 
-class DiscoveryCardSQL(models.Model):
+class TerrainCardSQL(models.Model):
     name = models.CharField(
         max_length=20, default=None, null=True,
     )

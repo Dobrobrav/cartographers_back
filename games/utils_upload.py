@@ -1,5 +1,5 @@
 from cartographers_back.settings import R
-from games.models import DiscoveryCardSQL, MonsterCardSQL, ObjectiveCardSQL, ShapeSQL
+from games.models import TerrainCardSQL, MonsterCardSQL, ObjectiveCardSQL, ShapeSQL
 from redis import Redis
 
 from games.redis.dao import MonsterCardDao, TerrainCardDao, ObjectiveCardDao, ShapeDaoRedis
@@ -34,7 +34,7 @@ def _upload_monster_cards(redis: Redis,
 
 def _upload_terrain_cards(redis: Redis,
                           ) -> None:
-    terrain_cards = DiscoveryCardSQL.objects \
+    terrain_cards = TerrainCardSQL.objects \
         .select_related('shape', 'additional_shape').all()
 
     TerrainCardDao(redis).insert_sql_models(terrain_cards)

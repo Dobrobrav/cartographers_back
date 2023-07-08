@@ -1,7 +1,7 @@
 import services
 from games.common import EShapeUnit
-from games.models import MonsterCardSQL, DiscoveryCardSQL, ETerrainCardType, ETerrainTypeLimited, ObjectiveCardSQL, \
-    EExchangeOrder, SeasonCardSQL, ShapeSQL
+from games.models import MonsterCardSQL, ETerrainCardType, ETerrainTypeLimited, ObjectiveCardSQL, \
+    EExchangeOrder, SeasonCardSQL, ShapeSQL, TerrainCardSQL
 from games.redis.dc_models import MonsterCardDC, GameDC, TerrainCardDC, ObjectiveCardDC, MoveDC, PlayerDC, SeasonDC, \
     ESeasonName, SeasonCardDC, EDiscoveryCardType, SeasonsScoreDC, SeasonScoreDC, ShapeDC
 from games.redis.dict_models import SeasonDict, MoveDict, PlayerDict, MonsterCardDict, GameDict, TerrainCardDict, \
@@ -280,7 +280,7 @@ class ObjectiveCardConverter(BaseFullConverter):
 
 class TerrainCardConverter(BaseFullConverter):
     @staticmethod
-    def sql_model_to_dc_model(sql_model: DiscoveryCardSQL,
+    def sql_model_to_dc_model(sql_model: TerrainCardSQL,
                               ) -> TerrainCardDC:
         card_type = get_enum_by_value(
             ETerrainCardType,
