@@ -1,4 +1,4 @@
-from typing import Iterable, Callable, Generator, Any, TypeVar, Optional
+from typing import Iterable, Callable, Generator, Any, TypeVar, Optional, MutableSequence
 
 from django.db.models import Model
 from redis.client import Redis
@@ -9,6 +9,7 @@ from services.redis.base.key_schemas_base import IKeySchema
 
 from services.redis.base.converters_base import BaseRedisConverter, DictModel, HashModel, BaseFullConverter
 from services.redis.base.models_base import DataClassModel
+import random
 
 T = TypeVar('T')
 
@@ -27,6 +28,13 @@ class DaoBase:
         ids_key = self._key_schema.ids_key
         ids = (int(id) for id in self._redis.smembers(ids_key))
         return ids
+
+    @staticmethod
+    def _pick_card_id(card_ids: MutableSequence[int],
+                      ) -> int:
+        random_card_id = random.choice(card_ids)
+        card_ids.remove(random_card_id)
+        return random_card_id
 
     def _fetch_model_attr(self,
                           model_id: int,
