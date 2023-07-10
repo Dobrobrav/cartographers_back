@@ -12,6 +12,7 @@ def save_models_to_redis():
     _upload_shapes(R)
 
 
+
 def _upload_shapes(redis: Redis,
                    ) -> None:
     objective_cards_sql = ShapeSQL.objects.all()

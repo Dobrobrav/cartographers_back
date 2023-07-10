@@ -19,7 +19,7 @@ class GameAPIView(APIView):
         token = request.auth
         user_id = get_user_id_by_token(token)
 
-        GameDao(R).try_init_game(user_id)
+        GameDao(R).init_game(user_id)
 
         return Response(status=HTTP_201_CREATED)
 

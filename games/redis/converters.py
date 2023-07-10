@@ -1,5 +1,5 @@
 import services
-from games.common import EShapeUnit
+from games.common import EShapeUnit, EObjectiveCardCategory
 from games.models import MonsterCardSQL, ETerrainCardType, ETerrainTypeLimited, ObjectiveCardSQL, \
     EExchangeOrder, SeasonCardSQL, ShapeSQL, TerrainCardSQL
 from games.redis.dc_models import MonsterCardDC, GameDC, TerrainCardDC, ObjectiveCardDC, MoveDC, PlayerDC, SeasonDC, \
@@ -241,8 +241,12 @@ class ObjectiveCardConverter(BaseFullConverter):
         objective_card_dc = ObjectiveCardDC(
             id=sql_model.pk,
             name=sql_model.name,
-            text='SOME PLACEHOLDER',
+            text=sql_model.text,
             image_url=sql_model.image.url,
+            category=get_enum_by_value(
+                EObjectiveCardCategory,
+                sql_model.category,
+            )
         )
         return objective_card_dc
 
@@ -254,6 +258,7 @@ class ObjectiveCardConverter(BaseFullConverter):
             name=dc_model.name,
             image_url=dc_model.image_url,
             text=dc_model.text,
+            category=dc_model.category.value,
         )
         return objective_card_dict
 
@@ -264,7 +269,11 @@ class ObjectiveCardConverter(BaseFullConverter):
             id=int(hash_model[b'id']),
             name=hash_model[b'name'].decode('utf-8'),
             image_url=hash_model[b'image_url'].decode('utf-8'),
-            text='Lorem ipsum dolor sit amet',
+            text=services.utils.decode_bytes(hash_model[b'text']),
+            category=get_enum_by_value(
+                EObjectiveCardCategory,
+                services.utils.decode_bytes(hash_model[b'category']),
+            )
         )
         return redis_model
 

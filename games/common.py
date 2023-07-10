@@ -81,6 +81,9 @@ class EObjectiveCardName(models.TextChoices):
     VAST_PLAINS = 'vast_plains'
     BROKEN_ROADS = 'broken_roads'
     CALDERAS = 'calderas'
+    THE_GREAT_CITY = 'the_great_city'
+    THE_PROMISED_LAND = 'the_promised_land'
+    THE_OUTPOST = 'the_outpost'
 
 
 TT: TypeAlias = ETerrainTypeAll

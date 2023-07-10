@@ -11,7 +11,7 @@ from rooms.redis.dao import RoomDao
 from services.redis.base.redis_dao_base import DaoRedis, DaoFull
 from .dict_models import GamePretty, PlayerPretty, SeasonName, URL, DiscoveryCardPretty, \
     SeasonsScorePretty, SpringScorePretty, SummerScorePretty, FallScorePretty, WinterScorePretty, ShapePretty, \
-    SeasonScorePretty, ObjectiveCardPretty, GameResultsPretty, PlayerResultPretty
+    SeasonScorePretty, ObjectiveCardPretty, GameResultsPretty, PlayerResultPretty, ObjectiveCardsByCategory
 from .key_schemas import MonsterCardKeySchema, GameKeySchema, SeasonKeySchema, MoveKeySchema, PlayerKeySchema, \
     TerrainCardKeySchema, ObjectiveCardKeySchema, SeasonsScoreKeySchema, SeasonScoreKeySchema, ShapeKeySchema
 from .converters import MonsterCardConverter, GameConverter, SeasonConverter, MoveConverter, \
@@ -20,7 +20,8 @@ from .converters import MonsterCardConverter, GameConverter, SeasonConverter, Mo
 from .dc_models import SeasonDC, GameDC, MoveDC, TerrainCardDC, ESeasonName, EDiscoveryCardType, \
     ObjectiveCardDC, PlayerDC, SeasonsScoreDC, SeasonScoreDC, ShapeDC
 from .. import utils
-from ..common import ETerrainTypeAll, TERRAIN_STR_TO_NUM, FieldPretty, FieldRegular, BLANK_FIELD, EExchangeOrder
+from ..common import ETerrainTypeAll, TERRAIN_STR_TO_NUM, FieldPretty, FieldRegular, BLANK_FIELD, EExchangeOrder, \
+    EObjectiveCardCategory
 from ..models import SeasonCardSQL
 import games.utils
 
@@ -157,13 +158,6 @@ class DiscoveryCardDao(DaoFull):
 
         return random_type
 
-    @staticmethod
-    def _pick_card_id(card_ids: MutableSequence[int],
-                      ) -> int:
-        random_card_id = random.choice(card_ids)
-        card_ids.remove(random_card_id)
-        return random_card_id
-
 
 class GameDao(DaoRedis):
     MONSTER_CARDS_AMOUNT = 4
@@ -172,10 +166,9 @@ class GameDao(DaoRedis):
     _key_schema = GameKeySchema()
     _converter = GameConverter()
 
-    def try_init_game(self,
-                      initiator_user_id: int,
-                      ) -> None:
-        """ try to init game """
+    def init_game(self,
+                  initiator_user_id: int,
+                  ) -> None:
         # каждый сезон карты местности перетасовываются, а после хода карта откладывается
         initial_cards = self._get_initial_cards()
         season_ids = SeasonDao(R).pre_init_seasons(initial_cards)
@@ -557,9 +550,7 @@ class GameDao(DaoRedis):
     @staticmethod
     def _get_initial_cards():
         terrain_card_ids = TerrainCardDao(R).pick_terrain_cards()
-
         monster_card_ids = MonsterCardDao(R).pick_monster_cards()
-
         objective_card_ids = ObjectiveCardDao(R).pick_objective_cards()
 
         initial_cards = InitialCards(terrain_card_ids,
@@ -656,9 +647,59 @@ class ObjectiveCardDao(DaoFull):
         card_ids_key = self._key_schema.ids_key
         card_ids = [int(id) for id in self._redis.smembers(card_ids_key)]
 
-        picked_card_ids = random.sample(card_ids,
-                                        self.OBJECTIVE_CARD_QUANTITY)
+        cards: ObjectiveCardsByCategory = {
+            name: self._select_cards_by_type(card_ids, category)
+            for name, category in zip(
+                ('village', 'forest', 'field_and_water', 'formation'),
+                (
+                    EObjectiveCardCategory.VILLAGE,
+                    EObjectiveCardCategory.FOREST,
+                    EObjectiveCardCategory.FIELD_AND_WATER,
+                    EObjectiveCardCategory.FORMATION,
+                )
+            )
+        }
+        picked_card_ids = self._pick_card_for_each_category(cards)
         return picked_card_ids
+
+    def _pick_card_for_each_category(
+            self,
+            card_ids_by_category: ObjectiveCardsByCategory,
+    ) -> list[int]:
+        print(card_ids_by_category)
+        picked_card_ids = [
+            self._pick_card_id(card_ids_by_category['village']),
+            self._pick_card_id(card_ids_by_category['forest']),
+            self._pick_card_id(card_ids_by_category['field_and_water']),
+            self._pick_card_id(card_ids_by_category['formation']),
+        ]
+        return picked_card_ids
+
+    def _select_cards_by_type(self,
+                              card_ids: MutableSequence[int],
+                              category: EObjectiveCardCategory,
+                              ) -> list[int]:
+        res = [
+            card_id for card_id in card_ids
+            if services.common.get_enum_by_value(
+                EObjectiveCardCategory,
+                self._fetch_category(card_id),
+            ) == category
+        ]
+        return res
+
+    def _fetch_category(self,
+                        card_id: int,
+                        ) -> str:
+        category_str = self._fetch_model_attr(
+            model_id=card_id,
+            field_name='category',
+            converter=services.utils.decode_bytes,
+        )
+        category_enum = services.common.get_enum_by_value(
+            EObjectiveCardCategory, category_str
+        )
+        return category_enum
 
     def fetch_objective_cards_pretty(self,
                                      objective_card_ids: Iterable[int],

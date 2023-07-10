@@ -51,6 +51,7 @@ class ObjectiveCardHash(HashModel):
     name: bytes
     text: bytes
     image_url: bytes
+    category: bytes
 
 
 class PlayerHash(HashModel):

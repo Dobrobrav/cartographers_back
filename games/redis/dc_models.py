@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import MutableSequence, Optional
 
-from games.common import ETerrainCardType, ETerrainTypeLimited, EShapeUnit, EExchangeOrder, FieldRegular
+from games.common import ETerrainCardType, ETerrainTypeLimited, EShapeUnit, EExchangeOrder, FieldRegular, \
+    EObjectiveCardCategory
 from services.redis.base.models_base import DataClassModel
 
 
@@ -74,6 +75,7 @@ class ObjectiveCardDC(DataClassModel):
     name: str
     text: Optional[str]
     image_url: str
+    category: EObjectiveCardCategory
 
 
 @dataclass

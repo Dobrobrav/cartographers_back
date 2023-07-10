@@ -54,6 +54,8 @@ class ObjectiveCardDict(DictModel):
     name: str
     text: str
     image_url: str
+    category: str
+
 
 
 class PlayerDict(DictModel):
@@ -182,3 +184,10 @@ class PlayerResultPretty(PrettyModel):
 class GameResultsPretty(PrettyModel):
     tasks: MutableSequence[ObjectiveCardPretty]
     player_results: MutableSequence[PlayerResultPretty]
+
+
+class ObjectiveCardsByCategory(TypedDict):
+    village: MutableSequence[int]
+    forest: MutableSequence[int]
+    field_and_water: MutableSequence[int]
+    formation: MutableSequence[int]
