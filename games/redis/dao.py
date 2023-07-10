@@ -933,8 +933,8 @@ class SeasonDao(DaoRedis):
         seasons.append(self.pre_init_season(
             name=ESeasonName.WINTER,
             season_card=season_cards.winter,
-            objective_card_ids=[objective_card_ids[0],
-                                objective_card_ids[3]],
+            objective_card_ids=[objective_card_ids[3],
+                                objective_card_ids[0]],
             terrain_card_ids=self._shuffle_cards(terrain_card_ids),
             monster_card_ids=[monster_card_ids.pop()],
             is_first_season=False,
