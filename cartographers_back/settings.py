@@ -97,15 +97,8 @@ DATABASES = {
     #     # 'PORT': 5433,
     # },
 
-    # 'default': env.RELATIONAL_DB,
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'kalyaktu_carts',
-        'USER': 'kalyaktu_carts',
-        'PASSWORD': 'gqIuFxM2',
-        'HOST': 'kalyaktu.beget.tech',
-        'PORT': 3306,
-    },
+    'default': env.RELATIONAL_DB,
+
 
 }
 
