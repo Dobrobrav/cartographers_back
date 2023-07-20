@@ -99,7 +99,6 @@ DATABASES = {
 
     'default': env.RELATIONAL_DB,
 
-
 }
 
 # Password validation
@@ -143,13 +142,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 DEFAULT_FILE_STORAGE = 'django_selectel_storage.storage.SelectelStorage'
 
-SELECTEL_STORAGES = {
-    'default': {
-        'USERNAME': '217742_cartographers',
-        'PASSWORD': '_^lsosL087',
-        'CONTAINER': 'cartographers',
-    }
-}
+SELECTEL_STORAGES = env.SELECTEL_STORAGE
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
